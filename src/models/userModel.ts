@@ -1,0 +1,6 @@
+
+class ModelUser {
+
+}
+
+export = ModelUser
