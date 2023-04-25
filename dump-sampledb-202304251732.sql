@@ -5,7 +5,7 @@
 -- Dumped from database version 11.0
 -- Dumped by pg_dump version 14.2
 
--- Started on 2023-04-04 16:58:14
+-- Started on 2023-04-25 17:32:40
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -29,7 +29,7 @@ CREATE SCHEMA public;
 ALTER SCHEMA public OWNER TO "robby parlan";
 
 --
--- TOC entry 2867 (class 0 OID 0)
+-- TOC entry 2881 (class 0 OID 0)
 -- Dependencies: 3
 -- Name: SCHEMA public; Type: COMMENT; Schema: -; Owner: robby parlan
 --
@@ -75,7 +75,7 @@ CREATE SEQUENCE public.api_clients_id_seq
 ALTER TABLE public.api_clients_id_seq OWNER TO dbadmin;
 
 --
--- TOC entry 2868 (class 0 OID 0)
+-- TOC entry 2882 (class 0 OID 0)
 -- Dependencies: 196
 -- Name: api_clients_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: dbadmin
 --
@@ -143,7 +143,7 @@ CREATE SEQUENCE public.role_access_id_seq
 ALTER TABLE public.role_access_id_seq OWNER TO dbadmin;
 
 --
--- TOC entry 2869 (class 0 OID 0)
+-- TOC entry 2883 (class 0 OID 0)
 -- Dependencies: 200
 -- Name: role_access_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: dbadmin
 --
@@ -182,7 +182,7 @@ CREATE SEQUENCE public.roles_id_seq
 ALTER TABLE public.roles_id_seq OWNER TO dbadmin;
 
 --
--- TOC entry 2870 (class 0 OID 0)
+-- TOC entry 2884 (class 0 OID 0)
 -- Dependencies: 198
 -- Name: roles_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: dbadmin
 --
@@ -228,7 +228,7 @@ CREATE SEQUENCE public.users_id_seq
 ALTER TABLE public.users_id_seq OWNER TO dbadmin;
 
 --
--- TOC entry 2871 (class 0 OID 0)
+-- TOC entry 2885 (class 0 OID 0)
 -- Dependencies: 203
 -- Name: users_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: dbadmin
 --
@@ -237,7 +237,60 @@ ALTER SEQUENCE public.users_id_seq OWNED BY public.users.id;
 
 
 --
--- TOC entry 2712 (class 2604 OID 41084)
+-- TOC entry 207 (class 1259 OID 73914)
+-- Name: watermonitoring; Type: TABLE; Schema: public; Owner: dbadmin
+--
+
+CREATE TABLE public.watermonitoring (
+    id integer NOT NULL,
+    createtime bigint,
+    temperature character varying(100),
+    ph character varying(100),
+    tds character varying(100),
+    nh3n character varying(100),
+    tss character varying(100),
+    turbidity character varying(100),
+    "do" character varying(100),
+    no3 character varying(100),
+    cod character varying(100),
+    bod character varying(100),
+    waterlevel character varying(100),
+    is_success boolean DEFAULT false,
+    sync_time timestamp without time zone,
+    res_menlhk text,
+    exec_count integer DEFAULT 0 NOT NULL
+);
+
+
+ALTER TABLE public.watermonitoring OWNER TO dbadmin;
+
+--
+-- TOC entry 206 (class 1259 OID 73912)
+-- Name: watermonitoring_id_seq; Type: SEQUENCE; Schema: public; Owner: dbadmin
+--
+
+CREATE SEQUENCE public.watermonitoring_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.watermonitoring_id_seq OWNER TO dbadmin;
+
+--
+-- TOC entry 2886 (class 0 OID 0)
+-- Dependencies: 206
+-- Name: watermonitoring_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: dbadmin
+--
+
+ALTER SEQUENCE public.watermonitoring_id_seq OWNED BY public.watermonitoring.id;
+
+
+--
+-- TOC entry 2719 (class 2604 OID 41084)
 -- Name: api_clients id; Type: DEFAULT; Schema: public; Owner: dbadmin
 --
 
@@ -245,7 +298,7 @@ ALTER TABLE ONLY public.api_clients ALTER COLUMN id SET DEFAULT nextval('public.
 
 
 --
--- TOC entry 2716 (class 2604 OID 41112)
+-- TOC entry 2723 (class 2604 OID 41112)
 -- Name: role_access id; Type: DEFAULT; Schema: public; Owner: dbadmin
 --
 
@@ -253,7 +306,7 @@ ALTER TABLE ONLY public.role_access ALTER COLUMN id SET DEFAULT nextval('public.
 
 
 --
--- TOC entry 2717 (class 2604 OID 41124)
+-- TOC entry 2724 (class 2604 OID 41124)
 -- Name: users id; Type: DEFAULT; Schema: public; Owner: dbadmin
 --
 
@@ -261,7 +314,15 @@ ALTER TABLE ONLY public.users ALTER COLUMN id SET DEFAULT nextval('public.users_
 
 
 --
--- TOC entry 2853 (class 0 OID 41081)
+-- TOC entry 2728 (class 2604 OID 73917)
+-- Name: watermonitoring id; Type: DEFAULT; Schema: public; Owner: dbadmin
+--
+
+ALTER TABLE ONLY public.watermonitoring ALTER COLUMN id SET DEFAULT nextval('public.watermonitoring_id_seq'::regclass);
+
+
+--
+-- TOC entry 2865 (class 0 OID 41081)
 -- Dependencies: 197
 -- Data for Name: api_clients; Type: TABLE DATA; Schema: public; Owner: dbadmin
 --
@@ -272,7 +333,7 @@ COPY public.api_clients (id, created_at, updated_at, client_id, secret_key, gran
 
 
 --
--- TOC entry 2858 (class 0 OID 41113)
+-- TOC entry 2870 (class 0 OID 41113)
 -- Dependencies: 202
 -- Data for Name: menus; Type: TABLE DATA; Schema: public; Owner: dbadmin
 --
@@ -285,7 +346,7 @@ trs	Transaksi	3
 
 
 --
--- TOC entry 2861 (class 0 OID 73904)
+-- TOC entry 2873 (class 0 OID 73904)
 -- Dependencies: 205
 -- Data for Name: r_config; Type: TABLE DATA; Schema: public; Owner: dbadmin
 --
@@ -295,7 +356,7 @@ COPY public.r_config (code, type, value, description) FROM stdin;
 
 
 --
--- TOC entry 2857 (class 0 OID 41109)
+-- TOC entry 2869 (class 0 OID 41109)
 -- Dependencies: 201
 -- Data for Name: role_access; Type: TABLE DATA; Schema: public; Owner: dbadmin
 --
@@ -310,7 +371,7 @@ COPY public.role_access (id, role_id, menu_id) FROM stdin;
 
 
 --
--- TOC entry 2855 (class 0 OID 41099)
+-- TOC entry 2867 (class 0 OID 41099)
 -- Dependencies: 199
 -- Data for Name: roles; Type: TABLE DATA; Schema: public; Owner: dbadmin
 --
@@ -322,7 +383,7 @@ usr	User	2
 
 
 --
--- TOC entry 2860 (class 0 OID 41121)
+-- TOC entry 2872 (class 0 OID 41121)
 -- Dependencies: 204
 -- Data for Name: users; Type: TABLE DATA; Schema: public; Owner: dbadmin
 --
@@ -335,7 +396,22 @@ COPY public.users (id, username, fullname, email, password, phone, created_at, u
 
 
 --
--- TOC entry 2872 (class 0 OID 0)
+-- TOC entry 2875 (class 0 OID 73914)
+-- Dependencies: 207
+-- Data for Name: watermonitoring; Type: TABLE DATA; Schema: public; Owner: dbadmin
+--
+
+COPY public.watermonitoring (id, createtime, temperature, ph, tds, nh3n, tss, turbidity, "do", no3, cod, bod, waterlevel, is_success, sync_time, res_menlhk, exec_count) FROM stdin;
+5	1681954187000	28.4	7.66	378.0	0.57	10.62	0.52	2.07	0.0	0.0	0.0	0.17	f	2023-04-25 16:40:00.969	{"status":{"statusCode":403,"statusDesc":"Forbidden"}}	3
+6	1681954187000	28.4	7.66	378.0	0.57	10.62	0.52	2.07	0.0	0.0	0.0	0.17	f	2023-04-25 16:40:01.016	{"status":{"statusCode":403,"statusDesc":"Forbidden"}}	3
+7	1681954187000	28.4	7.66	378.0	0.57	10.62	0.52	2.07	0.0	0.0	0.0	0.17	f	2023-04-25 16:40:01.06	{"status":{"statusCode":403,"statusDesc":"Forbidden"}}	3
+8	1681954187000	28.4	7.66	378.0	0.57	10.62	0.52	2.07	0.0	0.0	0.0	0.17	f	2023-04-25 16:40:01.297	{"status":{"statusCode":403,"statusDesc":"Forbidden"}}	3
+1	1681954187000	28.4	7.66	378.0	0.57	10.62	0.52	2.07	0.0	0.0	0.0	0.17	f	2023-04-25 16:40:01.521	{"status":{"statusCode":403,"statusDesc":"Forbidden"}}	3
+\.
+
+
+--
+-- TOC entry 2887 (class 0 OID 0)
 -- Dependencies: 196
 -- Name: api_clients_id_seq; Type: SEQUENCE SET; Schema: public; Owner: dbadmin
 --
@@ -344,7 +420,7 @@ SELECT pg_catalog.setval('public.api_clients_id_seq', 1, true);
 
 
 --
--- TOC entry 2873 (class 0 OID 0)
+-- TOC entry 2888 (class 0 OID 0)
 -- Dependencies: 200
 -- Name: role_access_id_seq; Type: SEQUENCE SET; Schema: public; Owner: dbadmin
 --
@@ -353,7 +429,7 @@ SELECT pg_catalog.setval('public.role_access_id_seq', 5, true);
 
 
 --
--- TOC entry 2874 (class 0 OID 0)
+-- TOC entry 2889 (class 0 OID 0)
 -- Dependencies: 198
 -- Name: roles_id_seq; Type: SEQUENCE SET; Schema: public; Owner: dbadmin
 --
@@ -362,7 +438,7 @@ SELECT pg_catalog.setval('public.roles_id_seq', 1, false);
 
 
 --
--- TOC entry 2875 (class 0 OID 0)
+-- TOC entry 2890 (class 0 OID 0)
 -- Dependencies: 203
 -- Name: users_id_seq; Type: SEQUENCE SET; Schema: public; Owner: dbadmin
 --
@@ -371,7 +447,16 @@ SELECT pg_catalog.setval('public.users_id_seq', 3, true);
 
 
 --
--- TOC entry 2726 (class 2606 OID 41135)
+-- TOC entry 2891 (class 0 OID 0)
+-- Dependencies: 206
+-- Name: watermonitoring_id_seq; Type: SEQUENCE SET; Schema: public; Owner: dbadmin
+--
+
+SELECT pg_catalog.setval('public.watermonitoring_id_seq', 8, true);
+
+
+--
+-- TOC entry 2736 (class 2606 OID 41135)
 -- Name: menus menus_pk; Type: CONSTRAINT; Schema: public; Owner: dbadmin
 --
 
@@ -380,7 +465,7 @@ ALTER TABLE ONLY public.menus
 
 
 --
--- TOC entry 2730 (class 2606 OID 73911)
+-- TOC entry 2740 (class 2606 OID 73911)
 -- Name: r_config pk_r_config; Type: CONSTRAINT; Schema: public; Owner: dbadmin
 --
 
@@ -389,7 +474,7 @@ ALTER TABLE ONLY public.r_config
 
 
 --
--- TOC entry 2724 (class 2606 OID 41133)
+-- TOC entry 2734 (class 2606 OID 41133)
 -- Name: role_access role_access_pk; Type: CONSTRAINT; Schema: public; Owner: dbadmin
 --
 
@@ -398,7 +483,7 @@ ALTER TABLE ONLY public.role_access
 
 
 --
--- TOC entry 2722 (class 2606 OID 41131)
+-- TOC entry 2732 (class 2606 OID 41131)
 -- Name: roles roles_pk; Type: CONSTRAINT; Schema: public; Owner: dbadmin
 --
 
@@ -407,7 +492,7 @@ ALTER TABLE ONLY public.roles
 
 
 --
--- TOC entry 2728 (class 2606 OID 41129)
+-- TOC entry 2738 (class 2606 OID 41129)
 -- Name: users users_pk; Type: CONSTRAINT; Schema: public; Owner: dbadmin
 --
 
@@ -415,7 +500,16 @@ ALTER TABLE ONLY public.users
     ADD CONSTRAINT users_pk PRIMARY KEY (id);
 
 
--- Completed on 2023-04-04 16:58:14
+--
+-- TOC entry 2742 (class 2606 OID 73923)
+-- Name: watermonitoring watermonitoring_pk; Type: CONSTRAINT; Schema: public; Owner: dbadmin
+--
+
+ALTER TABLE ONLY public.watermonitoring
+    ADD CONSTRAINT watermonitoring_pk PRIMARY KEY (id);
+
+
+-- Completed on 2023-04-25 17:32:40
 
 --
 -- PostgreSQL database dump complete
