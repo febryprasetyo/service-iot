@@ -1,6 +1,6 @@
 {
-  "name": "lctssvc",
-  "script": "node ./live/main.js",
+  "name": "svc",
+  "script": "./build/main.js",
   "watch": false,
   "env": {
     "NODE_ENV": "production",

@@ -12,6 +12,8 @@ import { logger, db, loadConfig } from './utils/util'
 import { RequestLogger } from "./utils/requestlogger";
 import { ResponseLogger } from "./utils/responselogger";
 import routes from './routes/index'
+import scheduledFunction from "./utils/processData"
+
 const upload = multer()
 
 const port = normalizePort(process.env.PORT || 3000)
@@ -119,6 +121,10 @@ async function onListening() {
     logger.info('Connected database : ', process.env.DB_DATABASE)
     logger.info('SERVER', process.env.NODE_ENV)
     logger.info(`Server Listening on ${bind}`)
+
+    //Running scheduler
+    let ctx = new scheduledFunction()
+    ctx.initScheduledJobs()
 }
 
 main();

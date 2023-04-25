@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
-import { logger, redisClient } from "../utils/util";
-import { prefixKeyRedis } from "../config/prefixKeyRedis";
+// import { logger, redisClient } from "../utils/util";
+import { logger } from "../utils/util";
+// import { prefixKeyRedis } from "../config/prefixKeyRedis";
 
 function AuthMiddleware (access: string) {
   return async function (req: Request, res: Response, next: NextFunction ) {
@@ -30,14 +31,16 @@ function AuthMiddleware (access: string) {
         is_access: tmpAccess[2]
       }
 
-      let combineKey = prefixKeyRedis.auth + token
+      // let combineKey = prefixKeyRedis.auth + token
+      let combineKey = token
   
       //get value redis
-      let valueRedis: any = await redisClient.get(combineKey)
+      // let valueRedis: any = await redisClient.get(combineKey)
+      let valueRedis: any = null
       if (valueRedis) {
         let expired: any = process.env.REDIS_EXPIRES
-        await redisClient.expire(combineKey, expired)
-        valueRedis = await redisClient.get(combineKey)
+        // await redisClient.expire(combineKey, expired)
+        // valueRedis = await redisClient.get(combineKey)
       } else {
         res.status(401).json({
           success: false,

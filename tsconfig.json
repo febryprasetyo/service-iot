@@ -7,6 +7,7 @@
       "rootDir": "src",
       "baseUrl": ".",
       "strict": true,
+      "skipLibCheck": true,
       "sourceMap": true
   }
 }
