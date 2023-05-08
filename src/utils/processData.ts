@@ -37,7 +37,7 @@ class ProcessData {
                 "DHL" : 12,
                 "TDS" : el.tds,
                 "Salinitas" : 14.12,
-                "DO" : el.do,
+                "DO" : el.do_,
                 "PH" : el.ph,
                 "Turbidity" : el.turbidity,
                 "Kedalaman" : 18,
