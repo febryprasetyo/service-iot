@@ -2,6 +2,9 @@ import { logger, db, errorCodes, moment }
    from './util';
 import axios from 'axios';
 import CronJob from 'node-cron'
+import 'dotenv/config';
+const apiKey = process.env.API_KEY
+const apiSecret = process.env.API_SECRET
 
 class ProcessData {
   async syncDataIot() {
@@ -49,8 +52,8 @@ class ProcessData {
                 "BOD" : el.bod,
                 "TSS" : el.tss
                 },
-                "apikey" : "[apikey]",
-                "apisecret" : "[apisecret]"
+                "apikey" : apiKey,
+                "apisecret" : apiSecret
               }
           }
     
