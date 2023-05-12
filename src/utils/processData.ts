@@ -221,7 +221,7 @@ class ProcessData {
   }
 
   async initScheduledJobs() {
-    const scheduledJobFunction = CronJob.schedule("*/1 * * * *", async () => {
+    const scheduledJobFunction = CronJob.schedule("0 */1 * * *", async () => {
       let ctx = new ProcessData()
       await ctx.syncDataIot()
     });
