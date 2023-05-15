@@ -7,6 +7,6 @@ const SyncCtl = new IntegrationController()
 let router = express.Router()
 
 router.post('/submit', SyncCtl.handleSubmitData)
-router.get('/data', SyncCtl.handleGetData)
+router.get('/data/res_menlhk', SyncCtl.handleGetData)
 
 export = router

@@ -48,8 +48,9 @@ class IntegrationController {
     try {
       let limit = req.query.limit ? req.query.limit : 100
 
-      let data = await db.select(db.raw(`*`))
+      let data = await db.select(db.raw(`res_menlhk`))
       .from('watermonitoring')
+      .orderByRaw('id DESC')
       .limit(limit)
 
       return sendResponseCustom(res, {
