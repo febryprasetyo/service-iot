@@ -39,6 +39,29 @@ class IntegrationController {
       return sendResponseError(res, error)
     }
   }
+
+  /**
+   * Handle Get Data IOT
+   * @author Roby Parlan
+   */
+  async handleGetData(req: any, res: any) {
+    try {
+      let limit = req.query.limit ? req.query.limit : 100
+
+      let data = await db.select(db.raw(`*`))
+      .from('watermonitoring')
+      .limit(limit)
+
+      return sendResponseCustom(res, {
+        data
+      })
+    } catch (error: any) {
+      if (!errorCodes[error.code])
+        logger.error(error)
+
+      return sendResponseError(res, error)
+    }
+  }
 }
 
 export = IntegrationController
