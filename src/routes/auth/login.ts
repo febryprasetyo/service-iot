@@ -7,4 +7,6 @@ const AuthCtl = new AuthController()
 
 let router = express.Router()
 
+router.post('/login', AuthCtl.handleLogin)
+
 export = router
