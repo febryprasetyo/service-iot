@@ -163,7 +163,7 @@ function sendResponseError(res: any, error: any, statusCode: any = null) {
     sendResponseCustom(res, { message: 'Internal backend error' }, statusCode)
 }
 
-function isValidateToken(token: string) {
+function isValidateToken(token: any) {
   let jwtKey: any = process.env.JWT_SECRET_KEY
   try {
     if (token) {
@@ -280,34 +280,6 @@ function replaceCommaDot(val: any) {
   return val.replace(/[,.]/g, '')
 }
 
-/**
-   * get token from escm
-   * @author robby parlan
-   * @param {*} from
-   */
-async function getToken() {
-  let config = await getConfig()
-  try {
-    let data = new FormData()
-    data.append('username', config.sync_api.token_escm.username)
-    data.append('password', config.sync_api.token_escm.password)
-
-    let res = await axios({
-      method: config.sync_api.token_escm.method,
-      url: config.sync_api.token_escm.url,
-      headers: { ...data.getHeaders() },
-      data: data
-    })
-
-    // logger.info('cookies : ', res.headers['set-cookie'])
-    // let chk: any = res.headers['set-cookie']
-
-    return res.data.data.token
-  } catch (error: any) {
-    throw error
-  }
-}
-
 async function checkDir(dir:string) {
   let tempFolder: any = process.env.ASSET_DIR
   if (!fs.existsSync(tempFolder)) {
@@ -318,8 +290,22 @@ async function checkDir(dir:string) {
   }
 }
 
+function decodeToken(token: any) {
+  let jwtKey: any = process.env.JWT_SECRET_KEY
+  try {
+    if (token) {
+      let decode = jwt.decode(token, jwtKey)
+      return decode
+    } else {
+      return null
+    }
+  } catch (error) {
+    return null
+  }
+}
+
 export {
   logger, db, sendResponseCustom, sendResponseError, errorCodes, isEmpty, isNotEmpty, checkDir,
   createError, isValidateToken, validateParams, validateParamsAll,
-  deleteAllKeys, loadConfig, getConfig, isNumeric, moment, replaceCommaDot, getToken
+  deleteAllKeys, loadConfig, getConfig, isNumeric, moment, replaceCommaDot, decodeToken
 }

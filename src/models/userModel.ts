@@ -39,9 +39,9 @@ class ModelUser {
       }
 
       let expDate = Date.now() + (data.jwt_age * 1000)
-      let user_id = data.user_id
+      let userData = data.user_id
       let jwtKey: any = process.env.JWT_SECRET_KEY
-      let token = jwt.encode({ exp: expDate, user_id }, jwtKey)
+      let token = jwt.encode({ exp: expDate, userData: result.user_data }, jwtKey)
 
       result.token = {
         access_token: token,
