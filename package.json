@@ -23,6 +23,7 @@
     "hummus": "^1.0.112",
     "indicative": "^7.4.4",
     "minio": "^7.0.29",
+    "mqtt": "^5.0.5",
     "multer": "^1.4.5-lts.1",
     "node-cron": "^3.0.2",
     "nodemailer": "^6.7.5",

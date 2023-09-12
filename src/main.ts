@@ -13,6 +13,7 @@ import { RequestLogger } from "./utils/requestlogger";
 import { ResponseLogger } from "./utils/responselogger";
 import routes from './routes/index'
 import scheduledFunction from "./utils/processData"
+import MqttHandler from "./config/mqttHandler";
 
 const upload = multer()
 
@@ -123,8 +124,12 @@ async function onListening() {
     logger.info(`Server Listening on ${bind}`)
 
     //Running scheduler
-    let ctx = new scheduledFunction()
-    ctx.initScheduledJobs()
+    // let ctx = new scheduledFunction()
+    // ctx.initScheduledJobs()
+
+    //Running & Connect Mqtt
+    var mqttClient = new MqttHandler();
+    mqttClient.connect();
 }
 
 main();
