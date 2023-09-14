@@ -5,7 +5,7 @@
 -- Dumped from database version 11.0
 -- Dumped by pg_dump version 14.2
 
--- Started on 2023-09-07 15:18:12
+-- Started on 2023-09-14 13:13:36
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -29,7 +29,7 @@ CREATE SCHEMA public;
 ALTER SCHEMA public OWNER TO "robby parlan";
 
 --
--- TOC entry 2882 (class 0 OID 0)
+-- TOC entry 2898 (class 0 OID 0)
 -- Dependencies: 3
 -- Name: SCHEMA public; Type: COMMENT; Schema: -; Owner: robby parlan
 --
@@ -40,30 +40,25 @@ COMMENT ON SCHEMA public IS 'standard public schema';
 SET default_tablespace = '';
 
 --
--- TOC entry 197 (class 1259 OID 41081)
--- Name: api_clients; Type: TABLE; Schema: public; Owner: dbadmin
+-- TOC entry 206 (class 1259 OID 82128)
+-- Name: cities; Type: TABLE; Schema: public; Owner: dbadmin
 --
 
-CREATE TABLE public.api_clients (
+CREATE TABLE public.cities (
     id integer NOT NULL,
-    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_at timestamp without time zone,
-    client_id character varying(50) NOT NULL,
-    secret_key character varying(100),
-    grant_type character varying(20) DEFAULT 'credentials'::character varying NOT NULL,
-    is_active boolean DEFAULT false NOT NULL,
-    jwt_age integer
+    city_name character varying(200),
+    province_id integer NOT NULL
 );
 
 
-ALTER TABLE public.api_clients OWNER TO dbadmin;
+ALTER TABLE public.cities OWNER TO dbadmin;
 
 --
--- TOC entry 196 (class 1259 OID 41079)
--- Name: api_clients_id_seq; Type: SEQUENCE; Schema: public; Owner: dbadmin
+-- TOC entry 205 (class 1259 OID 82126)
+-- Name: cities_id_seq; Type: SEQUENCE; Schema: public; Owner: dbadmin
 --
 
-CREATE SEQUENCE public.api_clients_id_seq
+CREATE SEQUENCE public.cities_id_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -72,33 +67,104 @@ CREATE SEQUENCE public.api_clients_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.api_clients_id_seq OWNER TO dbadmin;
+ALTER TABLE public.cities_id_seq OWNER TO dbadmin;
 
 --
--- TOC entry 2883 (class 0 OID 0)
--- Dependencies: 196
--- Name: api_clients_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: dbadmin
+-- TOC entry 2899 (class 0 OID 0)
+-- Dependencies: 205
+-- Name: cities_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: dbadmin
 --
 
-ALTER SEQUENCE public.api_clients_id_seq OWNED BY public.api_clients.id;
+ALTER SEQUENCE public.cities_id_seq OWNED BY public.cities.id;
 
 
 --
--- TOC entry 202 (class 1259 OID 41113)
--- Name: menus; Type: TABLE; Schema: public; Owner: dbadmin
+-- TOC entry 210 (class 1259 OID 82146)
+-- Name: datas; Type: TABLE; Schema: public; Owner: dbadmin
 --
 
-CREATE TABLE public.menus (
-    id character varying(10) NOT NULL,
-    menu_name character varying(20) NOT NULL,
-    order_no integer
+CREATE TABLE public.datas (
+    id bigint NOT NULL,
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at timestamp without time zone,
+    station_id character varying(200),
+    station_name character varying(200),
+    address character varying(500),
+    province_id integer,
+    province_name character varying(100),
+    city_id integer,
+    city_name character varying(200),
+    uuid character varying(100),
+    created_by integer
 );
 
 
-ALTER TABLE public.menus OWNER TO dbadmin;
+ALTER TABLE public.datas OWNER TO dbadmin;
 
 --
--- TOC entry 205 (class 1259 OID 73904)
+-- TOC entry 209 (class 1259 OID 82144)
+-- Name: datas_id_seq; Type: SEQUENCE; Schema: public; Owner: dbadmin
+--
+
+CREATE SEQUENCE public.datas_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.datas_id_seq OWNER TO dbadmin;
+
+--
+-- TOC entry 2900 (class 0 OID 0)
+-- Dependencies: 209
+-- Name: datas_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: dbadmin
+--
+
+ALTER SEQUENCE public.datas_id_seq OWNED BY public.datas.id;
+
+
+--
+-- TOC entry 204 (class 1259 OID 82120)
+-- Name: provinces; Type: TABLE; Schema: public; Owner: dbadmin
+--
+
+CREATE TABLE public.provinces (
+    id integer NOT NULL,
+    province_name character varying(200)
+);
+
+
+ALTER TABLE public.provinces OWNER TO dbadmin;
+
+--
+-- TOC entry 203 (class 1259 OID 82118)
+-- Name: provinces_id_seq; Type: SEQUENCE; Schema: public; Owner: dbadmin
+--
+
+CREATE SEQUENCE public.provinces_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.provinces_id_seq OWNER TO dbadmin;
+
+--
+-- TOC entry 2901 (class 0 OID 0)
+-- Dependencies: 203
+-- Name: provinces_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: dbadmin
+--
+
+ALTER SEQUENCE public.provinces_id_seq OWNED BY public.provinces.id;
+
+
+--
+-- TOC entry 200 (class 1259 OID 73904)
 -- Name: r_config; Type: TABLE; Schema: public; Owner: dbadmin
 --
 
@@ -113,46 +179,7 @@ CREATE TABLE public.r_config (
 ALTER TABLE public.r_config OWNER TO dbadmin;
 
 --
--- TOC entry 201 (class 1259 OID 41109)
--- Name: role_access; Type: TABLE; Schema: public; Owner: dbadmin
---
-
-CREATE TABLE public.role_access (
-    id integer NOT NULL,
-    role_id character varying(10) NOT NULL,
-    menu_id character varying(10) NOT NULL
-);
-
-
-ALTER TABLE public.role_access OWNER TO dbadmin;
-
---
--- TOC entry 200 (class 1259 OID 41107)
--- Name: role_access_id_seq; Type: SEQUENCE; Schema: public; Owner: dbadmin
---
-
-CREATE SEQUENCE public.role_access_id_seq
-    AS integer
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
-ALTER TABLE public.role_access_id_seq OWNER TO dbadmin;
-
---
--- TOC entry 2884 (class 0 OID 0)
--- Dependencies: 200
--- Name: role_access_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: dbadmin
---
-
-ALTER SEQUENCE public.role_access_id_seq OWNED BY public.role_access.id;
-
-
---
--- TOC entry 199 (class 1259 OID 41099)
+-- TOC entry 197 (class 1259 OID 41099)
 -- Name: roles; Type: TABLE; Schema: public; Owner: dbadmin
 --
 
@@ -166,7 +193,7 @@ CREATE TABLE public.roles (
 ALTER TABLE public.roles OWNER TO dbadmin;
 
 --
--- TOC entry 198 (class 1259 OID 41097)
+-- TOC entry 196 (class 1259 OID 41097)
 -- Name: roles_id_seq; Type: SEQUENCE; Schema: public; Owner: dbadmin
 --
 
@@ -182,8 +209,8 @@ CREATE SEQUENCE public.roles_id_seq
 ALTER TABLE public.roles_id_seq OWNER TO dbadmin;
 
 --
--- TOC entry 2885 (class 0 OID 0)
--- Dependencies: 198
+-- TOC entry 2902 (class 0 OID 0)
+-- Dependencies: 196
 -- Name: roles_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: dbadmin
 --
 
@@ -191,7 +218,7 @@ ALTER SEQUENCE public.roles_id_seq OWNED BY public.roles.id;
 
 
 --
--- TOC entry 204 (class 1259 OID 41121)
+-- TOC entry 199 (class 1259 OID 41121)
 -- Name: users; Type: TABLE; Schema: public; Owner: dbadmin
 --
 
@@ -213,7 +240,7 @@ CREATE TABLE public.users (
 ALTER TABLE public.users OWNER TO dbadmin;
 
 --
--- TOC entry 203 (class 1259 OID 41119)
+-- TOC entry 198 (class 1259 OID 41119)
 -- Name: users_id_seq; Type: SEQUENCE; Schema: public; Owner: dbadmin
 --
 
@@ -229,8 +256,8 @@ CREATE SEQUENCE public.users_id_seq
 ALTER TABLE public.users_id_seq OWNER TO dbadmin;
 
 --
--- TOC entry 2886 (class 0 OID 0)
--- Dependencies: 203
+-- TOC entry 2903 (class 0 OID 0)
+-- Dependencies: 198
 -- Name: users_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: dbadmin
 --
 
@@ -238,7 +265,7 @@ ALTER SEQUENCE public.users_id_seq OWNED BY public.users.id;
 
 
 --
--- TOC entry 207 (class 1259 OID 73914)
+-- TOC entry 202 (class 1259 OID 73914)
 -- Name: watermonitoring; Type: TABLE; Schema: public; Owner: dbadmin
 --
 
@@ -260,14 +287,17 @@ CREATE TABLE public.watermonitoring (
     sync_time timestamp without time zone,
     res_menlhk text,
     exec_count integer DEFAULT 0 NOT NULL,
-    id_stasiun character varying(100)
+    id_stasiun character varying(100),
+    uuid character varying(100),
+    project character varying(100),
+    "time" timestamp without time zone
 );
 
 
 ALTER TABLE public.watermonitoring OWNER TO dbadmin;
 
 --
--- TOC entry 206 (class 1259 OID 73912)
+-- TOC entry 201 (class 1259 OID 73912)
 -- Name: watermonitoring_id_seq; Type: SEQUENCE; Schema: public; Owner: dbadmin
 --
 
@@ -283,8 +313,8 @@ CREATE SEQUENCE public.watermonitoring_id_seq
 ALTER TABLE public.watermonitoring_id_seq OWNER TO dbadmin;
 
 --
--- TOC entry 2887 (class 0 OID 0)
--- Dependencies: 206
+-- TOC entry 2904 (class 0 OID 0)
+-- Dependencies: 201
 -- Name: watermonitoring_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: dbadmin
 --
 
@@ -292,23 +322,83 @@ ALTER SEQUENCE public.watermonitoring_id_seq OWNED BY public.watermonitoring.id;
 
 
 --
--- TOC entry 2719 (class 2604 OID 41084)
--- Name: api_clients id; Type: DEFAULT; Schema: public; Owner: dbadmin
+-- TOC entry 208 (class 1259 OID 82138)
+-- Name: watermonitoringv2; Type: TABLE; Schema: public; Owner: dbadmin
 --
 
-ALTER TABLE ONLY public.api_clients ALTER COLUMN id SET DEFAULT nextval('public.api_clients_id_seq'::regclass);
+CREATE TABLE public.watermonitoringv2 (
+    id bigint NOT NULL,
+    uuid character varying(100),
+    project character varying(100),
+    "time" timestamp without time zone,
+    temperature character varying(10),
+    do_ character varying(10),
+    tur character varying(10),
+    ct character varying(10),
+    ph character varying(10),
+    orp character varying(10),
+    bod character varying(10),
+    cod character varying(10),
+    tss character varying(10),
+    n character varying(10),
+    no3_n character varying(10),
+    no2 character varying(10),
+    depeth character varying(10)
+);
+
+
+ALTER TABLE public.watermonitoringv2 OWNER TO dbadmin;
+
+--
+-- TOC entry 207 (class 1259 OID 82136)
+-- Name: watermonitoringv2_id_seq; Type: SEQUENCE; Schema: public; Owner: dbadmin
+--
+
+CREATE SEQUENCE public.watermonitoringv2_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.watermonitoringv2_id_seq OWNER TO dbadmin;
+
+--
+-- TOC entry 2905 (class 0 OID 0)
+-- Dependencies: 207
+-- Name: watermonitoringv2_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: dbadmin
+--
+
+ALTER SEQUENCE public.watermonitoringv2_id_seq OWNED BY public.watermonitoringv2.id;
 
 
 --
--- TOC entry 2723 (class 2604 OID 41112)
--- Name: role_access id; Type: DEFAULT; Schema: public; Owner: dbadmin
+-- TOC entry 2737 (class 2604 OID 82131)
+-- Name: cities id; Type: DEFAULT; Schema: public; Owner: dbadmin
 --
 
-ALTER TABLE ONLY public.role_access ALTER COLUMN id SET DEFAULT nextval('public.role_access_id_seq'::regclass);
+ALTER TABLE ONLY public.cities ALTER COLUMN id SET DEFAULT nextval('public.cities_id_seq'::regclass);
 
 
 --
--- TOC entry 2724 (class 2604 OID 41124)
+-- TOC entry 2739 (class 2604 OID 82149)
+-- Name: datas id; Type: DEFAULT; Schema: public; Owner: dbadmin
+--
+
+ALTER TABLE ONLY public.datas ALTER COLUMN id SET DEFAULT nextval('public.datas_id_seq'::regclass);
+
+
+--
+-- TOC entry 2736 (class 2604 OID 82123)
+-- Name: provinces id; Type: DEFAULT; Schema: public; Owner: dbadmin
+--
+
+ALTER TABLE ONLY public.provinces ALTER COLUMN id SET DEFAULT nextval('public.provinces_id_seq'::regclass);
+
+
+--
+-- TOC entry 2728 (class 2604 OID 41124)
 -- Name: users id; Type: DEFAULT; Schema: public; Owner: dbadmin
 --
 
@@ -316,7 +406,7 @@ ALTER TABLE ONLY public.users ALTER COLUMN id SET DEFAULT nextval('public.users_
 
 
 --
--- TOC entry 2729 (class 2604 OID 73917)
+-- TOC entry 2733 (class 2604 OID 73917)
 -- Name: watermonitoring id; Type: DEFAULT; Schema: public; Owner: dbadmin
 --
 
@@ -324,32 +414,58 @@ ALTER TABLE ONLY public.watermonitoring ALTER COLUMN id SET DEFAULT nextval('pub
 
 
 --
--- TOC entry 2866 (class 0 OID 41081)
--- Dependencies: 197
--- Data for Name: api_clients; Type: TABLE DATA; Schema: public; Owner: dbadmin
+-- TOC entry 2738 (class 2604 OID 82141)
+-- Name: watermonitoringv2 id; Type: DEFAULT; Schema: public; Owner: dbadmin
 --
 
-COPY public.api_clients (id, created_at, updated_at, client_id, secret_key, grant_type, is_active, jwt_age) FROM stdin;
-1	2022-04-21 16:28:23.7797	\N	web	5ae6ea9d886dfb01ca99b8aae3db70d	credentials	t	3600
+ALTER TABLE ONLY public.watermonitoringv2 ALTER COLUMN id SET DEFAULT nextval('public.watermonitoringv2_id_seq'::regclass);
+
+
+--
+-- TOC entry 2888 (class 0 OID 82128)
+-- Dependencies: 206
+-- Data for Name: cities; Type: TABLE DATA; Schema: public; Owner: dbadmin
+--
+
+COPY public.cities (id, city_name, province_id) FROM stdin;
+1	KOTA JAKARTA PUSAT	1
+2	KOTA JAKARTA UTARA	1
+3	KOTA JAKARTA SELATAN	1
+4	KOTA JAKARTA TIMUR	1
+5	KOTA JAKARTA BARAT	1
+6	KOTA BANDUNG	2
+7	KAB. BANDUNG	2
 \.
 
 
 --
--- TOC entry 2871 (class 0 OID 41113)
--- Dependencies: 202
--- Data for Name: menus; Type: TABLE DATA; Schema: public; Owner: dbadmin
+-- TOC entry 2892 (class 0 OID 82146)
+-- Dependencies: 210
+-- Data for Name: datas; Type: TABLE DATA; Schema: public; Owner: dbadmin
 --
 
-COPY public.menus (id, menu_name, order_no) FROM stdin;
-usr-mgt	User Management	1
-rpt	Reporting	2
-trs	Transaksi	3
+COPY public.datas (id, created_at, updated_at, station_id, station_name, address, province_id, province_name, city_id, city_name, uuid, created_by) FROM stdin;
+2	2023-09-14 12:56:55.326673	\N	FASTPEC-FPA-101	Cahaya Mas Cemerlang 2	Jl. rayamangun blok K no 23	1	DKI JAKARTA	4	KOTA JAKARTA TIMUR	f07472d5-aac5-423c-b968-9c4a45d0acd6	1
+3	2023-09-14 12:57:06.971154	\N	FASTPEC-FPA-103	Cahaya Mas Cemerlang 3	Jl. rayamangun blok K no 23	1	DKI JAKARTA	4	KOTA JAKARTA TIMUR	d25704ec-bf0c-4249-83b4-d41ebe669155	1
+4	2023-09-14 13:08:37.571884	\N	FASTPEC-FPA-104	Cahaya Mas Cemerlang 4	Jl. rayamangun blok K no 23	1	DKI JAKARTA	4	KOTA JAKARTA TIMUR	57275cfd-8af3-4d9e-9598-553943bc53c2	1
 \.
 
 
 --
--- TOC entry 2874 (class 0 OID 73904)
--- Dependencies: 205
+-- TOC entry 2886 (class 0 OID 82120)
+-- Dependencies: 204
+-- Data for Name: provinces; Type: TABLE DATA; Schema: public; Owner: dbadmin
+--
+
+COPY public.provinces (id, province_name) FROM stdin;
+1	DKI JAKARTA
+2	JAWA BARAT
+\.
+
+
+--
+-- TOC entry 2882 (class 0 OID 73904)
+-- Dependencies: 200
 -- Data for Name: r_config; Type: TABLE DATA; Schema: public; Owner: dbadmin
 --
 
@@ -358,23 +474,8 @@ COPY public.r_config (code, type, value, description) FROM stdin;
 
 
 --
--- TOC entry 2870 (class 0 OID 41109)
--- Dependencies: 201
--- Data for Name: role_access; Type: TABLE DATA; Schema: public; Owner: dbadmin
---
-
-COPY public.role_access (id, role_id, menu_id) FROM stdin;
-1	adm	usr-mgt
-2	adm	rpt
-3	adm	trs
-4	usr	rpt
-5	usr	trs
-\.
-
-
---
--- TOC entry 2868 (class 0 OID 41099)
--- Dependencies: 199
+-- TOC entry 2879 (class 0 OID 41099)
+-- Dependencies: 197
 -- Data for Name: roles; Type: TABLE DATA; Schema: public; Owner: dbadmin
 --
 
@@ -385,8 +486,8 @@ usr	User	2
 
 
 --
--- TOC entry 2873 (class 0 OID 41121)
--- Dependencies: 204
+-- TOC entry 2881 (class 0 OID 41121)
+-- Dependencies: 199
 -- Data for Name: users; Type: TABLE DATA; Schema: public; Owner: dbadmin
 --
 
@@ -398,41 +499,57 @@ COPY public.users (id, username, fullname, email, password, phone, created_at, u
 
 
 --
--- TOC entry 2876 (class 0 OID 73914)
--- Dependencies: 207
+-- TOC entry 2884 (class 0 OID 73914)
+-- Dependencies: 202
 -- Data for Name: watermonitoring; Type: TABLE DATA; Schema: public; Owner: dbadmin
 --
 
-COPY public.watermonitoring (id, createtime, temperature, ph, tds, nh3n, tss, turbidity, do_, no3, cod, bod, waterlevel, is_success, sync_time, res_menlhk, exec_count, id_stasiun) FROM stdin;
-1	1681954187000	28.4	7.66	378.0	0.57	10.62	0.52	2.07	0.0	0.0	0.0	0.17	t	2023-09-04 09:00:04.818	{"req":{"url":"https://ppkl.menlhk.go.id/onlimo/uji/connect/uji_data_onlimo","method":"POST","header":{"Content-Type":"Application/json"},"data":{"data":{"IDStasiun":null,"Tanggal":"2023-09-04","Jam":"09:00:00","Suhu":28.4,"DHL":0,"TDS":378,"Salinitas":0,"DO":2.07,"PH":7.659999999999999,"Turbidity":0.52,"Kedalaman":0.17,"SwSG":0,"Nitrat":0,"Amonia'":0.57,"ORP":0,"COD":0,"BOD":0,"TSS":10.62},"apikey":"","apisecret":""}},"res":{"status":{"statusCode":403,"statusDesc":"Forbidden"}}}	3	\N
-5	1681954187000	28.4	7.66	378.0	0.57	10.62	0.52	2.07	0.0	0.0	0.0	0.17	t	2023-09-04 09:00:04.82	{"req":{"url":"https://ppkl.menlhk.go.id/onlimo/uji/connect/uji_data_onlimo","method":"POST","header":{"Content-Type":"Application/json"},"data":{"data":{"IDStasiun":null,"Tanggal":"2023-09-04","Jam":"09:00:00","Suhu":28.4,"DHL":0,"TDS":378,"Salinitas":0,"DO":2.07,"PH":7.659999999999999,"Turbidity":0.52,"Kedalaman":0.17,"SwSG":0,"Nitrat":0,"Amonia'":0.57,"ORP":0,"COD":0,"BOD":0,"TSS":10.62},"apikey":"","apisecret":""}},"res":{"status":{"statusCode":403,"statusDesc":"Forbidden"}}}	3	\N
-6	1681954187000	28.4	7.66	378.0	0.57	10.62	0.52	2.07	0.0	0.0	0.0	0.17	t	2023-09-04 09:00:04.821	{"req":{"url":"https://ppkl.menlhk.go.id/onlimo/uji/connect/uji_data_onlimo","method":"POST","header":{"Content-Type":"Application/json"},"data":{"data":{"IDStasiun":null,"Tanggal":"2023-09-04","Jam":"09:00:00","Suhu":28.4,"DHL":0,"TDS":378,"Salinitas":0,"DO":2.07,"PH":7.659999999999999,"Turbidity":0.52,"Kedalaman":0.17,"SwSG":0,"Nitrat":0,"Amonia'":0.57,"ORP":0,"COD":0,"BOD":0,"TSS":10.62},"apikey":"","apisecret":""}},"res":{"status":{"statusCode":403,"statusDesc":"Forbidden"}}}	3	\N
-7	1681954187000	28.4	7.66	378.0	0.57	10.62	0.52	2.07	0.0	0.0	0.0	0.17	t	2023-09-04 09:00:04.822	{"req":{"url":"https://ppkl.menlhk.go.id/onlimo/uji/connect/uji_data_onlimo","method":"POST","header":{"Content-Type":"Application/json"},"data":{"data":{"IDStasiun":null,"Tanggal":"2023-09-04","Jam":"09:00:00","Suhu":28.4,"DHL":0,"TDS":378,"Salinitas":0,"DO":2.07,"PH":7.659999999999999,"Turbidity":0.52,"Kedalaman":0.17,"SwSG":0,"Nitrat":0,"Amonia'":0.57,"ORP":0,"COD":0,"BOD":0,"TSS":10.62},"apikey":"","apisecret":""}},"res":{"status":{"statusCode":403,"statusDesc":"Forbidden"}}}	3	\N
-8	1681954187000	28.4	7.66	378.0	0.57	10.62	0.52	2.07	0.0	0.0	0.0	0.17	t	2023-09-04 09:00:04.811	{"req":{"url":"https://ppkl.menlhk.go.id/onlimo/uji/connect/uji_data_onlimo","method":"POST","header":{"Content-Type":"Application/json"},"data":{"data":{"IDStasiun":null,"Tanggal":"2023-09-04","Jam":"09:00:00","Suhu":28.4,"DHL":0,"TDS":378,"Salinitas":0,"DO":2.07,"PH":7.659999999999999,"Turbidity":0.52,"Kedalaman":0.17,"SwSG":0,"Nitrat":0,"Amonia'":0.57,"ORP":0,"COD":0,"BOD":0,"TSS":10.62},"apikey":"","apisecret":""}},"res":{"status":{"statusCode":403,"statusDesc":"Forbidden"}}}	3	ID_STASIUN
+COPY public.watermonitoring (id, createtime, temperature, ph, tds, nh3n, tss, turbidity, do_, no3, cod, bod, waterlevel, is_success, sync_time, res_menlhk, exec_count, id_stasiun, uuid, project, "time") FROM stdin;
 \.
 
 
 --
--- TOC entry 2888 (class 0 OID 0)
+-- TOC entry 2890 (class 0 OID 82138)
+-- Dependencies: 208
+-- Data for Name: watermonitoringv2; Type: TABLE DATA; Schema: public; Owner: dbadmin
+--
+
+COPY public.watermonitoringv2 (id, uuid, project, "time", temperature, do_, tur, ct, ph, orp, bod, cod, tss, n, no3_n, no2, depeth) FROM stdin;
+2	NbtCYvjU6DIWpaMLbfd	fastpec	2023-08-29 14:15:54	30	8	1	1	1	1	1	1	1	1	1	1	1
+3	NbtCYvjU6DIWpaMLbfd	fastpec	2023-08-29 14:15:54	30	8	1	1	1	1	1	1	1	1	1	1	1
+\.
+
+
+--
+-- TOC entry 2906 (class 0 OID 0)
+-- Dependencies: 205
+-- Name: cities_id_seq; Type: SEQUENCE SET; Schema: public; Owner: dbadmin
+--
+
+SELECT pg_catalog.setval('public.cities_id_seq', 7, true);
+
+
+--
+-- TOC entry 2907 (class 0 OID 0)
+-- Dependencies: 209
+-- Name: datas_id_seq; Type: SEQUENCE SET; Schema: public; Owner: dbadmin
+--
+
+SELECT pg_catalog.setval('public.datas_id_seq', 4, true);
+
+
+--
+-- TOC entry 2908 (class 0 OID 0)
+-- Dependencies: 203
+-- Name: provinces_id_seq; Type: SEQUENCE SET; Schema: public; Owner: dbadmin
+--
+
+SELECT pg_catalog.setval('public.provinces_id_seq', 2, true);
+
+
+--
+-- TOC entry 2909 (class 0 OID 0)
 -- Dependencies: 196
--- Name: api_clients_id_seq; Type: SEQUENCE SET; Schema: public; Owner: dbadmin
---
-
-SELECT pg_catalog.setval('public.api_clients_id_seq', 1, true);
-
-
---
--- TOC entry 2889 (class 0 OID 0)
--- Dependencies: 200
--- Name: role_access_id_seq; Type: SEQUENCE SET; Schema: public; Owner: dbadmin
---
-
-SELECT pg_catalog.setval('public.role_access_id_seq', 5, true);
-
-
---
--- TOC entry 2890 (class 0 OID 0)
--- Dependencies: 198
 -- Name: roles_id_seq; Type: SEQUENCE SET; Schema: public; Owner: dbadmin
 --
 
@@ -440,8 +557,8 @@ SELECT pg_catalog.setval('public.roles_id_seq', 1, false);
 
 
 --
--- TOC entry 2891 (class 0 OID 0)
--- Dependencies: 203
+-- TOC entry 2910 (class 0 OID 0)
+-- Dependencies: 198
 -- Name: users_id_seq; Type: SEQUENCE SET; Schema: public; Owner: dbadmin
 --
 
@@ -449,8 +566,8 @@ SELECT pg_catalog.setval('public.users_id_seq', 3, true);
 
 
 --
--- TOC entry 2892 (class 0 OID 0)
--- Dependencies: 206
+-- TOC entry 2911 (class 0 OID 0)
+-- Dependencies: 201
 -- Name: watermonitoring_id_seq; Type: SEQUENCE SET; Schema: public; Owner: dbadmin
 --
 
@@ -458,16 +575,34 @@ SELECT pg_catalog.setval('public.watermonitoring_id_seq', 8, true);
 
 
 --
--- TOC entry 2737 (class 2606 OID 41135)
--- Name: menus menus_pk; Type: CONSTRAINT; Schema: public; Owner: dbadmin
+-- TOC entry 2912 (class 0 OID 0)
+-- Dependencies: 207
+-- Name: watermonitoringv2_id_seq; Type: SEQUENCE SET; Schema: public; Owner: dbadmin
 --
 
-ALTER TABLE ONLY public.menus
-    ADD CONSTRAINT menus_pk PRIMARY KEY (id);
+SELECT pg_catalog.setval('public.watermonitoringv2_id_seq', 3, true);
 
 
 --
--- TOC entry 2741 (class 2606 OID 73911)
+-- TOC entry 2752 (class 2606 OID 82133)
+-- Name: cities cities_pk; Type: CONSTRAINT; Schema: public; Owner: dbadmin
+--
+
+ALTER TABLE ONLY public.cities
+    ADD CONSTRAINT cities_pk PRIMARY KEY (id);
+
+
+--
+-- TOC entry 2756 (class 2606 OID 82155)
+-- Name: datas datas_pk; Type: CONSTRAINT; Schema: public; Owner: dbadmin
+--
+
+ALTER TABLE ONLY public.datas
+    ADD CONSTRAINT datas_pk PRIMARY KEY (id);
+
+
+--
+-- TOC entry 2746 (class 2606 OID 73911)
 -- Name: r_config pk_r_config; Type: CONSTRAINT; Schema: public; Owner: dbadmin
 --
 
@@ -476,16 +611,16 @@ ALTER TABLE ONLY public.r_config
 
 
 --
--- TOC entry 2735 (class 2606 OID 41133)
--- Name: role_access role_access_pk; Type: CONSTRAINT; Schema: public; Owner: dbadmin
+-- TOC entry 2750 (class 2606 OID 82125)
+-- Name: provinces provinces_pk; Type: CONSTRAINT; Schema: public; Owner: dbadmin
 --
 
-ALTER TABLE ONLY public.role_access
-    ADD CONSTRAINT role_access_pk PRIMARY KEY (id);
+ALTER TABLE ONLY public.provinces
+    ADD CONSTRAINT provinces_pk PRIMARY KEY (id);
 
 
 --
--- TOC entry 2733 (class 2606 OID 41131)
+-- TOC entry 2742 (class 2606 OID 41131)
 -- Name: roles roles_pk; Type: CONSTRAINT; Schema: public; Owner: dbadmin
 --
 
@@ -494,7 +629,7 @@ ALTER TABLE ONLY public.roles
 
 
 --
--- TOC entry 2739 (class 2606 OID 41129)
+-- TOC entry 2744 (class 2606 OID 41129)
 -- Name: users users_pk; Type: CONSTRAINT; Schema: public; Owner: dbadmin
 --
 
@@ -503,7 +638,7 @@ ALTER TABLE ONLY public.users
 
 
 --
--- TOC entry 2743 (class 2606 OID 73923)
+-- TOC entry 2748 (class 2606 OID 73923)
 -- Name: watermonitoring watermonitoring_pk; Type: CONSTRAINT; Schema: public; Owner: dbadmin
 --
 
@@ -511,7 +646,16 @@ ALTER TABLE ONLY public.watermonitoring
     ADD CONSTRAINT watermonitoring_pk PRIMARY KEY (id);
 
 
--- Completed on 2023-09-07 15:18:12
+--
+-- TOC entry 2754 (class 2606 OID 82143)
+-- Name: watermonitoringv2 watermonitoringv2_pk; Type: CONSTRAINT; Schema: public; Owner: dbadmin
+--
+
+ALTER TABLE ONLY public.watermonitoringv2
+    ADD CONSTRAINT watermonitoringv2_pk PRIMARY KEY (id);
+
+
+-- Completed on 2023-09-14 13:13:37
 
 --
 -- PostgreSQL database dump complete

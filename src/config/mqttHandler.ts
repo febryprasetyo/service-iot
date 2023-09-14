@@ -39,7 +39,7 @@ class MqttHandler {
     this.mqttClient.on('message', async function (topic: any, message: any) {
       console.log(message.toString());
       const jsonString = JSON.parse(message.toString());
-      console.log('jsonString : ',jsonString['data'])
+      // console.log('jsonString : ',jsonString['data'])
 
       let uuid = jsonString['uuid']
       let project = jsonString['project']
