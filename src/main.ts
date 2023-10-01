@@ -123,13 +123,14 @@ async function onListening() {
     logger.info('SERVER', process.env.NODE_ENV)
     logger.info(`Server Listening on ${bind}`)
 
-    //Running scheduler
-    // let ctx = new scheduledFunction()
-    // ctx.initScheduledJobs()
-
+    
     //Running & Connect Mqtt
     var mqttClient = new MqttHandler();
     mqttClient.connect();
+
+    //Running scheduler
+    let ctx = new scheduledFunction()
+    ctx.initScheduledJobs()
 }
 
 main();

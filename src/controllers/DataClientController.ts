@@ -105,6 +105,8 @@ class DataClientController {
       let rules = {
         user_id: 'required',
         station_id: 'required',
+        uuid: 'required',
+        // client_id: 'required',
         station_name: 'required',
         address: 'required',
         province_id: 'required',
@@ -127,7 +129,7 @@ class DataClientController {
       dataCity = dataCity[0]
       if(dataCity.province_id !== dataProvince.id) throw createError(`City ${dataCity.city_name} not found in Province ${dataProvince.province_name}`, 'E_BAD_REQUEST')
 
-      let generateUuidv4 = uuidv4()
+      // let generateUuidv4 = uuidv4()
 
       await db('datas')
         .insert({
@@ -139,7 +141,8 @@ class DataClientController {
           city_id: dataCity.id,
           city_name: dataCity.city_name,
           created_by: reqBody.user_id,
-          uuid: generateUuidv4
+          // uuid: generateUuidv4
+          uuid: reqBody.uuid
         })
 
       return sendResponseCustom(res, {

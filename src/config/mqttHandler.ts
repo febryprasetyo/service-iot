@@ -47,28 +47,47 @@ class MqttHandler {
       let dataStream = jsonString['data'] && jsonString['data'].length > 0 ? jsonString['data'] : []
       for (let i = 0; i < dataStream.length; i++) {
         const el = dataStream[i];
-        let checkData = await db.select(db.raw(`*`)).from('watermonitoringv2').whereRaw(`uuid = ? AND project = ? AND time = ?`, [uuid, project, el['time']])
+        let checkData = await db.select(db.raw(`*`)).from('mqtt_datas').whereRaw(`uuid = ? AND project = ? AND time = ?`, [uuid, project, el['time']])
 
         if (checkData.length === 0) {
-          await db('watermonitoringv2')
+          await db('mqtt_datas')
           .insert({
             uuid: uuid,
-            project: project,
+            // project: project,
             time: el['time'],
             temperature: el['Tempertature'],
             do_: el['DO'],
             tur: el['TUR'],
-            ct: el['CT'],
-            ph: el['pH'],
-            orp: el['ORP'],
+            ph: el['PH'],
             bod: el['BOD'],
             cod: el['COD'],
             tss: el['TSS'],
+            depeth: el['DEPTH'],
+            no3_3: el['NO3-3'],
             n: el['N'],
-            no3_n: el['NO3_N'],
+            ct: el['CT'],
             no2: el['NO2'],
-            depeth: el['Depeth'],
+            orp: el['ORP'],
+            'lgnh4+': el['LgNH4+'],
+            liquid: el['Liquid'],
           })
+
+          await db('watermonitoring')
+            .insert({
+              uuid: el[''],
+              createtime: el['time'],
+              temperature: el['Temperature'],
+              do_: el['DO'],
+              turbidity: el['TUR'],
+              ph: el['PH'],
+              bod: el['BOD'],
+              cod: el['COD'],
+              tss: el['TSS'],
+              waterlevel: el['DEPTH'],
+              no3: el['NO3-3'],
+              nh3n: el['N'],
+              tds: el['CT'],
+            })
         }
 
       }

@@ -5,7 +5,7 @@
 -- Dumped from database version 11.0
 -- Dumped by pg_dump version 14.2
 
--- Started on 2023-09-14 13:13:36
+-- Started on 2023-10-01 21:09:55
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -124,6 +124,36 @@ ALTER TABLE public.datas_id_seq OWNER TO dbadmin;
 
 ALTER SEQUENCE public.datas_id_seq OWNED BY public.datas.id;
 
+
+--
+-- TOC entry 208 (class 1259 OID 82138)
+-- Name: mqtt_datas; Type: TABLE; Schema: public; Owner: dbadmin
+--
+
+CREATE TABLE public.mqtt_datas (
+    id bigint NOT NULL,
+    uuid character varying(100),
+    project character varying(100),
+    "time" timestamp without time zone,
+    temperature character varying(10),
+    do_ character varying(10),
+    tur character varying(10),
+    ct character varying(10),
+    ph character varying(10),
+    orp character varying(10),
+    bod character varying(10),
+    cod character varying(10),
+    tss character varying(10),
+    n character varying(10),
+    no3_3 character varying(10),
+    no2 character varying(10),
+    depth character varying(10),
+    "lgnh4+" character varying(10),
+    liquid character varying(10)
+);
+
+
+ALTER TABLE public.mqtt_datas OWNER TO dbadmin;
 
 --
 -- TOC entry 204 (class 1259 OID 82120)
@@ -322,34 +352,6 @@ ALTER SEQUENCE public.watermonitoring_id_seq OWNED BY public.watermonitoring.id;
 
 
 --
--- TOC entry 208 (class 1259 OID 82138)
--- Name: watermonitoringv2; Type: TABLE; Schema: public; Owner: dbadmin
---
-
-CREATE TABLE public.watermonitoringv2 (
-    id bigint NOT NULL,
-    uuid character varying(100),
-    project character varying(100),
-    "time" timestamp without time zone,
-    temperature character varying(10),
-    do_ character varying(10),
-    tur character varying(10),
-    ct character varying(10),
-    ph character varying(10),
-    orp character varying(10),
-    bod character varying(10),
-    cod character varying(10),
-    tss character varying(10),
-    n character varying(10),
-    no3_n character varying(10),
-    no2 character varying(10),
-    depeth character varying(10)
-);
-
-
-ALTER TABLE public.watermonitoringv2 OWNER TO dbadmin;
-
---
 -- TOC entry 207 (class 1259 OID 82136)
 -- Name: watermonitoringv2_id_seq; Type: SEQUENCE; Schema: public; Owner: dbadmin
 --
@@ -370,7 +372,7 @@ ALTER TABLE public.watermonitoringv2_id_seq OWNER TO dbadmin;
 -- Name: watermonitoringv2_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: dbadmin
 --
 
-ALTER SEQUENCE public.watermonitoringv2_id_seq OWNED BY public.watermonitoringv2.id;
+ALTER SEQUENCE public.watermonitoringv2_id_seq OWNED BY public.mqtt_datas.id;
 
 
 --
@@ -387,6 +389,14 @@ ALTER TABLE ONLY public.cities ALTER COLUMN id SET DEFAULT nextval('public.citie
 --
 
 ALTER TABLE ONLY public.datas ALTER COLUMN id SET DEFAULT nextval('public.datas_id_seq'::regclass);
+
+
+--
+-- TOC entry 2738 (class 2604 OID 82141)
+-- Name: mqtt_datas id; Type: DEFAULT; Schema: public; Owner: dbadmin
+--
+
+ALTER TABLE ONLY public.mqtt_datas ALTER COLUMN id SET DEFAULT nextval('public.watermonitoringv2_id_seq'::regclass);
 
 
 --
@@ -411,14 +421,6 @@ ALTER TABLE ONLY public.users ALTER COLUMN id SET DEFAULT nextval('public.users_
 --
 
 ALTER TABLE ONLY public.watermonitoring ALTER COLUMN id SET DEFAULT nextval('public.watermonitoring_id_seq'::regclass);
-
-
---
--- TOC entry 2738 (class 2604 OID 82141)
--- Name: watermonitoringv2 id; Type: DEFAULT; Schema: public; Owner: dbadmin
---
-
-ALTER TABLE ONLY public.watermonitoringv2 ALTER COLUMN id SET DEFAULT nextval('public.watermonitoringv2_id_seq'::regclass);
 
 
 --
@@ -448,6 +450,18 @@ COPY public.datas (id, created_at, updated_at, station_id, station_name, address
 2	2023-09-14 12:56:55.326673	\N	FASTPEC-FPA-101	Cahaya Mas Cemerlang 2	Jl. rayamangun blok K no 23	1	DKI JAKARTA	4	KOTA JAKARTA TIMUR	f07472d5-aac5-423c-b968-9c4a45d0acd6	1
 3	2023-09-14 12:57:06.971154	\N	FASTPEC-FPA-103	Cahaya Mas Cemerlang 3	Jl. rayamangun blok K no 23	1	DKI JAKARTA	4	KOTA JAKARTA TIMUR	d25704ec-bf0c-4249-83b4-d41ebe669155	1
 4	2023-09-14 13:08:37.571884	\N	FASTPEC-FPA-104	Cahaya Mas Cemerlang 4	Jl. rayamangun blok K no 23	1	DKI JAKARTA	4	KOTA JAKARTA TIMUR	57275cfd-8af3-4d9e-9598-553943bc53c2	1
+\.
+
+
+--
+-- TOC entry 2890 (class 0 OID 82138)
+-- Dependencies: 208
+-- Data for Name: mqtt_datas; Type: TABLE DATA; Schema: public; Owner: dbadmin
+--
+
+COPY public.mqtt_datas (id, uuid, project, "time", temperature, do_, tur, ct, ph, orp, bod, cod, tss, n, no3_3, no2, depth, "lgnh4+", liquid) FROM stdin;
+2	NbtCYvjU6DIWpaMLbfd	fastpec	2023-08-29 14:15:54	30	8	1	1	1	1	1	1	1	1	1	1	1	\N	\N
+3	NbtCYvjU6DIWpaMLbfd	fastpec	2023-08-29 14:15:54	30	8	1	1	1	1	1	1	1	1	1	1	1	\N	\N
 \.
 
 
@@ -505,18 +519,6 @@ COPY public.users (id, username, fullname, email, password, phone, created_at, u
 --
 
 COPY public.watermonitoring (id, createtime, temperature, ph, tds, nh3n, tss, turbidity, do_, no3, cod, bod, waterlevel, is_success, sync_time, res_menlhk, exec_count, id_stasiun, uuid, project, "time") FROM stdin;
-\.
-
-
---
--- TOC entry 2890 (class 0 OID 82138)
--- Dependencies: 208
--- Data for Name: watermonitoringv2; Type: TABLE DATA; Schema: public; Owner: dbadmin
---
-
-COPY public.watermonitoringv2 (id, uuid, project, "time", temperature, do_, tur, ct, ph, orp, bod, cod, tss, n, no3_n, no2, depeth) FROM stdin;
-2	NbtCYvjU6DIWpaMLbfd	fastpec	2023-08-29 14:15:54	30	8	1	1	1	1	1	1	1	1	1	1	1
-3	NbtCYvjU6DIWpaMLbfd	fastpec	2023-08-29 14:15:54	30	8	1	1	1	1	1	1	1	1	1	1	1
 \.
 
 
@@ -648,14 +650,14 @@ ALTER TABLE ONLY public.watermonitoring
 
 --
 -- TOC entry 2754 (class 2606 OID 82143)
--- Name: watermonitoringv2 watermonitoringv2_pk; Type: CONSTRAINT; Schema: public; Owner: dbadmin
+-- Name: mqtt_datas watermonitoringv2_pk; Type: CONSTRAINT; Schema: public; Owner: dbadmin
 --
 
-ALTER TABLE ONLY public.watermonitoringv2
+ALTER TABLE ONLY public.mqtt_datas
     ADD CONSTRAINT watermonitoringv2_pk PRIMARY KEY (id);
 
 
--- Completed on 2023-09-14 13:13:37
+-- Completed on 2023-10-01 21:09:55
 
 --
 -- PostgreSQL database dump complete
