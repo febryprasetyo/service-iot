@@ -3,7 +3,7 @@ import {db} from '../utils/util';
 import 'dotenv/config';
 
 var brokerUrl: any = process.env.MQTT_BROKER_URL
-var mqttTopic: any = process.env.MQTT_TOPIC
+var mqttTopic: any = process.env.MQTT_CLIENT_ID
 var options: any = {
   clientId: process.env.MQTT_CLIENT_ID,
   port: parseInt(process.env.MQTT_PORT || '1883'),
@@ -37,17 +37,19 @@ class MqttHandler {
 
     // When a message arrives, console.log it
     this.mqttClient.on('message', async function (topic: any, message: any) {
+      console.log('Topic : ',topic);
       console.log(message.toString());
       const jsonString = JSON.parse(message.toString());
-      // console.log('jsonString : ',jsonString['data'])
+      // console.log('jsonString : ',jsonString)
 
       let uuid = jsonString['uuid']
-      let project = jsonString['project']
+      // let project = jsonString['project']
 
       let dataStream = jsonString['data'] && jsonString['data'].length > 0 ? jsonString['data'] : []
       for (let i = 0; i < dataStream.length; i++) {
         const el = dataStream[i];
-        let checkData = await db.select(db.raw(`*`)).from('mqtt_datas').whereRaw(`uuid = ? AND project = ? AND time = ?`, [uuid, project, el['time']])
+        // let checkData = await db.select(db.raw(`*`)).from('mqtt_datas').whereRaw(`uuid = ? AND project = ? AND time = ?`, [uuid, project, el['time']])
+        let checkData = await db.select(db.raw(`*`)).from('mqtt_datas').whereRaw(`uuid = ? AND time = ?`, [uuid, el['time']])
 
         if (checkData.length === 0) {
           await db('mqtt_datas')
@@ -62,7 +64,7 @@ class MqttHandler {
             bod: el['BOD'],
             cod: el['COD'],
             tss: el['TSS'],
-            depeth: el['DEPTH'],
+            depth: el['DEPTH'],
             no3_3: el['NO3-3'],
             n: el['N'],
             ct: el['CT'],
@@ -75,7 +77,7 @@ class MqttHandler {
           await db('watermonitoring')
             .insert({
               uuid: el[''],
-              createtime: el['time'],
+              time: el['time'],
               temperature: el['Temperature'],
               do_: el['DO'],
               turbidity: el['TUR'],

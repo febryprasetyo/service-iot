@@ -260,6 +260,187 @@ class DataClientController {
     }
   }
 
+  /**
+   * API Handle Create Device
+   * @param {*} req 
+   * @author Roby Parlan
+   */
+  async handleCreateDevice(req: any, res:any) {
+    try {
+      let reqBody = req.body
+
+      let rules = {
+        id_mesin: 'required',
+        nama_dinas: 'required',
+        nama_stasiun: 'required',
+      }
+
+      // Validate the request params
+      await validateParamsAll(reqBody, rules)
+        .catch((err) => {
+          delete err.failed
+          throw createError('', 'E_BAD_REQUEST', err)
+        })
+
+      let data = await db.select(db.raw(`*`)).from('devices').whereRaw(`id_mesin = ?`, reqBody.id_mesin)
+      if(data.length > 0) throw createError(`Id Mesin ${reqBody.id_mesin} already exists`, 'E_BAD_REQUEST')
+
+      await db('devices')
+        .insert({
+          id_mesin: reqBody.id_mesin,
+          nama_dinas: reqBody.nama_dinas,
+          nama_stasiun: reqBody.nama_stasiun,
+          created_by: reqBody.user_id,
+        })
+
+      return sendResponseCustom(res, {
+        success: true,
+        message: 'Data berhasil disimpan'
+      })
+
+    } catch (error: any) {
+      if (!errorCodes[error.code])
+        logger.error(error)
+
+      return sendResponseError(res, error)
+    }
+  }
+
+  /**
+   * API Handle Update Device
+   * @param {*} req 
+   * @author Roby Parlan
+   */
+  async handleUpdateDevice(req: any, res:any) {
+    try {
+      let reqBody = req.body
+
+      let rules = {
+        id: 'required|number',
+        id_mesin: 'required',
+        nama_dinas: 'required',
+        nama_stasiun: 'required',
+      }
+
+      // Validate the request params
+      await validateParamsAll(reqBody, rules)
+        .catch((err) => {
+          delete err.failed
+          throw createError('', 'E_BAD_REQUEST', err)
+        })
+
+      let checkDevice = await db.select(db.raw(`*`)).from('devices').whereRaw(`id = ?`, [reqBody.id])
+      if(checkDevice.length === 0) throw createError(`Data device not found`, 'E_BAD_REQUEST')
+
+      let data = await db.select(db.raw(`*`)).from('devices').whereRaw(`id_mesin = ? AND id NOT IN (?)`, [reqBody.id_mesin, reqBody.id])
+      if(data.length > 0) throw createError(`Id Mesin ${reqBody.id_mesin} already exists`, 'E_BAD_REQUEST')
+
+      await db('devices')
+        .whereRaw(`id = ?`, reqBody.id)
+        .update({
+          id_mesin: reqBody.id_mesin,
+          nama_dinas: reqBody.nama_dinas,
+          nama_stasiun: reqBody.nama_stasiun,
+          updated_at: new Date
+        })
+
+      return sendResponseCustom(res, {
+        success: true,
+        message: 'Data berhasil diubah'
+      })
+
+    } catch (error: any) {
+      if (!errorCodes[error.code])
+        logger.error(error)
+
+      return sendResponseError(res, error)
+    }
+  }
+
+  /**
+   * API Handle Remove Device
+   * @param {*} req 
+   * @author Roby Parlan
+   */
+  async handleRemoveDevice(req: any, res:any) {
+    try {
+      let reqBody = req.body
+
+      let rules = {
+        id: 'required|number',
+      }
+
+      // Validate the request params
+      await validateParamsAll(reqBody, rules)
+        .catch((err) => {
+          delete err.failed
+          throw createError('', 'E_BAD_REQUEST', err)
+        })
+
+      let checkDevice = await db.select(db.raw(`*`)).from('devices').whereRaw(`id = ?`, [reqBody.id])
+      if(checkDevice.length === 0) throw createError(`Data device not found`, 'E_BAD_REQUEST')
+
+      await db('devices').where('id', reqBody.id).del()
+
+      return sendResponseCustom(res, {
+        success: true,
+        message: 'Data berhasil dihapus'
+      })
+
+    } catch (error: any) {
+      if (!errorCodes[error.code])
+        logger.error(error)
+
+      return sendResponseError(res, error)
+    }
+  }
+
+  /**
+   * API Handle Remove Device
+   * @param {*} req 
+   * @author Roby Parlan
+   */
+  async handleListDevice(req: any, res:any) {
+    try {
+      let reqBody = req.body
+
+      let rules = {
+        limit: 'required',
+        offset: 'required'
+      }
+
+      // Validate the request params
+      await validateParamsAll(reqBody, rules)
+        .catch((err) => {
+          delete err.failed
+          throw createError('', 'E_BAD_REQUEST', err)
+        })
+
+      let dataDevice = await db.select(db.raw(`*`))
+        .from('devices')
+        .orderBy('created_at', 'DESC')
+        .limit(reqBody.limit, { skipBinding: true })
+        .offset(reqBody.offset)
+
+      let countDataDevice = await db.select(db.raw(`COUNT(*) as total`))
+        .from('devices')
+
+      return sendResponseCustom(res, {
+        success: true,
+        data: {
+          values: dataDevice,
+          total: countDataDevice.length == 0 ? 0 : countDataDevice[0].total
+        }
+      })
+
+    } catch (error: any) {
+      if (!errorCodes[error.code])
+        logger.error(error)
+
+      return sendResponseError(res, error)
+    }
+  }
+
 }
 
 export = DataClientController
