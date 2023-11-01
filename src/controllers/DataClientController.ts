@@ -1,7 +1,7 @@
 import { logger, sendResponseCustom, sendResponseError, 
   errorCodes, createError, validateParamsAll, db} from '../utils/util';
 import 'dotenv/config';
-import {v4 as uuidv4} from 'uuid';
+import bcrypt from "bcrypt";
 
 class DataClientController {
 
@@ -430,6 +430,212 @@ class DataClientController {
         data: {
           values: dataDevice,
           total: countDataDevice.length == 0 ? 0 : countDataDevice[0].total
+        }
+      })
+
+    } catch (error: any) {
+      if (!errorCodes[error.code])
+        logger.error(error)
+
+      return sendResponseError(res, error)
+    }
+  }
+
+  /**
+   * API Handle Create User
+   * @param {*} req 
+   * @author Roby Parlan
+   */
+  async handleCreateUser(req: any, res:any) {
+    try {
+      let reqBody = req.body
+
+      let rules = {
+        username: 'required',
+        password: 'required',
+        device_id: 'required',
+        api_key: 'required',
+        secret_key: 'required',
+      }
+
+      // Validate the request params
+      await validateParamsAll(reqBody, rules)
+        .catch((err) => {
+          delete err.failed
+          throw createError('', 'E_BAD_REQUEST', err)
+        })
+
+      let data = await db.select(db.raw(`*`)).from('users').whereRaw(`username = ?`, reqBody.username.trim())
+      if(data.length > 0) throw createError(`User ${reqBody.username} already exists`, 'E_BAD_REQUEST')
+
+      let dataDevice = await db.select(db.raw(`*`)).from('devices').whereRaw(`id = ?`, reqBody.device_id)
+      if(dataDevice.length === 0) throw createError(`Device not found`, 'E_BAD_REQUEST')
+
+      const salt = await bcrypt.genSalt(10)
+      reqBody.password = await bcrypt.hash(reqBody.password.trim(), salt)
+
+      await db('users')
+        .insert({
+          username: reqBody.username.trim(),
+          password: reqBody.password,
+          device_id: reqBody.device_id,
+          api_key: reqBody.api_key.trim(),
+          secret_key: reqBody.secret_key.trim(),
+          role_id: 'usr',
+          created_by: reqBody.user_id,
+          is_active: true
+        })
+
+      return sendResponseCustom(res, {
+        success: true,
+        message: 'Data berhasil disimpan'
+      })
+
+    } catch (error: any) {
+      if (!errorCodes[error.code])
+        logger.error(error)
+
+      return sendResponseError(res, error)
+    }
+  }
+
+  /**
+   * API Handle Create User
+   * @param {*} req 
+   * @author Roby Parlan
+   */
+  async handleUpdateUser(req: any, res:any) {
+    try {
+      let reqBody = req.body
+
+      let rules = {
+        id: 'required|number',
+        password: 'required',
+        device_id: 'required',
+        api_key: 'required',
+        secret_key: 'required',
+      }
+
+      // Validate the request params
+      await validateParamsAll(reqBody, rules)
+        .catch((err) => {
+          delete err.failed
+          throw createError('', 'E_BAD_REQUEST', err)
+        })
+
+      let data = await db.select(db.raw(`*`)).from('users').whereRaw(`id = ?`, reqBody.id)
+      if(data.length === 0) throw createError(`User not found`, 'E_BAD_REQUEST')
+      data = data[0]
+
+      const match = await bcrypt.compare(reqBody.password, data.password)
+
+      if (!match) {
+        const salt = await bcrypt.genSalt(10)
+        reqBody.password = await bcrypt.hash(reqBody.password.trim(), salt)
+      }
+
+      let dataDevice = await db.select(db.raw(`*`)).from('devices').whereRaw(`id = ?`, reqBody.device_id)
+      if(dataDevice.length === 0) throw createError(`Device not found`, 'E_BAD_REQUEST')
+
+
+      await db('users')
+        .whereRaw(`id = ?`, reqBody.id)
+        .update({
+          username: reqBody.username.trim(),
+          password: match ? undefined : reqBody.password,
+          device_id: reqBody.device_id,
+          api_key: reqBody.api_key.trim(),
+          secret_key: reqBody.secret_key.trim(),
+          updated_at: new Date
+        })
+
+      return sendResponseCustom(res, {
+        success: true,
+        message: 'Data berhasil diubah'
+      })
+
+    } catch (error: any) {
+      if (!errorCodes[error.code])
+        logger.error(error)
+
+      return sendResponseError(res, error)
+    }
+  }
+
+  /**
+   * API Handle Remove User
+   * @param {*} req 
+   * @author Roby Parlan
+   */
+  async handleRemoveUser(req: any, res:any) {
+    try {
+      let reqBody = req.body
+
+      let rules = {
+        id: 'required|number',
+      }
+
+      // Validate the request params
+      await validateParamsAll(reqBody, rules)
+        .catch((err) => {
+          delete err.failed
+          throw createError('', 'E_BAD_REQUEST', err)
+        })
+
+      let checkUser = await db.select(db.raw(`*`)).from('users').whereRaw(`id = ?`, [reqBody.id])
+      if(checkUser.length === 0) throw createError(`Data user not found`, 'E_BAD_REQUEST')
+
+      await db('users').where('id', reqBody.id).del()
+
+      return sendResponseCustom(res, {
+        success: true,
+        message: 'Data berhasil dihapus'
+      })
+
+    } catch (error: any) {
+      if (!errorCodes[error.code])
+        logger.error(error)
+
+      return sendResponseError(res, error)
+    }
+  }
+
+  /**
+   * API Handle Remove Device
+   * @param {*} req 
+   * @author Roby Parlan
+   */
+  async handleListUser(req: any, res:any) {
+    try {
+      let reqBody = req.body
+
+      let rules = {
+        limit: 'required',
+        offset: 'required'
+      }
+
+      // Validate the request params
+      await validateParamsAll(reqBody, rules)
+        .catch((err) => {
+          delete err.failed
+          throw createError('', 'E_BAD_REQUEST', err)
+        })
+
+      let dataUser = await db.select(db.raw(`usr.id, usr.username, usr.api_key, usr.secret_key, dv.nama_dinas`))
+        .from('users AS usr')
+        .leftJoin(db.raw(`devices AS dv on dv.id = usr.device_id`))
+        .orderBy('usr.created_at', 'DESC')
+        .limit(reqBody.limit, { skipBinding: true })
+        .offset(reqBody.offset)
+
+      let countDataUser = await db.select(db.raw(`COUNT(*) as total`))
+        .from('users')
+
+      return sendResponseCustom(res, {
+        success: true,
+        data: {
+          values: dataUser,
+          total: countDataUser.length == 0 ? 0 : countDataUser[0].total
         }
       })
 

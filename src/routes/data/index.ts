@@ -19,4 +19,9 @@ router.post('/device/update', JwtMiddleware('adm'), DataClientCtl.handleUpdateDe
 router.post('/device/remove', JwtMiddleware('adm'), DataClientCtl.handleRemoveDevice)
 router.post('/device/list', JwtMiddleware('adm'), DataClientCtl.handleListDevice)
 
+router.post('/user/create', JwtMiddleware('adm'), DataClientCtl.handleCreateUser)
+router.post('/user/update', JwtMiddleware('adm'), DataClientCtl.handleUpdateUser)
+router.post('/user/remove', JwtMiddleware('adm'), DataClientCtl.handleRemoveUser)
+router.post('/user/list', JwtMiddleware('adm'), DataClientCtl.handleListUser)
+
 export = router
