@@ -68,7 +68,8 @@ class DataClientController {
       let reqBody = req.body
 
       let rules = {
-        // user_id: 'required',
+        limit: 'required',
+        offset: 'required'
       }
 
       // Validate the request params
@@ -78,11 +79,23 @@ class DataClientController {
           throw createError('', 'E_BAD_REQUEST', err)
         })
 
-      let data = await db.select(db.raw(`*`)).from('datas')
+      let data = await db.select(db.raw(`
+        s.id, s.nama_stasiun, s.id_mesin, s.address,
+        s.province_name, s.city_name 
+      `)).from('stations AS s')
+        .orderBy('s.created_at', 'DESC')
+        .limit(reqBody.limit, { skipBinding: true })
+        .offset(reqBody.offset)
+
+      let countData = await db.select(db.raw(`COUNT(*) as total`))
+        .from('stations')
 
       return sendResponseCustom(res, {
         success: true,
-        data
+        data: {
+          values: data,
+          total: countData.length == 0 ? 0 : countData[0].total
+        }
       })
 
     } catch (error: any) {
@@ -103,14 +116,12 @@ class DataClientController {
       let reqBody = req.body
 
       let rules = {
-        user_id: 'required',
-        station_id: 'required',
-        uuid: 'required',
-        // client_id: 'required',
-        station_name: 'required',
+        device_id: 'required|number',
+        nama_stasiun: 'required',
+        nama_dinas: 'required',
         address: 'required',
-        province_id: 'required',
-        city_id: 'required',
+        province_id: 'required|number',
+        city_id: 'required|number',
       }
 
       // Validate the request params
@@ -129,20 +140,22 @@ class DataClientController {
       dataCity = dataCity[0]
       if(dataCity.province_id !== dataProvince.id) throw createError(`City ${dataCity.city_name} not found in Province ${dataProvince.province_name}`, 'E_BAD_REQUEST')
 
-      // let generateUuidv4 = uuidv4()
+      let dataDevice = await db.select(db.raw(`*`)).from('devices').whereRaw(`id = ?`, reqBody.device_id)
+      if(dataDevice.length === 0) throw createError(`Device not found`, 'E_BAD_REQUEST')
+      dataDevice = dataDevice[0]
 
-      await db('datas')
+      await db('stations')
         .insert({
-          station_id: reqBody.station_id,
-          station_name: reqBody.station_name,
+          device_id: reqBody.device_id,
+          nama_stasiun: reqBody.nama_stasiun,
+          id_mesin: dataDevice.id_mesin,
+          nama_dinas: reqBody.nama_dinas,
           address: reqBody.address,
-          province_id: dataProvince.id,
+          province_id: reqBody.province_id,
           province_name: dataProvince.province_name,
-          city_id: dataCity.id,
+          city_id: reqBody.city_id,
           city_name: dataCity.city_name,
-          created_by: reqBody.user_id,
-          // uuid: generateUuidv4
-          uuid: reqBody.uuid
+          created_by: reqBody.user_id
         })
 
       return sendResponseCustom(res, {
@@ -168,13 +181,13 @@ class DataClientController {
       let reqBody = req.body
 
       let rules = {
-        id: 'required',
-        user_id: 'required',
-        station_id: 'required',
-        station_name: 'required',
+        id: 'required|number',
+        device_id: 'required|number',
+        nama_stasiun: 'required',
+        nama_dinas: 'required',
         address: 'required',
-        province_id: 'required',
-        city_id: 'required',
+        province_id: 'required|number',
+        city_id: 'required|number',
       }
 
       // Validate the request params
@@ -183,6 +196,9 @@ class DataClientController {
           delete err.failed
           throw createError('', 'E_BAD_REQUEST', err)
         })
+
+      let data = await db.select(db.raw(`*`)).from('stations').whereRaw(`id = ?`, reqBody.id)
+      if(data.length === 0) throw createError('Station not found', 'E_BAD_REQUEST')
 
       let dataProvince = await db.select(db.raw(`*`)).from('provinces').whereRaw(`id = ?`, reqBody.province_id)
       if(dataProvince.length === 0) throw createError('Province not found', 'E_BAD_REQUEST')
@@ -193,25 +209,28 @@ class DataClientController {
       dataCity = dataCity[0]
       if(dataCity.province_id !== dataProvince.id) throw createError(`City ${dataCity.city_name} not found in Province ${dataProvince.province_name}`, 'E_BAD_REQUEST')
 
-      let data = await db.select(db.raw(`*`)).from('datas').whereRaw(`id = ?`, reqBody.id)
-      if(data.length === 0) throw createError('Data not found', 'E_BAD_REQUEST')
+      let dataDevice = await db.select(db.raw(`*`)).from('devices').whereRaw(`id = ?`, reqBody.device_id)
+      if(dataDevice.length === 0) throw createError(`Device not found`, 'E_BAD_REQUEST')
+      dataDevice = dataDevice[0]
 
-      await db('datas')
+      await db('stations')
         .whereRaw(`id = ?`, reqBody.id)
         .update({
-          station_id: reqBody.station_id,
-          station_name: reqBody.station_name,
+          device_id: reqBody.device_id,
+          nama_stasiun: reqBody.nama_stasiun,
+          id_mesin: dataDevice.id_mesin,
+          nama_dinas: reqBody.nama_dinas,
           address: reqBody.address,
-          province_id: dataProvince.id,
+          province_id: reqBody.province_id,
           province_name: dataProvince.province_name,
-          city_id: dataCity.id,
+          city_id: reqBody.city_id,
           city_name: dataCity.city_name,
-          created_by: reqBody.user_id
+          updated_at: new Date
         })
 
       return sendResponseCustom(res, {
         success: true,
-        message: 'Data berhasil diperbaharui'
+        message: 'Data berhasil diubah'
       })
 
     } catch (error: any) {
@@ -232,7 +251,7 @@ class DataClientController {
       let reqBody = req.body
 
       let rules = {
-        id: 'required'
+        id: 'required|number'
       }
 
       // Validate the request params
@@ -242,10 +261,10 @@ class DataClientController {
           throw createError('', 'E_BAD_REQUEST', err)
         })
 
-      let data = await db.select(db.raw(`*`)).from('datas').whereRaw(`id = ?`, reqBody.id)
-      if(data.length === 0) throw createError('Data not found', 'E_BAD_REQUEST')
+      let data = await db.select(db.raw(`*`)).from('stations').whereRaw(`id = ?`, reqBody.id)
+      if(data.length === 0) throw createError('Station not found', 'E_BAD_REQUEST')
 
-      await db('datas').where('id', reqBody.id).del()
+      await db('stations').where('id', reqBody.id).del()
 
       return sendResponseCustom(res, {
         success: true,
@@ -637,6 +656,54 @@ class DataClientController {
           values: dataUser,
           total: countDataUser.length == 0 ? 0 : countDataUser[0].total
         }
+      })
+
+    } catch (error: any) {
+      if (!errorCodes[error.code])
+        logger.error(error)
+
+      return sendResponseError(res, error)
+    }
+  }
+
+  /**
+   * API Handle List Device
+   * @param {*} req 
+   * @author Roby Parlan
+   */
+  async handleListDeviceUser(req: any, res:any) {
+    try {
+
+      let data = await db.select(db.raw(`id AS device_id, nama_dinas`))
+        .from('devices')
+
+      return sendResponseCustom(res, {
+        success: true,
+        data
+      })
+
+    } catch (error: any) {
+      if (!errorCodes[error.code])
+        logger.error(error)
+
+      return sendResponseError(res, error)
+    }
+  }
+
+   /**
+   * API Handle List Device
+   * @param {*} req 
+   * @author Roby Parlan
+   */
+  async handleDeviceList(req: any, res:any) {
+    try {
+
+      let data = await db.select(db.raw(`id AS device_id, nama_dinas`))
+        .from('devices')
+
+      return sendResponseCustom(res, {
+        success: true,
+        data
       })
 
     } catch (error: any) {

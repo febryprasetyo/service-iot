@@ -8,12 +8,14 @@ import { JwtMiddleware } from '../../middlewares/jwtMiddleware';
 
 let router = express.Router()
 
-router.get('/province-list', JwtMiddleware('adm:user'), DataClientCtl.handleProvinceList)
-router.get('/city-list/:province_id?', JwtMiddleware('adm:user'), DataClientCtl.handleCityList)
-router.post('/list', JwtMiddleware('adm'), DataClientCtl.handleList)
-router.post('/create', JwtMiddleware('adm'), DataClientCtl.handleCreate)
-router.post('/update', JwtMiddleware('adm'), DataClientCtl.handleUpdate)
-router.post('/delete', JwtMiddleware('adm'), DataClientCtl.handleDelete)
+router.get('/station/province-list', JwtMiddleware('adm:user'), DataClientCtl.handleProvinceList)
+router.get('/station/city-list/:province_id?', JwtMiddleware('adm:user'), DataClientCtl.handleCityList)
+router.post('/station/list', JwtMiddleware('adm'), DataClientCtl.handleList)
+router.get('/station/device-list', JwtMiddleware('adm'), DataClientCtl.handleDeviceList)
+router.post('/station/create', JwtMiddleware('adm'), DataClientCtl.handleCreate)
+router.post('/station/update', JwtMiddleware('adm'), DataClientCtl.handleUpdate)
+router.post('/station/remove', JwtMiddleware('adm'), DataClientCtl.handleDelete)
+
 router.post('/device/create', JwtMiddleware('adm'), DataClientCtl.handleCreateDevice)
 router.post('/device/update', JwtMiddleware('adm'), DataClientCtl.handleUpdateDevice)
 router.post('/device/remove', JwtMiddleware('adm'), DataClientCtl.handleRemoveDevice)
@@ -23,5 +25,6 @@ router.post('/user/create', JwtMiddleware('adm'), DataClientCtl.handleCreateUser
 router.post('/user/update', JwtMiddleware('adm'), DataClientCtl.handleUpdateUser)
 router.post('/user/remove', JwtMiddleware('adm'), DataClientCtl.handleRemoveUser)
 router.post('/user/list', JwtMiddleware('adm'), DataClientCtl.handleListUser)
+router.get('/user/device-list', JwtMiddleware('adm'), DataClientCtl.handleListDeviceUser)
 
 export = router
