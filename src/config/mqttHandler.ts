@@ -57,7 +57,7 @@ class MqttHandler {
             uuid: uuid,
             // project: project,
             time: el['time'],
-            temperature: el['Tempertature'],
+            temperature: el['Temperature'],
             do_: el['DO'],
             tur: el['TUR'],
             ph: el['PH'],
