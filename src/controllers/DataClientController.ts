@@ -81,7 +81,7 @@ class DataClientController {
 
       let data = await db.select(db.raw(`
         s.id, s.nama_stasiun, s.id_mesin, s.address,
-        s.province_name, s.city_name 
+        s.province_name, s.province_id, s.city_name, s.city_id 
       `)).from('stations AS s')
         .orderBy('s.created_at', 'DESC')
         .limit(reqBody.limit, { skipBinding: true })
