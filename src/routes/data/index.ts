@@ -20,11 +20,12 @@ router.post('/device/create', JwtMiddleware('adm'), DataClientCtl.handleCreateDe
 router.post('/device/update', JwtMiddleware('adm'), DataClientCtl.handleUpdateDevice)
 router.post('/device/remove', JwtMiddleware('adm'), DataClientCtl.handleRemoveDevice)
 router.post('/device/list', JwtMiddleware('adm'), DataClientCtl.handleListDevice)
+router.get('/device/dinas-list', JwtMiddleware('adm'), DataClientCtl.handleListDinas)
 
 router.post('/user/create', JwtMiddleware('adm'), DataClientCtl.handleCreateUser)
 router.post('/user/update', JwtMiddleware('adm'), DataClientCtl.handleUpdateUser)
 router.post('/user/remove', JwtMiddleware('adm'), DataClientCtl.handleRemoveUser)
 router.post('/user/list', JwtMiddleware('adm'), DataClientCtl.handleListUser)
-router.get('/user/device-list', JwtMiddleware('adm'), DataClientCtl.handleListDeviceUser)
+// router.get('/user/device-list', JwtMiddleware('adm'), DataClientCtl.handleListDeviceUser)
 
 export = router

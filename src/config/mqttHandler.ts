@@ -55,7 +55,6 @@ class MqttHandler {
           await db('mqtt_datas')
           .insert({
             uuid: uuid,
-            // project: project,
             time: el['time'],
             temperature: el['Temperature'],
             do_: el['DO'],
@@ -76,7 +75,7 @@ class MqttHandler {
 
           await db('watermonitoring')
             .insert({
-              uuid: el[''],
+              uuid: uuid,
               time: el['time'],
               temperature: el['Temperature'],
               do_: el['DO'],

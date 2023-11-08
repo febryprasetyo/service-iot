@@ -290,7 +290,8 @@ class DataClientController {
 
       let rules = {
         id_mesin: 'required',
-        nama_dinas: 'required',
+        // nama_dinas: 'required',
+        dinas_id: 'required',
         nama_stasiun: 'required',
       }
 
@@ -304,10 +305,15 @@ class DataClientController {
       let data = await db.select(db.raw(`*`)).from('devices').whereRaw(`id_mesin = ?`, reqBody.id_mesin)
       if(data.length > 0) throw createError(`Id Mesin ${reqBody.id_mesin} already exists`, 'E_BAD_REQUEST')
 
+      let dataDinas = await db.select(db.raw(`*`)).from('users').whereRaw(`id = ?`, reqBody.dinas_id)
+      if(dataDinas.length === 0) throw createError(`Dinas not found`, 'E_BAD_REQUEST')
+      dataDinas = dataDinas[0]
+
       await db('devices')
         .insert({
           id_mesin: reqBody.id_mesin,
-          nama_dinas: reqBody.nama_dinas,
+          nama_dinas: dataDinas.nama_dinas,
+          dinas_id: dataDinas.id,
           nama_stasiun: reqBody.nama_stasiun,
           created_by: reqBody.user_id,
         })
@@ -337,7 +343,8 @@ class DataClientController {
       let rules = {
         id: 'required|number',
         id_mesin: 'required',
-        nama_dinas: 'required',
+        // nama_dinas: 'required',
+        dinas_id: 'required',
         nama_stasiun: 'required',
       }
 
@@ -354,11 +361,16 @@ class DataClientController {
       let data = await db.select(db.raw(`*`)).from('devices').whereRaw(`id_mesin = ? AND id NOT IN (?)`, [reqBody.id_mesin, reqBody.id])
       if(data.length > 0) throw createError(`Id Mesin ${reqBody.id_mesin} already exists`, 'E_BAD_REQUEST')
 
+      let dataDinas = await db.select(db.raw(`*`)).from('users').whereRaw(`id = ?`, reqBody.dinas_id)
+      if(dataDinas.length === 0) throw createError(`Dinas not found`, 'E_BAD_REQUEST')
+      dataDinas = dataDinas[0]
+
       await db('devices')
         .whereRaw(`id = ?`, reqBody.id)
         .update({
           id_mesin: reqBody.id_mesin,
-          nama_dinas: reqBody.nama_dinas,
+          nama_dinas: dataDinas.nama_dinas,
+          dinas_id: dataDinas.id,
           nama_stasiun: reqBody.nama_stasiun,
           updated_at: new Date
         })
@@ -415,7 +427,7 @@ class DataClientController {
   }
 
   /**
-   * API Handle Remove Device
+   * API Handle List Device
    * @param {*} req 
    * @author Roby Parlan
    */
@@ -461,6 +473,31 @@ class DataClientController {
   }
 
   /**
+   * API Handle List Dinas
+   * @param {*} req 
+   * @author Roby Parlan
+   */
+  async handleListDinas(req: any, res:any) {
+    try {
+
+      let dataDinas = await db.select(db.raw(`distinct id as dinas_id, nama_dinas`))
+        .from('users')
+        .whereRaw(`nama_dinas notnull`)
+
+      return sendResponseCustom(res, {
+        success: true,
+        data: dataDinas
+      })
+
+    } catch (error: any) {
+      if (!errorCodes[error.code])
+        logger.error(error)
+
+      return sendResponseError(res, error)
+    }
+  }
+
+  /**
    * API Handle Create User
    * @param {*} req 
    * @author Roby Parlan
@@ -472,7 +509,7 @@ class DataClientController {
       let rules = {
         username: 'required',
         password: 'required',
-        device_id: 'required',
+        nama_dinas: 'required',
         api_key: 'required',
         secret_key: 'required',
       }
@@ -487,8 +524,8 @@ class DataClientController {
       let data = await db.select(db.raw(`*`)).from('users').whereRaw(`username = ?`, reqBody.username.trim())
       if(data.length > 0) throw createError(`User ${reqBody.username} already exists`, 'E_BAD_REQUEST')
 
-      let dataDevice = await db.select(db.raw(`*`)).from('devices').whereRaw(`id = ?`, reqBody.device_id)
-      if(dataDevice.length === 0) throw createError(`Device not found`, 'E_BAD_REQUEST')
+      // let dataDevice = await db.select(db.raw(`*`)).from('devices').whereRaw(`id = ?`, reqBody.device_id)
+      // if(dataDevice.length === 0) throw createError(`Device not found`, 'E_BAD_REQUEST')
 
       const salt = await bcrypt.genSalt(10)
       reqBody.password = await bcrypt.hash(reqBody.password.trim(), salt)
@@ -497,7 +534,7 @@ class DataClientController {
         .insert({
           username: reqBody.username.trim(),
           password: reqBody.password,
-          device_id: reqBody.device_id,
+          nama_dinas: reqBody.nama_dinas,
           api_key: reqBody.api_key.trim(),
           secret_key: reqBody.secret_key.trim(),
           role_id: 'usr',
@@ -530,7 +567,8 @@ class DataClientController {
       let rules = {
         id: 'required|number',
         password: 'required',
-        device_id: 'required',
+        // device_id: 'required',
+        nama_dinas: 'required',
         api_key: 'required',
         secret_key: 'required',
       }
@@ -553,8 +591,8 @@ class DataClientController {
         reqBody.password = await bcrypt.hash(reqBody.password.trim(), salt)
       }
 
-      let dataDevice = await db.select(db.raw(`*`)).from('devices').whereRaw(`id = ?`, reqBody.device_id)
-      if(dataDevice.length === 0) throw createError(`Device not found`, 'E_BAD_REQUEST')
+      // let dataDevice = await db.select(db.raw(`*`)).from('devices').whereRaw(`id = ?`, reqBody.device_id)
+      // if(dataDevice.length === 0) throw createError(`Device not found`, 'E_BAD_REQUEST')
 
 
       await db('users')
@@ -562,7 +600,7 @@ class DataClientController {
         .update({
           username: reqBody.username.trim(),
           password: match ? undefined : reqBody.password,
-          device_id: reqBody.device_id,
+          nama_dinas: reqBody.nama_dinas,
           api_key: reqBody.api_key.trim(),
           secret_key: reqBody.secret_key.trim(),
           updated_at: new Date
@@ -640,7 +678,7 @@ class DataClientController {
           throw createError('', 'E_BAD_REQUEST', err)
         })
 
-      let dataUser = await db.select(db.raw(`usr.id, usr.username, usr.api_key, usr.secret_key, dv.nama_dinas`))
+      let dataUser = await db.select(db.raw(`usr.id, usr.username, usr.api_key, usr.secret_key, COALESCE(dv.nama_dinas, usr.nama_dinas) nama_dinas`))
         .from('users AS usr')
         .leftJoin(db.raw(`devices AS dv on dv.id = usr.device_id`))
         .orderBy('usr.created_at', 'DESC')
@@ -698,7 +736,7 @@ class DataClientController {
   async handleDeviceList(req: any, res:any) {
     try {
 
-      let data = await db.select(db.raw(`id AS device_id, nama_dinas`))
+      let data = await db.select(db.raw(`id AS device_id, nama_dinas, id_mesin`))
         .from('devices')
 
       return sendResponseCustom(res, {
