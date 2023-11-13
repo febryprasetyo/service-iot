@@ -49,7 +49,7 @@ class MqttHandler {
       for (let i = 0; i < dataStream.length; i++) {
         const el = dataStream[i];
         // let checkData = await db.select(db.raw(`*`)).from('mqtt_datas').whereRaw(`uuid = ? AND project = ? AND time = ?`, [uuid, project, el['time']])
-        let tm = el['time'] ? moment(el['time']).format('YYYY-MM-DD HH:ss:mm') : moment().format('YYYY-MM-DD HH:ss:mm')
+        let tm = el['time'] ? moment(el['time'],  "MM-DD-YYYY HH:ss:mm").format('YYYY-MM-DD HH:ss:mm') : moment().format('YYYY-MM-DD HH:ss:mm')
         let checkData = await db.select(db.raw(`*`)).from('mqtt_datas').whereRaw(`uuid = ? AND time = ?`, [uuid, tm])
 
         if (checkData.length === 0) {
