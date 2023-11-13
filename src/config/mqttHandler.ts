@@ -1,5 +1,5 @@
 import * as Mqtt from 'mqtt'
-import {db} from '../utils/util';
+import {db, moment} from '../utils/util';
 import 'dotenv/config';
 
 var brokerUrl: any = process.env.MQTT_BROKER_URL
@@ -49,7 +49,8 @@ class MqttHandler {
       for (let i = 0; i < dataStream.length; i++) {
         const el = dataStream[i];
         // let checkData = await db.select(db.raw(`*`)).from('mqtt_datas').whereRaw(`uuid = ? AND project = ? AND time = ?`, [uuid, project, el['time']])
-        let checkData = await db.select(db.raw(`*`)).from('mqtt_datas').whereRaw(`uuid = ? AND time = ?`, [uuid, el['time']])
+        let tm = el['time'] ? moment(el['time']).format('YYYY-MM-DD HH:ss:mm') : moment().format('YYYY-MM-DD HH:ss:mm')
+        let checkData = await db.select(db.raw(`*`)).from('mqtt_datas').whereRaw(`uuid = ? AND time = ?`, [uuid, tm])
 
         if (checkData.length === 0) {
           await db('mqtt_datas')
