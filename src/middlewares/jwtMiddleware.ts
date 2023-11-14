@@ -36,6 +36,7 @@ function JwtMiddleware(access:string) {
         }
         
         req.body.user_id = data.userData.user_id
+        req.body.role_id = data.userData.role_id
         next();
       } catch (err) {
         res.status(401).json({

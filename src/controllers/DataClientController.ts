@@ -79,16 +79,30 @@ class DataClientController {
           throw createError('', 'E_BAD_REQUEST', err)
         })
 
-      let data = await db.select(db.raw(`
+      let query = db.select(db.raw(`
         s.id, s.nama_stasiun, s.id_mesin, s.address,
         s.province_name, s.province_id, s.city_name, s.city_id 
       `)).from('stations AS s')
+        
+      let queryData = db.select(db.raw(`COUNT(s.*) as total`))
+      .from('stations AS s')
+
+      if (req.body.role_id !== 'adm') {
+        query = query.leftJoin(db.raw(`devices d on d.id_mesin = s.id_mesin`))
+        query = query.leftJoin(db.raw(`users u on d.dinas_id = u.id`))
+        query = query.whereRaw(`u.id = ?`, req.body.user_id)
+
+        queryData = queryData.leftJoin(db.raw(`devices d on d.id_mesin = s.id_mesin`))
+        queryData = queryData.leftJoin(db.raw(`users u on d.dinas_id = u.id`))
+        queryData = queryData.whereRaw(`u.id = ?`, req.body.user_id)
+      }
+
+      let data = await query
         .orderBy('s.created_at', 'DESC')
         .limit(reqBody.limit, { skipBinding: true })
         .offset(reqBody.offset)
 
-      let countData = await db.select(db.raw(`COUNT(*) as total`))
-        .from('stations')
+      let countData = await queryData
 
       return sendResponseCustom(res, {
         success: true,
@@ -736,8 +750,15 @@ class DataClientController {
   async handleDeviceList(req: any, res:any) {
     try {
 
-      let data = await db.select(db.raw(`id AS device_id, nama_dinas, id_mesin`))
-        .from('devices')
+      let query = db.select(db.raw(`d.id AS device_id, d.nama_dinas, d.id_mesin`))
+        .from('devices AS d')
+        
+      if (req.body.role_id !== 'adm') {
+        query = query.leftJoin(db.raw(`users u on u.id = d.dinas_id`))
+        query = query.whereRaw(`u.id = ?`, req.body.user_id)
+      }
+
+      let data = await query
 
       return sendResponseCustom(res, {
         success: true,
