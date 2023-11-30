@@ -113,7 +113,7 @@ class ProcessData {
         logger.info(`------------------- SYNC SUBMIT DATA TO API MENLHK ------------------`)
         let result = await axios.request(options)
         logger.info(`------------------- SYNC RESPONSE FROM API MENLHK ${JSON.stringify(result.data)} ------------------`)
-        let statusCode = result.data.status.statusCode
+        let statusCode = result.data.status ? result.data.status.statusCode : 401
   
         if (statusCode == 200) {
           logger.info(`------------------- [SYNC-SUCCESS] UPDATE DATA WATERMONITORING ------------------`)
