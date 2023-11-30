@@ -28,7 +28,7 @@ class IntegrationController {
 
       let result = await axios.request(options)
 
-      logger.info(`--------------result :`, result)
+      logger.info(`--------------result :`, result.data)
 
       return sendResponseCustom(res, result.data)
 

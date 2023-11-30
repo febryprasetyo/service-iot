@@ -29,8 +29,7 @@ class ProcessData {
           from watermonitoring w 
           inner join devices d on d.id_mesin = w.uuid 
           inner join users u on u.id = d.dinas_id 
-          where is_success = false and u.id = ?
-          limit 10000
+          where is_success = false and u.id = ? and w.id_stasiun NOTNULL
           `, elx.id))
   
         if (data.length == 0) {
