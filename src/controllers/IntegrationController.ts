@@ -16,7 +16,7 @@ class IntegrationController {
       logger.info(`--------------reqbody :`, reqBody)
 
       let options = {
-        url: 'https://ppkl.menlhk.go.id/onlimo/uji/connect/uji_data_onlimo',
+        url: process.env.URL_KLHK,
         method: 'POST',
         header: {
           'Content-Type': 'Application/json'
