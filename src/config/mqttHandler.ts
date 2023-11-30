@@ -75,9 +75,12 @@ class MqttHandler {
             liquid: el['Liquid'],
           })
 
+          let checkDataStasiun = await db.select(db.raw(`*`)).from('devices').whereRaw(`id_mesin = ?`, uuid)
+
           await db('watermonitoring')
             .insert({
               uuid: uuid,
+              id_stasiun: checkDataStasiun.length > 0 ? checkDataStasiun[0].nama_stasiun : '-',
               time: tm,
               temperature: el['Temperature'],
               do_: el['DO'],
