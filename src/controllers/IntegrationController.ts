@@ -30,6 +30,15 @@ class IntegrationController {
 
       logger.info(`--------------result :`, result.data)
 
+      // await db('res_klhk')
+      // .insert({
+      //   payload: JSON.stringify(options.data),
+      //   data_uid: result.data.rows.data_uid,
+      //   status_code: result.data.status.statusCode,
+      //   status_desc: result.data.status.statusDesc,
+      //   id_stasiun: reqBody.data['IDStasiun']
+      // })
+
       return sendResponseCustom(res, result.data)
 
     } catch (error: any) {

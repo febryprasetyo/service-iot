@@ -127,6 +127,16 @@ class ProcessData {
               res_menlhk: JSON.stringify({req: options, res:result.data})
             })
           }
+
+          await db('res_klhk')
+            .insert({
+              payload: JSON.stringify(options.data),
+              data_uid: result.data.rows.data_uid,
+              status_code: result.data.status.statusCode,
+              status_desc: result.data.status.statusDesc,
+              id_stasiun: options.data.data['IDStasiun']
+            })
+
           logger.info(`------------------- [SYNC-SUCCESS] UPDATE SUCCESFULLY ------------------`)
         } else {
           logger.info(`------------------- [SYNC-FAILED] UPDATE DATA WATERMONITORING ------------------`)
@@ -140,6 +150,15 @@ class ProcessData {
               res_menlhk: JSON.stringify({req: options, res:result.data})
             })
           }
+
+          await db('res_klhk')
+          .insert({
+            payload: JSON.stringify(options.data),
+            data_uid: '-',
+            status_code: null,
+            status_desc: result.data,
+            id_stasiun: options.data.data['IDStasiun']
+          })
           logger.info(`------------------- [SYNC-FAILED] UPDATE SUCCESFULLY ------------------`)
         }
       }
