@@ -773,6 +773,38 @@ class DataClientController {
     }
   }
 
+  /**
+   * API Handle List Response KLHK
+   * @param {*} req 
+   * @author Roby Parlan
+   */
+  async handleKlhkList(req: any, res:any) {
+    try {
+
+      let query = db.select(db.raw(`rk.payload, rk.data_uid, rk.status_code, rk.status_desc, rk.id_stasiun`))
+        .from('res_klhk AS rk')
+        .leftJoin(db.raw(`devices s on upper(s.nama_stasiun) = upper(rk.id_stasiun)`))
+        
+      if (req.body.role_id !== 'adm') {
+        query = query.leftJoin(db.raw(`users u on u.id = s.dinas_id`))
+        query = query.whereRaw(`u.id = ?`, req.body.user_id)
+      }
+
+      let data = await query
+
+      return sendResponseCustom(res, {
+        success: true,
+        data
+      })
+
+    } catch (error: any) {
+      if (!errorCodes[error.code])
+        logger.error(error)
+
+      return sendResponseError(res, error)
+    }
+  }
+
 }
 
 export = DataClientController

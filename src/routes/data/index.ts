@@ -15,6 +15,7 @@ router.get('/station/device-list', JwtMiddleware('adm:usr'), DataClientCtl.handl
 router.post('/station/create', JwtMiddleware('adm:usr'), DataClientCtl.handleCreate)
 router.post('/station/update', JwtMiddleware('adm:usr'), DataClientCtl.handleUpdate)
 router.post('/station/remove', JwtMiddleware('adm:usr'), DataClientCtl.handleDelete)
+router.get('/klhk/list', JwtMiddleware('adm:usr'), DataClientCtl.handleKlhkList)
 
 router.post('/device/create', JwtMiddleware('adm'), DataClientCtl.handleCreateDevice)
 router.post('/device/update', JwtMiddleware('adm'), DataClientCtl.handleUpdateDevice)
