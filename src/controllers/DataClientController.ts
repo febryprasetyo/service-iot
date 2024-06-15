@@ -1,7 +1,9 @@
 import { logger, sendResponseCustom, sendResponseError, 
-  errorCodes, createError, validateParamsAll, db} from '../utils/util';
+  errorCodes, createError, validateParamsAll, db, moment} from '../utils/util';
 import 'dotenv/config';
 import bcrypt from "bcrypt";
+import * as XLSX from 'xlsx'
+import * as ExcelJS from 'exceljs'
 
 class DataClientController {
 
@@ -780,10 +782,16 @@ class DataClientController {
    */
   async handleKlhkList(req: any, res:any) {
     try {
+      let limit = req.query.limit ? req.query.limit : 100
+      let startDate = req.query.startDate ? req.query.startDate : null
+      let endDate = req.query.endDate ? req.query.endDate : null
+      let startHour = req.query.startHour ? req.query.startHour : null
+      let endHour = req.query.endHour ? req.query.endHour : null
 
       let query = db.select(db.raw(`rk.payload, rk.data_uid, rk.status_code, rk.status_desc, rk.id_stasiun`))
         .from('res_klhk AS rk')
         .leftJoin(db.raw(`devices s on upper(s.nama_stasiun) = upper(rk.id_stasiun)`))
+        .limit(limit)
         
       if (req.body.role_id !== 'adm') {
         query = query.leftJoin(db.raw(`users u on u.id = s.dinas_id`))
@@ -792,10 +800,322 @@ class DataClientController {
 
       let data = await query
 
-      return sendResponseCustom(res, {
-        success: true,
-        data
-      })
+      data.forEach((item: any) => {
+        item.payload = JSON.parse(item.payload);
+      });
+
+      if (startDate && endDate) {
+        data = data.filter((item: any) => {
+          const itemDate = moment(item.payload.data.Tanggal).format('YYYY-MM-DD');
+          return itemDate >= startDate && itemDate <= endDate;
+        });
+      }
+
+      if (startHour && endHour) {
+        data = data.filter((item: any) => {
+          const itemHours = item.payload.data.Jam
+          return itemHours >= startHour && itemHours <= endHour;
+        });
+      }
+
+      data.sort((a: any, b: any) => {
+        const dateA = a.payload.data.Tanggal;
+        const dateB = b.payload.data.Tanggal;
+        const timeA = a.payload.data.Jam;
+        const timeB = b.payload.data.Jam;
+    
+        if (dateA > dateB) return -1;
+        if (dateA < dateB) return 1;
+        if (timeA > timeB) return -1;
+        if (timeA < timeB) return 1;
+        return 0;
+    });
+
+    data.forEach((item: any) => {
+      item.payload = JSON.stringify(item.payload);
+    });
+
+    return sendResponseCustom(res, {
+      success: true,
+      data
+    })
+
+    } catch (error: any) {
+      if (!errorCodes[error.code])
+        logger.error(error)
+
+      return sendResponseError(res, error)
+    }
+  }
+
+  /**
+   * API Handle Export excel Response KLHK
+   * @param {*} req 
+   * @author Roby Parlan
+   */
+  async handleKlhkExport(req: any, res:any) {
+    try {
+      let limit = req.query.limit ? req.query.limit : 100
+      let startDate = req.query.startDate ? req.query.startDate : null
+      let endDate = req.query.endDate ? req.query.endDate : null
+      let startHour = req.query.startHour ? req.query.startHour : null
+      let endHour = req.query.endHour ? req.query.endHour : null
+
+      let query = db.select(db.raw(`rk.payload, rk.data_uid, rk.status_code, rk.status_desc, rk.id_stasiun`))
+        .from('res_klhk AS rk')
+        .leftJoin(db.raw(`devices s on upper(s.nama_stasiun) = upper(rk.id_stasiun)`))
+        .limit(limit)
+        
+      if (req.body.role_id !== 'adm') {
+        query = query.leftJoin(db.raw(`users u on u.id = s.dinas_id`))
+        query = query.whereRaw(`u.id = ?`, req.body.user_id)
+      }
+
+      let data = await query
+
+      data.forEach((item: any) => {
+        item.payload = JSON.parse(item.payload);
+      });
+
+      if (startDate && endDate) {
+        data = data.filter((item: any) => {
+          const itemDate = moment(item.payload.data.Tanggal).format('YYYY-MM-DD');
+          return itemDate >= startDate && itemDate <= endDate;
+        });
+      }
+
+      if (startHour && endHour) {
+        data = data.filter((item: any) => {
+          const itemHours = item.payload.data.Jam
+          return itemHours >= startHour && itemHours <= endHour;
+        });
+      }
+
+      data.sort((a: any, b: any) => {
+        const dateA = a.payload.data.Tanggal;
+        const dateB = b.payload.data.Tanggal;
+        const timeA = a.payload.data.Jam;
+        const timeB = b.payload.data.Jam;
+    
+        if (dateA > dateB) return -1;
+        if (dateA < dateB) return 1;
+        if (timeA > timeB) return -1;
+        if (timeA < timeB) return 1;
+        return 0;
+    });
+
+    for (let i = 0; i < data.length; i++) {
+      const el = data[i];
+      el.payload = JSON.stringify(el.payload)
+      el.number = i + 1
+    }
+
+    data.forEach((item: any, idx: any) => {
+      item.payload = JSON.stringify(item.payload)
+      item.number = idx + 1
+    });
+
+		 // Create a new workbook
+     const workbook = new ExcelJS.Workbook();
+     const sheet = workbook.addWorksheet('Data');
+
+     const headers = [
+      { header: 'No', key: 'number' },
+      { header: 'Id Stasiun', key: 'id_stasiun' },
+      { header: 'Data UID', key: 'data_uid' },
+      { header: 'Payload', key: 'payload' },
+      { header: 'Status Code', key: 'status_code' },
+      { header: 'Status Desc', key: 'status_desc' },
+    ];
+
+    sheet.columns = headers
+
+    // Add custom headers to the worksheet
+    headers.forEach(header => {
+        const column = sheet.getColumn(header.key);
+        column.header = header.header;
+        column.eachCell(cell => {
+            // Example of setting cell style (modify as needed)
+            cell.fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: '95B3D7' }
+            };
+            cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        });
+    });
+
+    data.forEach((item: any) => {
+      const row = {
+          number: item.number,
+          id_stasiun: item.id_stasiun,
+          data_uid: item.data_uid,
+          payload: item.payload,
+          status_code: item.status_code,
+          status_desc: item.status_desc,
+      };
+      sheet.addRow(row);
+    });
+
+		/* generate buffer */
+		const excelBuffer = await workbook.xlsx.writeBuffer();
+
+    res.header('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    const filename = `res_klhk_${moment().format('YYYYMMDDHHmmsss')}.xlsx`
+    res.header('Content-Disposition', `attachment; filename="${filename}"`)
+    return res.status(200).send(excelBuffer)
+
+    } catch (error: any) {
+      if (!errorCodes[error.code])
+        logger.error(error)
+
+      return sendResponseError(res, error)
+    }
+  }
+
+  /**
+   * API Handle List Response KLHK
+   * @param {*} req 
+   * @author Roby Parlan
+   */
+  async handleMqttList(req: any, res:any) {
+    try {
+      let limit = req.query.limit ? req.query.limit : 100
+      let startDate = req.query.startDate ? moment(req.query.startDate).format('YYYY-MM-DD') : null
+      let endDate = req.query.endDate ? moment(req.query.endDate).format('YYYY-MM-DD') : null
+      let startHour = req.query.startHour ? req.query.startHour : null
+      let endHour = req.query.endHour ? req.query.endHour : null
+
+      let query = db.select(db.raw(`md.*`))
+        .from('mqtt_datas AS md')
+        .orderByRaw(`md.time DESC`)
+        .limit(limit)
+
+      if (startDate && endDate) {
+        query = query.whereRaw(`to_char(time, 'YYYY-MM-DD')::text BETWEEN ? AND ?`, [startDate, endDate])
+        if (startHour && endHour) {
+          query = query.whereRaw(`to_char(time, 'hh:mm:ss')::text BETWEEN ? AND ?`, [startHour, endHour])
+        }
+      }
+
+      let data = await query
+
+    return sendResponseCustom(res, {
+      success: true,
+      data
+    })
+
+    } catch (error: any) {
+      if (!errorCodes[error.code])
+        logger.error(error)
+
+      return sendResponseError(res, error)
+    }
+  }
+
+  /**
+   * API Handle List Response MQTT
+   * @param {*} req 
+   * @author Roby Parlan
+   */
+  async handleMqttExport(req: any, res:any) {
+    try {
+      let limit = req.query.limit ? req.query.limit : 100
+      let startDate = req.query.startDate ? moment(req.query.startDate).format('YYYY-MM-DD') : null
+      let endDate = req.query.endDate ? moment(req.query.endDate).format('YYYY-MM-DD') : null
+      let startHour = req.query.startHour ? req.query.startHour : null
+      let endHour = req.query.endHour ? req.query.endHour : null
+
+      let query = db.select(db.raw(`md.*`))
+        .from('mqtt_datas AS md')
+        .orderByRaw(`md.time DESC`)
+        .limit(limit)
+
+      if (startDate && endDate) {
+        query = query.whereRaw(`to_char(time, 'YYYY-MM-DD')::text BETWEEN ? AND ?`, [startDate, endDate])
+        if (startHour && endHour) {
+          query = query.whereRaw(`to_char(time, 'hh:mm:ss')::text BETWEEN ? AND ?`, [startHour, endHour])
+        }
+      }
+
+      let data = await query
+
+      data.forEach((item: any, idx: any) => {
+        item.number = idx + 1
+        item.time = moment(item.time).format('YYYY-MM-DD HH:mm:ss')
+      });
+
+      // Create a new workbook
+      const workbook = new ExcelJS.Workbook();
+      const sheet = workbook.addWorksheet('Data');
+
+      const headers = [
+        { header: 'No', key: 'number' },
+        { header: 'UUID', key: 'uuid' },
+        { header: 'Time', key: 'time' },
+        { header: 'DO_', key: 'do_' },
+        { header: 'Tur', key: 'tur' },
+        { header: 'CT', key: 'ct' },
+        { header: 'PH', key: 'ph' },
+        { header: 'ORP', key: 'orp' },
+        { header: 'BOD', key: 'bod' },
+        { header: 'COD', key: 'cod' },
+        { header: 'TSS', key: 'tss' },
+        { header: 'N', key: 'n' },
+        { header: 'NO3_3', key: 'no3_3' },
+        { header: 'NO2', key: 'no2' },
+        { header: 'DEPTH', key: 'depth' },
+        { header: 'LGNH4', key: 'lgnh4' },
+        { header: 'LIQUID', key: 'liquid' },
+      ];
+
+      sheet.columns = headers
+
+      // Add custom headers to the worksheet
+      headers.forEach(header => {
+          const column = sheet.getColumn(header.key);
+          column.header = header.header;
+          column.eachCell(cell => {
+              // Example of setting cell style (modify as needed)
+              cell.fill = {
+                  type: 'pattern',
+                  pattern: 'solid',
+                  fgColor: { argb: '95B3D7' }
+              };
+              cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+          });
+      });
+
+      data.forEach((item: any) => {
+        const row = {
+            number: item.number,
+            uuid: item.uuid,
+            time: item.time,
+            do_: item.do_,
+            tur: item.tur,
+            ct: item.ct,
+            ph: item.ph,
+            orp: item.orp,
+            bod: item.bod,
+            cod: item.cod,
+            tss: item.tss,
+            n: item.n,
+            no3_3: item.no3_3,
+            no2: item.no2,
+            depth: item.depth,
+            lgnh4: item.lgnh4,
+            liquid: item.liquid,
+        };
+        sheet.addRow(row);
+      });
+
+      /* generate buffer */
+      const excelBuffer = await workbook.xlsx.writeBuffer();
+
+      res.header('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+      const filename = `mqtt_${moment().format('YYYYMMDDHHmmsss')}.xlsx`
+      res.header('Content-Disposition', `attachment; filename="${filename}"`)
+      return res.status(200).send(excelBuffer)
 
     } catch (error: any) {
       if (!errorCodes[error.code])

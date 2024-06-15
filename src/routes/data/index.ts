@@ -16,6 +16,7 @@ router.post('/station/create', JwtMiddleware('adm:usr'), DataClientCtl.handleCre
 router.post('/station/update', JwtMiddleware('adm:usr'), DataClientCtl.handleUpdate)
 router.post('/station/remove', JwtMiddleware('adm:usr'), DataClientCtl.handleDelete)
 router.get('/klhk/list', JwtMiddleware('adm:usr'), DataClientCtl.handleKlhkList)
+router.get('/klhk/export', JwtMiddleware('adm:usr'), DataClientCtl.handleKlhkExport)
 
 router.post('/device/create', JwtMiddleware('adm'), DataClientCtl.handleCreateDevice)
 router.post('/device/update', JwtMiddleware('adm'), DataClientCtl.handleUpdateDevice)
@@ -28,5 +29,8 @@ router.post('/user/update', JwtMiddleware('adm'), DataClientCtl.handleUpdateUser
 router.post('/user/remove', JwtMiddleware('adm'), DataClientCtl.handleRemoveUser)
 router.post('/user/list', JwtMiddleware('adm'), DataClientCtl.handleListUser)
 // router.get('/user/device-list', JwtMiddleware('adm'), DataClientCtl.handleListDeviceUser)
+
+router.get('/mqtt/list', JwtMiddleware('adm:usr'), DataClientCtl.handleMqttList)
+router.get('/mqtt/export', JwtMiddleware('adm:usr'), DataClientCtl.handleMqttExport)
 
 export = router
