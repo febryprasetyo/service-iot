@@ -4,6 +4,7 @@ import 'dotenv/config';
 import bcrypt from "bcrypt";
 import * as XLSX from 'xlsx'
 import * as ExcelJS from 'exceljs'
+import { start } from 'repl';
 
 class DataClientController {
 
@@ -792,10 +793,16 @@ class DataClientController {
         .from('res_klhk AS rk')
         .leftJoin(db.raw(`devices s on upper(s.nama_stasiun) = upper(rk.id_stasiun)`))
         .limit(limit)
+        .orderByRaw(`((rk.payload::jsonb->'data'->>'Tanggal'::text) || ' ' || (rk.payload::jsonb->'data'->>'Jam'::text)) DESC`)
         
       if (req.body.role_id !== 'adm') {
         query = query.leftJoin(db.raw(`users u on u.id = s.dinas_id`))
         query = query.whereRaw(`u.id = ?`, req.body.user_id)
+      }
+
+      if (startDate && endDate) {
+        query = query.whereRaw(`((rk.payload::jsonb->'data'->>'Tanggal'::text) || ' ' || (rk.payload::jsonb->'data'->>'Jam'::text)) between  ? and ?`,
+        [(startDate+' '+(startHour || '00:00:00')), (endDate+' '+(endHour || '00:00:00'))])
       }
 
       let data = await query
@@ -804,41 +811,14 @@ class DataClientController {
         item.payload = JSON.parse(item.payload);
       });
 
-      if (startDate && endDate) {
-        data = data.filter((item: any) => {
-          const itemDate = moment(item.payload.data.Tanggal).format('YYYY-MM-DD');
-          return itemDate >= startDate && itemDate <= endDate;
-        });
-      }
+      data.forEach((item: any) => {
+        item.payload = JSON.stringify(item.payload);
+      });
 
-      if (startHour && endHour) {
-        data = data.filter((item: any) => {
-          const itemHours = item.payload.data.Jam
-          return itemHours >= startHour && itemHours <= endHour;
-        });
-      }
-
-      data.sort((a: any, b: any) => {
-        const dateA = a.payload.data.Tanggal;
-        const dateB = b.payload.data.Tanggal;
-        const timeA = a.payload.data.Jam;
-        const timeB = b.payload.data.Jam;
-    
-        if (dateA > dateB) return -1;
-        if (dateA < dateB) return 1;
-        if (timeA > timeB) return -1;
-        if (timeA < timeB) return 1;
-        return 0;
-    });
-
-    data.forEach((item: any) => {
-      item.payload = JSON.stringify(item.payload);
-    });
-
-    return sendResponseCustom(res, {
-      success: true,
-      data
-    })
+      return sendResponseCustom(res, {
+        success: true,
+        data
+      })
 
     } catch (error: any) {
       if (!errorCodes[error.code])
@@ -863,10 +843,16 @@ class DataClientController {
       let query = db.select(db.raw(`rk.*`))
         .from('res_klhk AS rk')
         .leftJoin(db.raw(`devices s on upper(s.nama_stasiun) = upper(rk.id_stasiun)`))
+        .orderByRaw(`((rk.payload::jsonb->'data'->>'Tanggal'::text) || ' ' || (rk.payload::jsonb->'data'->>'Jam'::text)) DESC`)
         
       if (req.body.role_id !== 'adm') {
         query = query.leftJoin(db.raw(`users u on u.id = s.dinas_id`))
         query = query.whereRaw(`u.id = ?`, req.body.user_id)
+      }
+
+      if (startDate && endDate) {
+        query = query.whereRaw(`((rk.payload::jsonb->'data'->>'Tanggal'::text) || ' ' || (rk.payload::jsonb->'data'->>'Jam'::text)) between  ? and ?`,
+        [(startDate+' '+(startHour || '00:00:00')), (endDate+' '+(endHour || '00:00:00'))])
       }
 
       let data = await query
@@ -875,40 +861,13 @@ class DataClientController {
         item.payload = JSON.parse(item.payload);
       });
 
-      if (startDate && endDate) {
-        data = data.filter((item: any) => {
-          const itemDate = moment(item.payload.data.Tanggal).format('YYYY-MM-DD');
-          return itemDate >= startDate && itemDate <= endDate;
-        });
-      }
-
-      if (startHour && endHour) {
-        data = data.filter((item: any) => {
-          const itemHours = item.payload.data.Jam
-          return itemHours >= startHour && itemHours <= endHour;
-        });
-      }
-
-      data.sort((a: any, b: any) => {
-        const dateA = a.payload.data.Tanggal;
-        const dateB = b.payload.data.Tanggal;
-        const timeA = a.payload.data.Jam;
-        const timeB = b.payload.data.Jam;
-    
-        if (dateA > dateB) return -1;
-        if (dateA < dateB) return 1;
-        if (timeA > timeB) return -1;
-        if (timeA < timeB) return 1;
-        return 0;
-    });
-
-    let ctxData: any = []
-    data.forEach((item: any, idx: any) => {
+      let ctxData: any = []
+      data.forEach((item: any, idx: any) => {
       // item.payload = JSON.stringify(item.payload)
       item.number = idx + 1
       ctxData.push({ number: item.number, ...item.payload.data})
-    });
-    logger.info(`--------------------------- ctxData : `, ctxData)
+      });
+      logger.info(`--------------------------- ctxData : `, ctxData)
 
 		 // Create a new workbook
      const workbook = new ExcelJS.Workbook();
@@ -1014,10 +973,7 @@ class DataClientController {
         .limit(limit)
 
       if (startDate && endDate) {
-        query = query.whereRaw(`to_char(time, 'YYYY-MM-DD')::text BETWEEN ? AND ?`, [startDate, endDate])
-        if (startHour && endHour) {
-          query = query.whereRaw(`to_char(time, 'hh:mm:ss')::text BETWEEN ? AND ?`, [startHour, endHour])
-        }
+        query = query.whereRaw(`(to_char(time, 'YYYY-MM-DD')::text || ' '|| to_char(time, 'hh:mm:ss')::text) BETWEEN ? AND ?`, [(startDate+' '+(startHour || '00:00:00')), (endDate+' '+(endHour || '00:00:00'))])
       }
 
       if (req.body.role_id !== 'adm') {
@@ -1057,12 +1013,9 @@ class DataClientController {
         .leftJoin(db.raw(`devices AS d on d.id_mesin = md."uuid"`))
         .orderByRaw(`md.time DESC`)
 
-      if (startDate && endDate) {
-        query = query.whereRaw(`to_char(time, 'YYYY-MM-DD')::text BETWEEN ? AND ?`, [startDate, endDate])
-        if (startHour && endHour) {
-          query = query.whereRaw(`to_char(time, 'hh:mm:ss')::text BETWEEN ? AND ?`, [startHour, endHour])
+        if (startDate && endDate) {
+          query = query.whereRaw(`(to_char(time, 'YYYY-MM-DD')::text || ' '|| to_char(time, 'hh:mm:ss')::text) BETWEEN ? AND ?`, [(startDate+' '+(startHour || '00:00:00')), (endDate+' '+(endHour || '00:00:00'))])
         }
-      }
 
       if (req.body.role_id !== 'adm') {
         query = query.leftJoin(db.raw(`users u on u.device_id = d.id`))
