@@ -855,7 +855,6 @@ class DataClientController {
    */
   async handleKlhkExport(req: any, res:any) {
     try {
-      let limit = req.query.limit ? req.query.limit : 100
       let startDate = req.query.startDate ? req.query.startDate : null
       let endDate = req.query.endDate ? req.query.endDate : null
       let startHour = req.query.startHour ? req.query.startHour : null
@@ -864,7 +863,6 @@ class DataClientController {
       let query = db.select(db.raw(`rk.payload, rk.data_uid, rk.status_code, rk.status_desc, rk.id_stasiun`))
         .from('res_klhk AS rk')
         .leftJoin(db.raw(`devices s on upper(s.nama_stasiun) = upper(rk.id_stasiun)`))
-        .limit(limit)
         
       if (req.body.role_id !== 'adm') {
         query = query.leftJoin(db.raw(`users u on u.id = s.dinas_id`))
@@ -904,16 +902,13 @@ class DataClientController {
         return 0;
     });
 
-    for (let i = 0; i < data.length; i++) {
-      const el = data[i];
-      el.payload = JSON.stringify(el.payload)
-      el.number = i + 1
-    }
-
+    let ctxData: any = []
     data.forEach((item: any, idx: any) => {
-      item.payload = JSON.stringify(item.payload)
+      // item.payload = JSON.stringify(item.payload)
       item.number = idx + 1
+      ctxData.push({ number: item.number, ...item.payload.data})
     });
+    logger.info(`--------------------------- ctxData : `, ctxData)
 
 		 // Create a new workbook
      const workbook = new ExcelJS.Workbook();
@@ -921,11 +916,24 @@ class DataClientController {
 
      const headers = [
       { header: 'No', key: 'number' },
-      { header: 'Id Stasiun', key: 'id_stasiun' },
-      { header: 'Data UID', key: 'data_uid' },
-      { header: 'Payload', key: 'payload' },
-      { header: 'Status Code', key: 'status_code' },
-      { header: 'Status Desc', key: 'status_desc' },
+      { header: 'Id Stasiun', key: 'IDStasiun' },
+      { header: 'DO', key: 'DO' },
+      { header: 'PH', key: 'PH' },
+      { header: 'BOD', key: 'BOD' },
+      { header: 'COD', key: 'COD' },
+      { header: 'DHL', key: 'DHL' },
+      { header: 'Jam', key: 'Jam' },
+      { header: 'ORP', key: 'ORP' },
+      { header: 'TDS', key: 'TDS' },
+      { header: 'TSS', key: 'TSS' },
+      { header: 'Suhu', key: 'Suhu' },
+      { header: 'SwSG', key: 'SwSG' },
+      { header: 'Nitrat', key: 'Nitrat' },
+      { header: 'Amonia', key: 'Amonia' },
+      { header: 'Tanggal', key: 'Tanggal' },
+      { header: 'Kedalaman', key: 'Kedalaman' },
+      { header: 'Salinitas', key: 'Salinitas' },
+      { header: 'Turbidity', key: 'Turbidity' },
     ];
 
     sheet.columns = headers
@@ -945,14 +953,27 @@ class DataClientController {
         });
     });
 
-    data.forEach((item: any) => {
+    ctxData.forEach((item: any) => {
       const row = {
           number: item.number,
-          id_stasiun: item.id_stasiun,
-          data_uid: item.data_uid,
-          payload: item.payload,
-          status_code: item.status_code,
-          status_desc: item.status_desc,
+          "DO": item.DO,
+          "PH": item.PH,
+          "BOD":item.BOD,
+          "COD": item.COD,
+          "DHL": item.DHL || 0,
+          "Jam": item.Jam,
+          "ORP": item.ORP || 0,
+          "TDS": item.TDS,
+          "TSS": item.TSS,
+          "Suhu": item.Suhu,
+          "SwSG": item.SwSG || 0,
+          "Nitrat": item.Nitrat,
+          "Amonia'": item.Amonia || 0,
+          "Tanggal": item.Tanggal,
+          "IDStasiun": item.IDStasiun,
+          "Kedalaman": item.Kedalaman,
+          "Salinitas": item.Salinitas || 0,
+          "Turbidity": item.Turbidity
       };
       sheet.addRow(row);
     });
@@ -1020,7 +1041,6 @@ class DataClientController {
    */
   async handleMqttExport(req: any, res:any) {
     try {
-      let limit = req.query.limit ? req.query.limit : 100
       let startDate = req.query.startDate ? moment(req.query.startDate).format('YYYY-MM-DD') : null
       let endDate = req.query.endDate ? moment(req.query.endDate).format('YYYY-MM-DD') : null
       let startHour = req.query.startHour ? req.query.startHour : null
@@ -1029,7 +1049,6 @@ class DataClientController {
       let query = db.select(db.raw(`md.*`))
         .from('mqtt_datas AS md')
         .orderByRaw(`md.time DESC`)
-        .limit(limit)
 
       if (startDate && endDate) {
         query = query.whereRaw(`to_char(time, 'YYYY-MM-DD')::text BETWEEN ? AND ?`, [startDate, endDate])
@@ -1053,18 +1072,19 @@ class DataClientController {
         { header: 'No', key: 'number' },
         { header: 'UUID', key: 'uuid' },
         { header: 'Time', key: 'time' },
-        { header: 'DO_', key: 'do_' },
-        { header: 'Tur', key: 'tur' },
-        { header: 'CT', key: 'ct' },
+        { header: 'Suhu', key: 'temperature' },
+        { header: 'DO', key: 'do_' },
+        { header: 'Turbidity', key: 'tur' },
+        { header: 'TDS', key: 'ct' },
         { header: 'PH', key: 'ph' },
         { header: 'ORP', key: 'orp' },
         { header: 'BOD', key: 'bod' },
         { header: 'COD', key: 'cod' },
         { header: 'TSS', key: 'tss' },
-        { header: 'N', key: 'n' },
-        { header: 'NO3_3', key: 'no3_3' },
-        { header: 'NO2', key: 'no2' },
-        { header: 'DEPTH', key: 'depth' },
+        { header: 'Amonia', key: 'n' },
+        { header: 'Nitrat', key: 'no3_3' },
+        { header: 'Nitrit', key: 'no2' },
+        { header: 'Kedalaman', key: 'depth' },
         { header: 'LGNH4', key: 'lgnh4' },
         { header: 'LIQUID', key: 'liquid' },
       ];
@@ -1091,6 +1111,7 @@ class DataClientController {
             number: item.number,
             uuid: item.uuid,
             time: item.time,
+            temperature: item.temperature,
             do_: item.do_,
             tur: item.tur,
             ct: item.ct,
