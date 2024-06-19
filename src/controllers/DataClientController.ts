@@ -860,7 +860,7 @@ class DataClientController {
       let startHour = req.query.startHour ? req.query.startHour : null
       let endHour = req.query.endHour ? req.query.endHour : null
 
-      let query = db.select(db.raw(`rk.payload, rk.data_uid, rk.status_code, rk.status_desc, rk.id_stasiun`))
+      let query = db.select(db.raw(`rk.*`))
         .from('res_klhk AS rk')
         .leftJoin(db.raw(`devices s on upper(s.nama_stasiun) = upper(rk.id_stasiun)`))
         
@@ -917,22 +917,22 @@ class DataClientController {
      const headers = [
       { header: 'No', key: 'number' },
       { header: 'Id Stasiun', key: 'IDStasiun' },
+      { header: 'Tanggal', key: 'Tanggal' },
+      { header: 'Jam', key: 'Jam' },
       { header: 'DO', key: 'DO' },
       { header: 'PH', key: 'PH' },
       { header: 'BOD', key: 'BOD' },
       { header: 'COD', key: 'COD' },
-      { header: 'DHL', key: 'DHL' },
-      { header: 'Jam', key: 'Jam' },
-      { header: 'ORP', key: 'ORP' },
+      // { header: 'DHL', key: 'DHL' },
+      // { header: 'ORP', key: 'ORP' },
       { header: 'TDS', key: 'TDS' },
       { header: 'TSS', key: 'TSS' },
       { header: 'Suhu', key: 'Suhu' },
-      { header: 'SwSG', key: 'SwSG' },
+      // { header: 'SwSG', key: 'SwSG' },
       { header: 'Nitrat', key: 'Nitrat' },
       { header: 'Amonia', key: 'Amonia' },
-      { header: 'Tanggal', key: 'Tanggal' },
       { header: 'Kedalaman', key: 'Kedalaman' },
-      { header: 'Salinitas', key: 'Salinitas' },
+      // { header: 'Salinitas', key: 'Salinitas' },
       { header: 'Turbidity', key: 'Turbidity' },
     ];
 
@@ -960,19 +960,19 @@ class DataClientController {
           "PH": item.PH,
           "BOD":item.BOD,
           "COD": item.COD,
-          "DHL": item.DHL || 0,
+          // "DHL": item.DHL || 0,
           "Jam": item.Jam,
-          "ORP": item.ORP || 0,
+          // "ORP": item.ORP || 0,
           "TDS": item.TDS,
           "TSS": item.TSS,
           "Suhu": item.Suhu,
-          "SwSG": item.SwSG || 0,
+          // "SwSG": item.SwSG || 0,
           "Nitrat": item.Nitrat,
-          "Amonia'": item.Amonia || 0,
+          "Amonia": item.Amonia,
           "Tanggal": item.Tanggal,
           "IDStasiun": item.IDStasiun,
           "Kedalaman": item.Kedalaman,
-          "Salinitas": item.Salinitas || 0,
+          // "Salinitas": item.Salinitas || 0,
           "Turbidity": item.Turbidity
       };
       sheet.addRow(row);
@@ -1009,6 +1009,7 @@ class DataClientController {
 
       let query = db.select(db.raw(`md.*`))
         .from('mqtt_datas AS md')
+        .leftJoin(db.raw(`devices AS d on d.id_mesin = md."uuid"`))
         .orderByRaw(`md.time DESC`)
         .limit(limit)
 
@@ -1017,6 +1018,11 @@ class DataClientController {
         if (startHour && endHour) {
           query = query.whereRaw(`to_char(time, 'hh:mm:ss')::text BETWEEN ? AND ?`, [startHour, endHour])
         }
+      }
+
+      if (req.body.role_id !== 'adm') {
+        query = query.leftJoin(db.raw(`users u on u.device_id = d.id`))
+        query = query.whereRaw(`u.id = ?`, req.body.user_id)
       }
 
       let data = await query
@@ -1048,6 +1054,7 @@ class DataClientController {
 
       let query = db.select(db.raw(`md.*`))
         .from('mqtt_datas AS md')
+        .leftJoin(db.raw(`devices AS d on d.id_mesin = md."uuid"`))
         .orderByRaw(`md.time DESC`)
 
       if (startDate && endDate) {
@@ -1055,6 +1062,11 @@ class DataClientController {
         if (startHour && endHour) {
           query = query.whereRaw(`to_char(time, 'hh:mm:ss')::text BETWEEN ? AND ?`, [startHour, endHour])
         }
+      }
+
+      if (req.body.role_id !== 'adm') {
+        query = query.leftJoin(db.raw(`users u on u.device_id = d.id`))
+        query = query.whereRaw(`u.id = ?`, req.body.user_id)
       }
 
       let data = await query
