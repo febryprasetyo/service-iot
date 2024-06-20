@@ -788,6 +788,7 @@ class DataClientController {
       let endDate = req.query.endDate ? req.query.endDate : null
       let startHour = req.query.startHour ? req.query.startHour : null
       let endHour = req.query.endHour ? req.query.endHour : null
+      let namaStasiun = req.query.namaStasiun ? req.query.namaStasiun : null
 
       let query = db.select(db.raw(`rk.payload, rk.data_uid, rk.status_code, rk.status_desc, rk.id_stasiun`))
         .from('res_klhk AS rk')
@@ -804,6 +805,12 @@ class DataClientController {
         query = query.whereRaw(`((rk.payload::jsonb->'data'->>'Tanggal'::text) || ' ' || (rk.payload::jsonb->'data'->>'Jam'::text)) between  ? and ?`,
         [(startDate+' '+(startHour || '00:00:00')), (endDate+' '+(endHour || '00:00:00'))])
       }
+
+      if (namaStasiun) {
+        query = query.whereRaw(`s.nama_stasiun ILIKE ?`, `%${namaStasiun}%`)
+      }
+
+      logger.info(query.toString())
 
       let data = await query
 
@@ -839,6 +846,7 @@ class DataClientController {
       let endDate = req.query.endDate ? req.query.endDate : null
       let startHour = req.query.startHour ? req.query.startHour : null
       let endHour = req.query.endHour ? req.query.endHour : null
+      let namaStasiun = req.query.namaStasiun ? req.query.namaStasiun : null
 
       let query = db.select(db.raw(`rk.*`))
         .from('res_klhk AS rk')
@@ -853,6 +861,10 @@ class DataClientController {
       if (startDate && endDate) {
         query = query.whereRaw(`((rk.payload::jsonb->'data'->>'Tanggal'::text) || ' ' || (rk.payload::jsonb->'data'->>'Jam'::text)) between  ? and ?`,
         [(startDate+' '+(startHour || '00:00:00')), (endDate+' '+(endHour || '00:00:00'))])
+      }
+
+      if (namaStasiun) {
+        query = query.whereRaw(`s.nama_stasiun ILIKE ?`, `%${namaStasiun}%`)
       }
 
       let data = await query
@@ -965,8 +977,9 @@ class DataClientController {
       let endDate = req.query.endDate ? moment(req.query.endDate).format('YYYY-MM-DD') : null
       let startHour = req.query.startHour ? req.query.startHour : null
       let endHour = req.query.endHour ? req.query.endHour : null
+      let namaStasiun = req.query.namaStasiun ? req.query.namaStasiun : null
 
-      let query = db.select(db.raw(`md.*`))
+      let query = db.select(db.raw(`d.nama_stasiun, md.*`))
         .from('mqtt_datas AS md')
         .leftJoin(db.raw(`devices AS d on d.id_mesin = md."uuid"`))
         .orderByRaw(`md.time DESC`)
@@ -979,6 +992,10 @@ class DataClientController {
       if (req.body.role_id !== 'adm') {
         query = query.leftJoin(db.raw(`users u on u.device_id = d.id`))
         query = query.whereRaw(`u.id = ?`, req.body.user_id)
+      }
+
+      if (namaStasiun) {
+        query = query.whereRaw(`d.nama_stasiun ILIKE ?`, `%${namaStasiun}%`)
       }
 
       let data = await query
@@ -1007,6 +1024,7 @@ class DataClientController {
       let endDate = req.query.endDate ? moment(req.query.endDate).format('YYYY-MM-DD') : null
       let startHour = req.query.startHour ? req.query.startHour : null
       let endHour = req.query.endHour ? req.query.endHour : null
+      let namaStasiun = req.query.namaStasiun ? req.query.namaStasiun : null
 
       let query = db.select(db.raw(`md.*`))
         .from('mqtt_datas AS md')
@@ -1020,6 +1038,10 @@ class DataClientController {
       if (req.body.role_id !== 'adm') {
         query = query.leftJoin(db.raw(`users u on u.device_id = d.id`))
         query = query.whereRaw(`u.id = ?`, req.body.user_id)
+      }
+
+      if (namaStasiun) {
+        query = query.whereRaw(`d.nama_stasiun ILIKE ?`, `%${namaStasiun}%`)
       }
 
       let data = await query
@@ -1050,8 +1072,8 @@ class DataClientController {
         { header: 'Nitrat', key: 'no3_3' },
         { header: 'Nitrit', key: 'no2' },
         { header: 'Kedalaman', key: 'depth' },
-        { header: 'LGNH4', key: 'lgnh4' },
-        { header: 'LIQUID', key: 'liquid' },
+        // { header: 'LGNH4', key: 'lgnh4' },
+        // { header: 'LIQUID', key: 'liquid' },
       ];
 
       sheet.columns = headers
@@ -1089,8 +1111,8 @@ class DataClientController {
             no3_3: item.no3_3,
             no2: item.no2,
             depth: item.depth,
-            lgnh4: item.lgnh4,
-            liquid: item.liquid,
+            // lgnh4: item.lgnh4,
+            // liquid: item.liquid,
         };
         sheet.addRow(row);
       });
