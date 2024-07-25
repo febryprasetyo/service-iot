@@ -783,7 +783,7 @@ class DataClientController {
    */
   async handleKlhkList(req: any, res:any) {
     try {
-      let limit = req.query.limit ? req.query.limit : 100
+      let limit = req.query.limit ? req.query.limit : 10000
       let startDate = req.query.startDate ? req.query.startDate : null
       let endDate = req.query.endDate ? req.query.endDate : null
       let startHour = req.query.startHour ? req.query.startHour : null
@@ -824,6 +824,7 @@ class DataClientController {
 
       return sendResponseCustom(res, {
         success: true,
+        totalData: data.length,
         data
       })
 
@@ -972,7 +973,7 @@ class DataClientController {
    */
   async handleMqttList(req: any, res:any) {
     try {
-      let limit = req.query.limit ? req.query.limit : 100
+      let limit = req.query.limit ? req.query.limit : 10000
       let startDate = req.query.startDate ? moment(req.query.startDate).format('YYYY-MM-DD') : null
       let endDate = req.query.endDate ? moment(req.query.endDate).format('YYYY-MM-DD') : null
       let startHour = req.query.startHour ? req.query.startHour : null
@@ -1002,6 +1003,7 @@ class DataClientController {
 
     return sendResponseCustom(res, {
       success: true,
+      totalData: data.length,
       data
     })
 
