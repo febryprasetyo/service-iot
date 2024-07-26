@@ -783,7 +783,7 @@ class DataClientController {
    */
   async handleKlhkList(req: any, res:any) {
     try {
-      let limit = req.query.limit ? req.query.limit : 10000
+      let limit = req.query.limit ? req.query.limit : 100
       let startDate = req.query.startDate ? req.query.startDate : null
       let endDate = req.query.endDate ? req.query.endDate : null
       let startHour = req.query.startHour ? req.query.startHour : null
@@ -796,23 +796,33 @@ class DataClientController {
         .limit(limit)
         .orderByRaw(`((rk.payload::jsonb->'data'->>'Tanggal'::text) || ' ' || (rk.payload::jsonb->'data'->>'Jam'::text)) DESC`)
         
+      let qt = db.select(db.raw(`count(rk.*)`))
+        .from('res_klhk AS rk')
+        .leftJoin(db.raw(`devices s on upper(s.nama_stasiun) = upper(rk.id_stasiun)`))
+
       if (req.body.role_id !== 'adm') {
         query = query.leftJoin(db.raw(`users u on u.id = s.dinas_id`))
+        qt = qt.leftJoin(db.raw(`users u on u.id = s.dinas_id`))
         query = query.whereRaw(`u.id = ?`, req.body.user_id)
+        qt = qt.whereRaw(`u.id = ?`, req.body.user_id)
       }
 
       if (startDate && endDate) {
         query = query.whereRaw(`((rk.payload::jsonb->'data'->>'Tanggal'::text) || ' ' || (rk.payload::jsonb->'data'->>'Jam'::text)) between  ? and ?`,
         [(startDate+' '+(startHour || '00:00:00')), (endDate+' '+(endHour || '00:00:00'))])
+        qt = qt.whereRaw(`((rk.payload::jsonb->'data'->>'Tanggal'::text) || ' ' || (rk.payload::jsonb->'data'->>'Jam'::text)) between  ? and ?`,
+        [(startDate+' '+(startHour || '00:00:00')), (endDate+' '+(endHour || '00:00:00'))])
       }
 
       if (namaStasiun) {
         query = query.whereRaw(`s.nama_stasiun ILIKE ?`, `%${namaStasiun}%`)
+        qt = qt.whereRaw(`s.nama_stasiun ILIKE ?`, `%${namaStasiun}%`)
       }
 
       logger.info(query.toString())
 
       let data = await query
+      let totalData = await qt
 
       data.forEach((item: any) => {
         item.payload = JSON.parse(item.payload);
@@ -824,7 +834,7 @@ class DataClientController {
 
       return sendResponseCustom(res, {
         success: true,
-        totalData: data.length,
+        totalData: totalData[0].count,
         data
       })
 
@@ -973,7 +983,7 @@ class DataClientController {
    */
   async handleMqttList(req: any, res:any) {
     try {
-      let limit = req.query.limit ? req.query.limit : 10000
+      let limit = req.query.limit ? req.query.limit : 100
       let startDate = req.query.startDate ? moment(req.query.startDate).format('YYYY-MM-DD') : null
       let endDate = req.query.endDate ? moment(req.query.endDate).format('YYYY-MM-DD') : null
       let startHour = req.query.startHour ? req.query.startHour : null
@@ -986,24 +996,33 @@ class DataClientController {
         .orderByRaw(`md.time DESC`)
         .limit(limit)
 
+      let qt = db.select(db.raw(`count(md.*)`))
+        .from('mqtt_datas AS md')
+        .leftJoin(db.raw(`devices AS d on d.id_mesin = md."uuid"`))
+
       if (startDate && endDate) {
         query = query.whereRaw(`(to_char(time, 'YYYY-MM-DD')::text || ' '|| to_char(time, 'hh:mm:ss')::text) BETWEEN ? AND ?`, [(startDate+' '+(startHour || '00:00:00')), (endDate+' '+(endHour || '00:00:00'))])
+        qt = qt.whereRaw(`(to_char(time, 'YYYY-MM-DD')::text || ' '|| to_char(time, 'hh:mm:ss')::text) BETWEEN ? AND ?`, [(startDate+' '+(startHour || '00:00:00')), (endDate+' '+(endHour || '00:00:00'))])
       }
 
       if (req.body.role_id !== 'adm') {
         query = query.leftJoin(db.raw(`users u on u.device_id = d.id`))
+        qt = qt.leftJoin(db.raw(`users u on u.device_id = d.id`))
         query = query.whereRaw(`u.id = ?`, req.body.user_id)
+        qt = qt.whereRaw(`u.id = ?`, req.body.user_id)
       }
 
       if (namaStasiun) {
         query = query.whereRaw(`d.nama_stasiun ILIKE ?`, `%${namaStasiun}%`)
+        qt = qt.whereRaw(`d.nama_stasiun ILIKE ?`, `%${namaStasiun}%`)
       }
 
       let data = await query
+      let totalData = await qt
 
     return sendResponseCustom(res, {
       success: true,
-      totalData: data.length,
+      totalData: totalData[0].count,
       data
     })
 
