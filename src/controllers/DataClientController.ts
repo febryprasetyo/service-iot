@@ -783,17 +783,21 @@ class DataClientController {
    */
   async handleKlhkList(req: any, res:any) {
     try {
-      let limit = req.query.limit ? req.query.limit : 100
+      let limit = req.query.limit ? req.query.limit : 10
+      let offset = req.query.offset ? req.query.offset : 0
       let startDate = req.query.startDate ? req.query.startDate : null
       let endDate = req.query.endDate ? req.query.endDate : null
       let startHour = req.query.startHour ? req.query.startHour : null
       let endHour = req.query.endHour ? req.query.endHour : null
       let namaStasiun = req.query.namaStasiun ? req.query.namaStasiun : null
 
-      let query = db.select(db.raw(`rk.payload, rk.data_uid, rk.status_code, rk.status_desc, rk.id_stasiun`))
+      let query = db.select(db.raw(`
+        ROW_NUMBER() OVER (ORDER BY rk.id DESC) AS number,
+        rk.payload, rk.data_uid, rk.status_code, rk.status_desc, rk.id_stasiun`))
         .from('res_klhk AS rk')
         .leftJoin(db.raw(`devices s on upper(s.nama_stasiun) = upper(rk.id_stasiun)`))
-        .limit(limit)
+        .limit(parseInt(limit), { skipBinding: true })
+        .offset((parseInt(offset) === 0 ? parseInt(offset) : (parseInt(limit) * parseInt(offset))))
         .orderByRaw(`((rk.payload::jsonb->'data'->>'Tanggal'::text) || ' ' || (rk.payload::jsonb->'data'->>'Jam'::text)) DESC`)
         
       let qt = db.select(db.raw(`count(rk.*)`))
@@ -822,6 +826,7 @@ class DataClientController {
       logger.info(query.toString())
 
       let data = await query
+      
       let totalData = await qt
 
       data.forEach((item: any) => {
@@ -984,17 +989,21 @@ class DataClientController {
   async handleMqttList(req: any, res:any) {
     try {
       let limit = req.query.limit ? req.query.limit : 100
+      let offset = req.query.offset ? req.query.offset : 0
       let startDate = req.query.startDate ? moment(req.query.startDate).format('YYYY-MM-DD') : null
       let endDate = req.query.endDate ? moment(req.query.endDate).format('YYYY-MM-DD') : null
       let startHour = req.query.startHour ? req.query.startHour : null
       let endHour = req.query.endHour ? req.query.endHour : null
       let namaStasiun = req.query.namaStasiun ? req.query.namaStasiun : null
 
-      let query = db.select(db.raw(`d.nama_stasiun, md.*`))
+      let query = db.select(db.raw(`
+        ROW_NUMBER() OVER (ORDER BY md.time DESC) AS number,
+        d.nama_stasiun, md.*`))
         .from('mqtt_datas AS md')
         .leftJoin(db.raw(`devices AS d on d.id_mesin = md."uuid"`))
         .orderByRaw(`md.time DESC`)
-        .limit(limit)
+        .limit(parseInt(limit), { skipBinding: true })
+        .offset((parseInt(offset) === 0 ? parseInt(offset) : (parseInt(limit) * parseInt(offset))))
 
       let qt = db.select(db.raw(`count(md.*)`))
         .from('mqtt_datas AS md')
