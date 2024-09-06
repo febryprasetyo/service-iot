@@ -611,6 +611,7 @@ class DataClientController {
       // let dataDevice = await db.select(db.raw(`*`)).from('devices').whereRaw(`id = ?`, reqBody.device_id)
       // if(dataDevice.length === 0) throw createError(`Device not found`, 'E_BAD_REQUEST')
 
+      let deviceId = (!reqBody.device_id || reqBody.device_id == '') ? undefined : reqBody.device_id
 
       await db('users')
         .whereRaw(`id = ?`, reqBody.id)
@@ -618,6 +619,7 @@ class DataClientController {
           username: reqBody.username.trim(),
           password: match ? undefined : reqBody.password,
           nama_dinas: reqBody.nama_dinas,
+          device_id: deviceId,
           api_key: reqBody.api_key.trim(),
           secret_key: reqBody.secret_key.trim(),
           updated_at: new Date
