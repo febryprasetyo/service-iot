@@ -16,7 +16,7 @@ class ProcessData {
       logger.info(`------------------- SYNC DATA STARTED ------------------`)
       let dataUser = await db.select(db.raw(`
         distinct u.id
-        from watermonitoring w 
+        from mqtt_datas w 
         inner join devices d on d.id_mesin = w.uuid 
         inner join users u on u.id = d.dinas_id 
         where w.is_success = false
@@ -26,7 +26,7 @@ class ProcessData {
         const elx = dataUser[i];
         
         let data = await db.select(db.raw(`u.api_key, u.secret_key, w.*
-          from watermonitoring w 
+          from mqtt_datas w 
           inner join devices d on d.id_mesin = w.uuid 
           inner join users u on u.id = d.dinas_id 
           where is_success = false and u.id = ? and w.id_stasiun NOTNULL
@@ -61,13 +61,13 @@ class ProcessData {
             count += 1
             dataIot.id_stasiun = el.id_stasiun
             dataIot.temperature += parseFloat(el.temperature)
-            dataIot.tds += parseFloat(el.tds)
+            dataIot.tds += parseFloat(el.ct)
             dataIot.do_ += parseFloat(el.do_)
             dataIot.ph += parseFloat(el.ph)
-            dataIot.turbidity += parseFloat(el.turbidity)
-            dataIot.waterlevel += parseFloat(el.waterlevel)
-            dataIot['no3'] += parseFloat(el['no3'])
-            dataIot['nh3n'] += parseFloat(el['nh3n'])
+            dataIot.turbidity += parseFloat(el.tur)
+            dataIot.waterlevel += parseFloat(el.depth)
+            dataIot['no3'] += parseFloat(el['no3_3'])
+            dataIot['nh3n'] += parseFloat(el['n'])
             dataIot.cod += parseFloat(el.cod)
             dataIot.bod += parseFloat(el.bod)
             dataIot.tss += parseFloat(el.tss)
@@ -117,16 +117,16 @@ class ProcessData {
   
         if (statusCode == 200) {
           logger.info(`------------------- [SYNC-SUCCESS] UPDATE DATA WATERMONITORING ------------------`)
-          for (let r = 0; r < tmpData.length; r++) {
-            const el = tmpData[r];
-            await db.table('watermonitoring')
-            .whereRaw(`id = ?`, el)
-            .update({
-              is_success: true,
-              sync_time: new Date(),
-              res_menlhk: JSON.stringify({req: options, res:result.data})
-            })
-          }
+          // for (let r = 0; r < tmpData.length; r++) {
+          //   const el = tmpData[r];
+          //   await db.table('mqtt_datas')
+          //   .whereRaw(`id = ?`, el)
+          //   .update({
+          //     is_success: true,
+          //     sync_time: new Date(),
+          //     res_menlhk: JSON.stringify({req: options, res:result.data})
+          //   })
+          // }
 
           await db('res_klhk')
             .insert({
@@ -140,16 +140,16 @@ class ProcessData {
           logger.info(`------------------- [SYNC-SUCCESS] UPDATE SUCCESFULLY ------------------`)
         } else {
           logger.info(`------------------- [SYNC-FAILED] UPDATE DATA WATERMONITORING ------------------`)
-          for (let d = 0; d < tmpData.length; d++) {
-            const el = tmpData[d];
-            await db.table('watermonitoring')
-            .whereRaw(`id = ?`, el)
-            .update({
-              is_success: true,
-              sync_time: new Date(),
-              res_menlhk: JSON.stringify({req: options, res:result.data})
-            })
-          }
+          // for (let d = 0; d < tmpData.length; d++) {
+          //   const el = tmpData[d];
+          //   await db.table('watermonitoring')
+          //   .whereRaw(`id = ?`, el)
+          //   .update({
+          //     is_success: true,
+          //     sync_time: new Date(),
+          //     res_menlhk: JSON.stringify({req: options, res:result.data})
+          //   })
+          // }
 
           await db('res_klhk')
           .insert({

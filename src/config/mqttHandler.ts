@@ -57,6 +57,7 @@ class MqttHandler {
           let checkData = await trx.select(trx.raw(`*`)).from('mqtt_datas').whereRaw(`uuid = ? AND time = ?`, [uuid, tm])
   
           if (checkData.length === 0) {
+            let checkDataStasiun = await trx.select(trx.raw(`*`)).from('devices').whereRaw(`id_mesin = ?`, uuid)
             await trx('mqtt_datas')
             .insert({
               uuid: uuid,
@@ -76,27 +77,28 @@ class MqttHandler {
               orp: el['ORP'].toFixed(2),
               'lgnh4+': el['LgNH4+'],
               liquid: el['Liquid'],
+              id_stasiun: checkDataStasiun.length > 0 ? checkDataStasiun[0].nama_stasiun : '-',
+              is_success: false
             })
   
-            let checkDataStasiun = await trx.select(trx.raw(`*`)).from('devices').whereRaw(`id_mesin = ?`, uuid)
   
-            await trx('watermonitoring')
-              .insert({
-                uuid: uuid,
-                id_stasiun: checkDataStasiun.length > 0 ? checkDataStasiun[0].nama_stasiun : '-',
-                time: tm,
-                temperature: el['Temperature'].toFixed(2),
-                do_: el['DO'].toFixed(2),
-                turbidity: el['TUR'].toFixed(2),
-                ph: el['PH'].toFixed(2),
-                bod: el['BOD'].toFixed(2),
-                cod: el['COD'].toFixed(2),
-                tss: el['TSS'].toFixed(2),
-                waterlevel: el['DEPTH'].toFixed(2),
-                no3: el['NO3-3'].toFixed(2),
-                nh3n: el['N'].toFixed(2),
-                tds: el['CT'].toFixed(2),
-              })
+            // await trx('watermonitoring')
+            //   .insert({
+            //     uuid: uuid,
+            //     id_stasiun: checkDataStasiun.length > 0 ? checkDataStasiun[0].nama_stasiun : '-',
+            //     time: tm,
+            //     temperature: el['Temperature'].toFixed(2),
+            //     do_: el['DO'].toFixed(2),
+            //     turbidity: el['TUR'].toFixed(2),
+            //     ph: el['PH'].toFixed(2),
+            //     bod: el['BOD'].toFixed(2),
+            //     cod: el['COD'].toFixed(2),
+            //     tss: el['TSS'].toFixed(2),
+            //     waterlevel: el['DEPTH'].toFixed(2),
+            //     no3: el['NO3-3'].toFixed(2),
+            //     nh3n: el['N'].toFixed(2),
+            //     tds: el['CT'].toFixed(2),
+            //   })
           }
 
           await trx.commit()

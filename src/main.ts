@@ -129,8 +129,8 @@ async function onListening() {
     mqttClient.connect();
 
     //Running scheduler
-    let ctx = new scheduledFunction()
-    ctx.initScheduledJobs()
+    // let ctx = new scheduledFunction()
+    // ctx.initScheduledJobs()
 }
 
 main();
