@@ -158,7 +158,7 @@ class IntegrationController {
                 "data" : {
                   "IDStasiun" : elz.id_stasiun,
                   "Tanggal" : moment().format(`YYYY-MM-DD`),
-                  "Jam" : moment().format(`HH:ss:mm`),
+                  "Jam" : moment().format(`HH:mm:ss`),
                   "Suhu" : (parseFloat(elz.temperature) / elz.count).toFixed(2),
                   // "DHL" : 0,
                   "TDS" : (parseFloat(elz.tds) / elz.count).toFixed(2),
