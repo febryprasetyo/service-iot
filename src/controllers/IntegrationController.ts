@@ -87,6 +87,9 @@ class IntegrationController {
           inner join users u on u.id = d.dinas_id 
           where w.is_success = false
         `))
+
+        let ctxData = []
+        let tmpData: any = []
   
         for (let i = 0; i < dataUser.length; i++) {
           const elx = dataUser[i];
@@ -103,7 +106,6 @@ class IntegrationController {
             continue
           }
 
-          let tmpData: any = []
           for (let t = 0; t < data.length; t++) {
             const eld = data[t];
             tmpData.push(eld.id)
@@ -125,6 +127,8 @@ class IntegrationController {
                   bod: 0,
                   tss: 0,
                   count: 0,
+                  "apikey" : data[0].api_key,
+                "apisecret" : data[0].secret_key
                 }
               }
               acc[item.id_stasiun].count += 1
@@ -142,94 +146,132 @@ class IntegrationController {
               return acc;
             }, {})
           );
-
-          console.log(`------------------------------- ctx : `, ctx)
-    
-          for (let z = 0; z < ctx.length; z++) {
-            const elz: any = ctx[z];
-            
-            let options = {
-              url: process.env.URL_KLHK,
-              method: 'POST',
-              header: {
-                'Content-Type': 'Application/json'
-              },
-              data: {
-                "data" : {
-                  "IDStasiun" : elz.id_stasiun,
-                  "Tanggal" : moment().format(`YYYY-MM-DD`),
-                  "Jam" : moment().format(`HH:mm:ss`),
-                  "Suhu" : (parseFloat(elz.temperature) / elz.count).toFixed(2),
-                  // "DHL" : 0,
-                  "TDS" : (parseFloat(elz.tds) / elz.count).toFixed(2),
-                  // "Salinitas" : 0,
-                  "DO" : (parseFloat(elz.do_) / elz.count).toFixed(2),
-                  "PH" : (parseFloat(elz.ph) / elz.count).toFixed(2),
-                  "Turbidity" : (parseFloat(elz.turbidity) / elz.count).toFixed(2),
-                  "Kedalaman" : (parseFloat(elz.waterlevel) / elz.count).toFixed(2),
-                  // "SwSG" : 0,
-                  "Nitrat" : (parseFloat(elz['no3']) / elz.count).toFixed(2),
-                  "Amonia" : (parseFloat(elz['nh3n']) / elz.count).toFixed(2),
-                  // "ORP" : 0,
-                  "COD" : (parseFloat(elz.cod) / elz.count).toFixed(2),
-                  "BOD" : (parseFloat(elz.bod) / elz.count).toFixed(2),
-                  "TSS" : (parseFloat(elz.tss) / elz.count).toFixed(2)
-                  },
-                  "apikey" : data[0].api_key,
-                  "apisecret" : data[0].secret_key
-                }
+          ctxData.push(...ctx)
+        } //end looping dataUser
+        
+        let finalData: any = Object.values(
+          ctxData.reduce((acc: any, item: any) => {
+            if (!acc[item.id_stasiun]) {
+              acc[item.id_stasiun] = {
+                id_stasiun: item.id_stasiun,
+                temperature: 0,
+                tds: 0,
+                do_: 0,
+                ph: 0,
+                turbidity: 0,
+                waterlevel: 0,
+                'no3': 0,
+                'nh3n': 0,
+                cod: 0,
+                bod: 0,
+                tss: 0,
+                count: 0,
+                "apikey" : item.apikey,
+                "apisecret" : item.apisecret
+              }
             }
-      
-            logger.info(`------------------- SYNC SUBMIT DATA TO API MENLHK ------------------`)
-            let result = await axios.request(options)
-            logger.info(`------------------- SYNC RESPONSE FROM API MENLHK ${JSON.stringify(result.data)} ------------------`)
-            let statusCode = result.data.status ? result.data.status.statusCode : 401
-      
-            if (statusCode == 200) {
-              logger.info(`------------------- [SYNC-SUCCESS] UPDATE DATA WATERMONITORING ------------------`)
-    
-              for (let r = 0; r < tmpData.length; r++) {
-                const el = tmpData[r];
-                await db.table('mqtt_datas')
-                .whereRaw(`id = ?`, el)
-                .update({
-                  is_success: true,
-                  sync_time: new Date(),
-                  // res_menlhk: JSON.stringify({req: options, res:result.data})
-                })
+            acc[item.id_stasiun].count += item.count
+            acc[item.id_stasiun].temperature += parseFloat(item.temperature)
+            acc[item.id_stasiun].tds += parseFloat(item.tds)
+            acc[item.id_stasiun].do_ += parseFloat(item.do_)
+            acc[item.id_stasiun].ph += parseFloat(item.ph)
+            acc[item.id_stasiun].turbidity += parseFloat(item.turbidity)
+            acc[item.id_stasiun].waterlevel += parseFloat(item.waterlevel)
+            acc[item.id_stasiun]['no3'] += parseFloat(item['no3'])
+            acc[item.id_stasiun]['nh3n'] += parseFloat(item['nh3n'])
+            acc[item.id_stasiun].cod += parseFloat(item.cod)
+            acc[item.id_stasiun].bod += parseFloat(item.bod)
+            acc[item.id_stasiun].tss += parseFloat(item.tss)
+            return acc;
+          }, {})
+        );
+        console.log(`------------------------------- finalData : `, finalData)
+
+        for (let z = 0; z < finalData.length; z++) {
+          const elz: any = finalData[z];
+          logger.info(`------------------- SYNC DATA PROCESSING ${z+1}/${finalData.length} ------------------`)
+          
+          let options = {
+            url: process.env.URL_KLHK,
+            method: 'POST',
+            header: {
+              'Content-Type': 'Application/json'
+            },
+            data: {
+              "data" : {
+                "IDStasiun" : elz.id_stasiun,
+                "Tanggal" : moment().format(`YYYY-MM-DD`),
+                "Jam" : moment().format(`HH:mm:ss`),
+                "Suhu" : (parseFloat(elz.temperature) / elz.count).toFixed(2),
+                // "DHL" : 0,
+                "TDS" : (parseFloat(elz.tds) / elz.count).toFixed(2),
+                // "Salinitas" : 0,
+                "DO" : (parseFloat(elz.do_) / elz.count).toFixed(2),
+                "PH" : (parseFloat(elz.ph) / elz.count).toFixed(2),
+                "Turbidity" : (parseFloat(elz.turbidity) / elz.count).toFixed(2),
+                "Kedalaman" : (parseFloat(elz.waterlevel) / elz.count).toFixed(2),
+                // "SwSG" : 0,
+                "Nitrat" : (parseFloat(elz['no3']) / elz.count).toFixed(2),
+                "Amonia" : (parseFloat(elz['nh3n']) / elz.count).toFixed(2),
+                // "ORP" : 0,
+                "COD" : (parseFloat(elz.cod) / elz.count).toFixed(2),
+                "BOD" : (parseFloat(elz.bod) / elz.count).toFixed(2),
+                "TSS" : (parseFloat(elz.tss) / elz.count).toFixed(2)
+                },
+                "apikey" : elz.apikey,
+                "apisecret" : elz.apisecret
               }
-              await db('res_klhk')
-                .insert({
-                  payload: JSON.stringify(options.data),
-                  data_uid: result.data.rows.data_uid,
-                  status_code: result.data.status.statusCode,
-                  status_desc: result.data.status.statusDesc,
-                  id_stasiun: options.data.data['IDStasiun']
-                })
+          }
     
-              logger.info(`------------------- [SYNC-SUCCESS] UPDATE SUCCESFULLY ------------------`)
-            } else {
-              logger.info(`------------------- [SYNC-FAILED] UPDATE DATA WATERMONITORING ------------------`)
-              for (let r = 0; r < tmpData.length; r++) {
-                const el = tmpData[r];
-                await db.table('mqtt_datas')
-                .whereRaw(`id = ?`, el)
-                .update({
-                  is_success: true,
-                  sync_time: new Date(),
-                  // res_menlhk: JSON.stringify({req: options, res:result.data})
-                })
-              }
-              await db('res_klhk')
+          logger.info(`------------------- SYNC SUBMIT DATA TO API MENLHK ------------------`)
+          let result = await axios.request(options)
+          logger.info(`------------------- SYNC RESPONSE FROM API MENLHK ${JSON.stringify(result.data)} ------------------`)
+          let statusCode = result.data.status ? result.data.status.statusCode : 401
+    
+          if (statusCode == 200) {
+            logger.info(`------------------- [SYNC-SUCCESS] UPDATE DATA WATERMONITORING ------------------`)
+  
+            for (let r = 0; r < tmpData.length; r++) {
+              const el = tmpData[r];
+              await db.table('mqtt_datas')
+              .whereRaw(`id = ?`, el)
+              .update({
+                is_success: true,
+                sync_time: new Date(),
+                // res_menlhk: JSON.stringify({req: options, res:result.data})
+              })
+            }
+            await db('res_klhk')
               .insert({
                 payload: JSON.stringify(options.data),
-                data_uid: '-',
-                status_code: null,
-                status_desc: result.data,
+                data_uid: result.data.rows.data_uid,
+                status_code: result.data.status.statusCode,
+                status_desc: result.data.status.statusDesc,
                 id_stasiun: options.data.data['IDStasiun']
               })
-              logger.info(`------------------- [SYNC-FAILED] UPDATE SUCCESFULLY ------------------`)
+  
+            logger.info(`------------------- [SYNC-SUCCESS] UPDATE SUCCESFULLY ------------------`)
+          } else {
+            logger.info(`------------------- [SYNC-FAILED] UPDATE DATA WATERMONITORING ------------------`)
+            for (let r = 0; r < tmpData.length; r++) {
+              const el = tmpData[r];
+              await db.table('mqtt_datas')
+              .whereRaw(`id = ?`, el)
+              .update({
+                is_success: true,
+                sync_time: new Date(),
+                // res_menlhk: JSON.stringify({req: options, res:result.data})
+              })
             }
+            await db('res_klhk')
+            .insert({
+              payload: JSON.stringify(options.data),
+              data_uid: '-',
+              status_code: null,
+              status_desc: result.data,
+              id_stasiun: options.data.data['IDStasiun']
+            })
+            logger.info(`------------------- [SYNC-FAILED] UPDATE SUCCESFULLY ------------------`)
           }
         }
   
