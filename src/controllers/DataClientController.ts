@@ -319,8 +319,8 @@ class DataClientController {
           throw createError('', 'E_BAD_REQUEST', err)
         })
 
-      let data = await db.select(db.raw(`*`)).from('devices').whereRaw(`id_mesin = ?`, reqBody.id_mesin)
-      if(data.length > 0) throw createError(`Id Mesin ${reqBody.id_mesin} already exists`, 'E_BAD_REQUEST')
+      // let data = await db.select(db.raw(`*`)).from('devices').whereRaw(`id_mesin = ?`, reqBody.id_mesin)
+      // if(data.length > 0) throw createError(`Id Mesin ${reqBody.id_mesin} already exists`, 'E_BAD_REQUEST')
 
       let dataDinas = await db.select(db.raw(`*`)).from('users').whereRaw(`id = ?`, reqBody.dinas_id)
       if(dataDinas.length === 0) throw createError(`Dinas not found`, 'E_BAD_REQUEST')
@@ -375,8 +375,8 @@ class DataClientController {
       let checkDevice = await db.select(db.raw(`*`)).from('devices').whereRaw(`id = ?`, [reqBody.id])
       if(checkDevice.length === 0) throw createError(`Data device not found`, 'E_BAD_REQUEST')
 
-      let data = await db.select(db.raw(`*`)).from('devices').whereRaw(`id_mesin = ? AND id NOT IN (?)`, [reqBody.id_mesin, reqBody.id])
-      if(data.length > 0) throw createError(`Id Mesin ${reqBody.id_mesin} already exists`, 'E_BAD_REQUEST')
+      // let data = await db.select(db.raw(`*`)).from('devices').whereRaw(`id_mesin = ? AND id NOT IN (?)`, [reqBody.id_mesin, reqBody.id])
+      // if(data.length > 0) throw createError(`Id Mesin ${reqBody.id_mesin} already exists`, 'E_BAD_REQUEST')
 
       let dataDinas = await db.select(db.raw(`*`)).from('users').whereRaw(`id = ?`, reqBody.dinas_id)
       if(dataDinas.length === 0) throw createError(`Dinas not found`, 'E_BAD_REQUEST')
