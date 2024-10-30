@@ -184,6 +184,16 @@ class IntegrationController {
           if (statusCode == 200) {
             logger.info(`------------------- [SYNC-SUCCESS] UPDATE DATA WATERMONITORING ------------------`)
   
+            for (let r = 0; r < tmpData.length; r++) {
+              const el = tmpData[r];
+              await db.table('mqtt_datas')
+              .whereRaw(`id = ?`, el)
+              .update({
+                is_success: true,
+                sync_time: new Date(),
+                // res_menlhk: JSON.stringify({req: options, res:result.data})
+              })
+            }
             await db('res_klhk')
               .insert({
                 payload: JSON.stringify(options.data),
@@ -196,7 +206,16 @@ class IntegrationController {
             logger.info(`------------------- [SYNC-SUCCESS] UPDATE SUCCESFULLY ------------------`)
           } else {
             logger.info(`------------------- [SYNC-FAILED] UPDATE DATA WATERMONITORING ------------------`)
-  
+            for (let r = 0; r < tmpData.length; r++) {
+              const el = tmpData[r];
+              await db.table('mqtt_datas')
+              .whereRaw(`id = ?`, el)
+              .update({
+                is_success: true,
+                sync_time: new Date(),
+                // res_menlhk: JSON.stringify({req: options, res:result.data})
+              })
+            }
             await db('res_klhk')
             .insert({
               payload: JSON.stringify(options.data),
