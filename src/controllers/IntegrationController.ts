@@ -78,6 +78,7 @@ class IntegrationController {
    * @author Roby Parlan
    */
     async handleSendData(req: any, res: any) {
+      let tmpData: any = []
       try {
         logger.info(`------------------- SYNC DATA STARTED ------------------`)
         let dataUser = await db.select(db.raw(`
@@ -89,7 +90,6 @@ class IntegrationController {
         `))
 
         let ctxData = []
-        let tmpData: any = []
   
         for (let i = 0; i < dataUser.length; i++) {
           logger.info(`------------------- SYNC DATA STARTING ${i}/${dataUser.length} ------------------`)
@@ -190,7 +190,6 @@ class IntegrationController {
         logger.info(`------------------- SYNC DATA finalData : ${finalData.length} ------------------`)
 
         for (let z = 0; z < finalData.length; z++) {
-          if (z > 0) await delay(10000)
           const elz: any = finalData[z];
           logger.info(`------------------- SYNC DATA PROCESSING ${z}/${finalData.length} ------------------`)
           
@@ -233,17 +232,6 @@ class IntegrationController {
     
           if (statusCode == 200) {
             logger.info(`------------------- [SYNC-SUCCESS] UPDATE DATA WATERMONITORING ------------------`)
-  
-            for (let r = 0; r < tmpData.length; r++) {
-              const el = tmpData[r];
-              await db.table('mqtt_datas')
-              .whereRaw(`id = ?`, el)
-              .update({
-                is_success: true,
-                sync_time: new Date(),
-                // res_menlhk: JSON.stringify({req: options, res:result.data})
-              })
-            }
             await db('res_klhk')
               .insert({
                 payload: JSON.stringify(options.data),
@@ -256,16 +244,6 @@ class IntegrationController {
             logger.info(`------------------- [SYNC-SUCCESS] UPDATE SUCCESFULLY ------------------`)
           } else {
             logger.info(`------------------- [SYNC-FAILED] UPDATE DATA WATERMONITORING ------------------`)
-            for (let r = 0; r < tmpData.length; r++) {
-              const el = tmpData[r];
-              await db.table('mqtt_datas')
-              .whereRaw(`id = ?`, el)
-              .update({
-                is_success: true,
-                sync_time: new Date(),
-                // res_menlhk: JSON.stringify({req: options, res:result.data})
-              })
-            }
             await db('res_klhk')
             .insert({
               payload: JSON.stringify(options.data),
@@ -277,6 +255,18 @@ class IntegrationController {
             logger.info(`------------------- [SYNC-FAILED] UPDATE SUCCESFULLY ------------------`)
           }
         }
+
+        for (let r = 0; r < tmpData.length; r += 1000) {
+          const el = tmpData[r];
+          const batch = tmpData.slice(r, r + 1000);
+          logger.info(`------------------- tmpData : ${JSON.stringify(batch)} ------------------`)
+          await db.table('mqtt_datas')
+          .whereIn(`id`, batch)
+          .update({
+            is_success: true,
+            sync_time: new Date(),
+          })
+        }
   
         return sendResponseCustom(res, {
           success: true
@@ -284,6 +274,17 @@ class IntegrationController {
       } catch (error: any) {
         if (!errorCodes[error.code])
           logger.error(error)
+
+        for (let r = 0; r < tmpData.length; r += 1000) {
+          const batch = tmpData.slice(r, r + 1000);
+          logger.info(`------------------- tmpData : ${JSON.stringify(batch)} ------------------`)
+          await db.table('mqtt_datas')
+          .whereIn(`id`, batch)
+          .update({
+            is_success: true,
+            sync_time: new Date(),
+          })
+        }
   
         return sendResponseError(res, error)
       }

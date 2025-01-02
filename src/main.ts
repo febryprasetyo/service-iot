@@ -125,8 +125,8 @@ async function onListening() {
 
     
     //Running & Connect Mqtt
-    var mqttClient = new MqttHandler();
-    mqttClient.connect();
+    // var mqttClient = new MqttHandler();
+    // mqttClient.connect();
 
     //Running scheduler
     // let ctx = new scheduledFunction()
