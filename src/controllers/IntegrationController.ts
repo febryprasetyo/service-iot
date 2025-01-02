@@ -1,4 +1,4 @@
-import { logger, db, validateParams, sendResponseCustom, moment,
+import { logger, db, validateParams, sendResponseCustom, moment, delay,
   sendResponseError, errorCodes, createError, validateParamsAll, getConfig }
    from '../utils/util';
 import 'dotenv/config';
@@ -190,6 +190,7 @@ class IntegrationController {
         logger.info(`------------------- SYNC DATA finalData : ${finalData.length} ------------------`)
 
         for (let z = 0; z < finalData.length; z++) {
+          if (z > 0) await delay(10000)
           const elz: any = finalData[z];
           logger.info(`------------------- SYNC DATA PROCESSING ${z}/${finalData.length} ------------------`)
           

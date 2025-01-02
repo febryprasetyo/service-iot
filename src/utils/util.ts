@@ -304,8 +304,12 @@ function decodeToken(token: any) {
   }
 }
 
+function delay(ms: number) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 export {
   logger, db, sendResponseCustom, sendResponseError, errorCodes, isEmpty, isNotEmpty, checkDir,
-  createError, isValidateToken, validateParams, validateParamsAll,
+  createError, isValidateToken, validateParams, validateParamsAll, delay,
   deleteAllKeys, loadConfig, getConfig, isNumeric, moment, replaceCommaDot, decodeToken
 }
