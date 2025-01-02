@@ -257,15 +257,15 @@ class IntegrationController {
         }
 
         for (let r = 0; r < tmpData.length; r += 1000) {
-          const el = tmpData[r];
           const batch = tmpData.slice(r, r + 1000);
-          logger.info(`------------------- tmpData : ${JSON.stringify(batch)} ------------------`)
+          logger.info(`------------------- [SYNC-TMPDATA] Process Update mqtt_datas ------------------`)
           await db.table('mqtt_datas')
           .whereIn(`id`, batch)
           .update({
             is_success: true,
             sync_time: new Date(),
           })
+          logger.info(`------------------- [SYNC-TMPDATA] Success Update mqtt_datas ------------------`)
         }
   
         return sendResponseCustom(res, {
