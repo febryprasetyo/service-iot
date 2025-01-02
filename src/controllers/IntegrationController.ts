@@ -92,6 +92,7 @@ class IntegrationController {
         let tmpData: any = []
   
         for (let i = 0; i < dataUser.length; i++) {
+          logger.info(`------------------- SYNC DATA STARTING ${i}/${dataUser.length} ------------------`)
           const elx = dataUser[i];
           
           let data = await db.select(db.raw(`u.api_key, u.secret_key, w.*
@@ -99,6 +100,7 @@ class IntegrationController {
             inner join devices d on d.id_mesin = w.uuid 
             inner join users u on u.id = d.dinas_id 
             where is_success = false and u.id = ? and w.id_stasiun NOTNULL
+            limit 2000
             `, elx.id))
     
           if (data.length == 0) {
@@ -185,11 +187,11 @@ class IntegrationController {
             return acc;
           }, {})
         );
-        console.log(`------------------------------- finalData : `, finalData)
+        logger.info(`------------------- SYNC DATA finalData : ${finalData.length} ------------------`)
 
         for (let z = 0; z < finalData.length; z++) {
           const elz: any = finalData[z];
-          logger.info(`------------------- SYNC DATA PROCESSING ${z+1}/${finalData.length} ------------------`)
+          logger.info(`------------------- SYNC DATA PROCESSING ${z}/${finalData.length} ------------------`)
           
           let options = {
             url: process.env.URL_KLHK,
