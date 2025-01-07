@@ -53,14 +53,14 @@ class MqttHandler {
           // let checkData = await db.select(db.raw(`*`)).from('mqtt_datas').whereRaw(`uuid = ? AND project = ? AND time = ?`, [uuid, project, el['time']])
           let tm = el['time'] ? moment(el['time'],  "DD-MM-YYYY HH:ss:mm").format('YYYY-MM-DD HH:ss:mm') : moment().format('YYYY-MM-DD HH:ss:mm')
           console.log(`----------------------------- tm : `, tm)
-          trx = await db.transaction()
-          let checkData = await trx.select(trx.raw(`*`)).from('mqtt_datas').whereRaw(`uuid = ? AND time = ?`, [uuid, tm])
+          // trx = await db.transaction()
+          let checkData = await db.select(db.raw(`*`)).from('mqtt_datas').whereRaw(`uuid = ? AND time = ?`, [uuid, tm])
   
           if (checkData.length === 0) {
-            let checkDataStasiun = await trx.select(trx.raw(`*`)).from('devices').whereRaw(`id_mesin = ?`, uuid)
+            let checkDataStasiun = await db.select(db.raw(`*`)).from('devices').whereRaw(`id_mesin = ?`, uuid)
             for (let x = 0; x < checkDataStasiun.length; x++) {
               const elx = checkDataStasiun[x];
-              await trx('mqtt_datas')
+              await db('mqtt_datas')
               .insert({
                 uuid: uuid,
                 time: tm,
@@ -83,31 +83,12 @@ class MqttHandler {
                 is_success: false
               })
             }
-  
-  
-            // await trx('watermonitoring')
-            //   .insert({
-            //     uuid: uuid,
-            //     id_stasiun: checkDataStasiun.length > 0 ? checkDataStasiun[0].nama_stasiun : '-',
-            //     time: tm,
-            //     temperature: el['Temperature'].toFixed(2),
-            //     do_: el['DO'].toFixed(2),
-            //     turbidity: el['TUR'].toFixed(2),
-            //     ph: el['PH'].toFixed(2),
-            //     bod: el['BOD'].toFixed(2),
-            //     cod: el['COD'].toFixed(2),
-            //     tss: el['TSS'].toFixed(2),
-            //     waterlevel: el['DEPTH'].toFixed(2),
-            //     no3: el['NO3-3'].toFixed(2),
-            //     nh3n: el['N'].toFixed(2),
-            //     tds: el['CT'].toFixed(2),
-            //   })
           }
 
-          await trx.commit()
+          // await trx.commit()
           
         } catch (error) {
-          if (trx) trx.rollback()
+          // if (trx) trx.rollback()
           console.log(`----------------------------- error mqtt data : `, error)
         } 
 

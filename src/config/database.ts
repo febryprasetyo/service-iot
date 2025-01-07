@@ -10,8 +10,8 @@ let configDB = {
     database : process.env.DB_DATABASE
   },
   pool: {
-    min: 50,
-    max: 200
+    min: 20,
+    max: 120
   }
 }
 
