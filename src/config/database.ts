@@ -11,7 +11,7 @@ let configDB = {
   },
   pool: {
     min: 50,
-    max: 150
+    max: 200
   }
 }
 
