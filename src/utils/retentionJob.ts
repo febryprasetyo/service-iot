@@ -13,11 +13,11 @@ export async function runRetention(trx?: Knex.Transaction) {
     await transaction.raw(`
       INSERT INTO mqtt_datas_archive (
         uuid, time, temperature, do_, tur, ph, bod, cod, tss, depth, no3_3,
-        n, ct, no2, orp, "lgnh4+", liquid, id_stasiun, is_success, last_update
+        n, ct, no2, orp, "lgnh4+", liquid, id_stasiun, is_success, res_menlhk, sync_time
       )
       SELECT
         uuid, time, temperature, do_, tur, ph, bod, cod, tss, depth, no3_3,
-        n, ct, no2, orp, "lgnh4+", liquid, id_stasiun, is_success, last_update
+        n, ct, no2, orp, "lgnh4+", liquid, id_stasiun, is_success, res_menlhk, sync_time
       FROM mqtt_datas
       WHERE is_success = true
     `); // WHERE is_success = true AND time < NOW() - INTERVAL '1 day
