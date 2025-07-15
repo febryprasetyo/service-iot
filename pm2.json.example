@@ -1,0 +1,9 @@
+{
+  "name": "svc",
+  "script": "./build/main.js",
+  "watch": false,
+  "env": {
+    "NODE_ENV": "production",
+    "INSTANCES": 3
+  }
+}

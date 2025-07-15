@@ -1,0 +1,18 @@
+# Node modules
+node_modules
+package-lock.json
+
+# Typescript build directory
+build
+
+# Environment variables, never commit this file
+.env
+
+.vscode
+pm2.json
+/public/img/mockups/
+
+#log files and asset files
+/assets/
+
+runbuild.sh
