@@ -3,7 +3,7 @@ import { db, moment } from '../utils/util';
 import 'dotenv/config';
 
 var brokerUrl: any = process.env.MQTT_BROKER_URL;
-var mqttTopic: any = process.env.MQTT_CLIENT_ID;
+var mqttTopic: any = process.env.MQTT_TOPIC;
 var options: any = {
   clientId: process.env.MQTT_CLIENT_ID,
   port: parseInt(process.env.MQTT_PORT || '1883'),

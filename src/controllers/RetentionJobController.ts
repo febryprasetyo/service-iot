@@ -1,11 +1,35 @@
-import cron from 'node-cron';
+import fs from 'fs';
+import path from 'path';
 import type { Knex } from 'knex';
 import { logger, db, validateParams, sendResponseCustom, moment, 
   sendResponseError, errorCodes, createError, validateParamsAll, getConfig }
    from '../utils/util';
+
+
+   const LOG_DIR = path.resolve(__dirname, '../assets/logs'); // Direktori log
+
+   function writeRetentionLog(message: string) {
+  const now = moment(); // gunakan moment dari util
+    const logFileName = `retention-${now.format('YYYY-MM')}.log`; // 📁 log per bulan
+
+  const logFilePath = path.join(LOG_DIR, logFileName);
+
+  // Tambahkan timestamp ke setiap log baris
+  const timeStampedMessage = `[${now.format('YYYY-MM-DD HH:mm:ss')}] ${message}\n`;
+
+  // Pastikan direktori ada
+  if (!fs.existsSync(LOG_DIR)) {
+    fs.mkdirSync(LOG_DIR, { recursive: true });
+  }
+
+  // Simpan ke file
+  fs.appendFileSync(logFilePath, timeStampedMessage, 'utf8');
+}
 // Fungsi retention utama
 export async function runRetention(trx?: Knex.Transaction) {
+  const now = moment();
   logger.info('🕑 Menjalankan retensi data manual...');
+  writeRetentionLog('🕑 Menjalankan retensi data manual...');
 
   const transaction = trx || (await db.transaction());
 
@@ -29,10 +53,16 @@ export async function runRetention(trx?: Knex.Transaction) {
 
     if (!trx) await transaction.commit();
 
-    logger.info('✅ Retensi data selesai: data lama dipindahkan ke arsip.');
-  } catch (err) {
+    const successMsg = '✅ Retensi data selesai: data lama dipindahkan ke arsip.';
+    logger.info(successMsg);
+    writeRetentionLog(successMsg);
+  } catch (err: any) {
     if (!trx) await transaction.rollback();
-    logger.error('❌ Retensi gagal:', err);
+
+    const errorMsg = `❌ Retensi gagal: ${err?.message || err}`;
+    logger.error(errorMsg);
+    writeRetentionLog(errorMsg);
+
     throw err;
   }
 }
