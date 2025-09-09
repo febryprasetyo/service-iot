@@ -5,6 +5,8 @@ import DataClientController from '../../controllers/DataClientController';
 const DataClientCtl = new DataClientController();
 import { DataMonitoringController } from '../../controllers/DataMonitoringController';
 const DataMonitoringCtl = new DataMonitoringController();
+import { handleMqttExport, getMqttExportHeaders } from "../../controllers/mqtt.controller";
+
 
 import { JwtMiddleware } from '../../middlewares/jwtMiddleware';
 
@@ -109,11 +111,15 @@ router.get(
 router.get(
   '/mqtt/export',
   JwtMiddleware('adm:usr'),
-  DataClientCtl.handleMqttExport
+  handleMqttExport
 );
+
+router.get("/mqtt/export/headers", getMqttExportHeaders);
 
 router.get('/station/monitoring', JwtMiddleware('adm:usr'), (req, res) =>
   DataMonitoringCtl.handlerMonitoring(req, res)
 );
 
+router.get('/datamqtt/list', JwtMiddleware('adm:usr'), DataClientCtl.handleMqttDataList);
+// router.get("/mqtt-data/export", handleMqttDataList);
 export = router;

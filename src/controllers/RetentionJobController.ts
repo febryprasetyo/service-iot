@@ -6,7 +6,7 @@ import { logger, db, validateParams, sendResponseCustom, moment,
    from '../utils/util';
 
 
-   const LOG_DIR = path.resolve(__dirname, '../assets/logs'); // Direktori log
+   const LOG_DIR = path.resolve(__dirname, process.env.ASSET_DIR || 'logs'); // Direktori log
 
    function writeRetentionLog(message: string) {
   const now = moment(); // gunakan moment dari util

@@ -304,8 +304,45 @@ function decodeToken(token: any) {
   }
 }
 
+function buildPagination(currentPage: number, totalPages: number) {
+  const pages: (number | string)[] = [];
+
+  if (totalPages <= 7) {
+    // tampilkan semua kalau total page sedikit
+    for (let i = 1; i <= totalPages; i++) {
+      pages.push(i);
+    }
+  } else {
+    // First page
+    pages.push(1);
+
+    if (currentPage > 4) {
+      pages.push("...");
+    }
+
+    // Pages sekitar current
+    const startPage = Math.max(2, currentPage - 2);
+    const endPage = Math.min(totalPages - 1, currentPage + 2);
+
+    for (let i = startPage; i <= endPage; i++) {
+      pages.push(i);
+    }
+
+    if (currentPage < totalPages - 3) {
+      pages.push("...");
+    }
+
+    // Last page
+    pages.push(totalPages);
+  }
+
+  return pages;
+}
+
+
 export {
   logger, db, sendResponseCustom, sendResponseError, errorCodes, isEmpty, isNotEmpty, checkDir,
   createError, isValidateToken, validateParams, validateParamsAll,
-  deleteAllKeys, loadConfig, getConfig, isNumeric, moment, replaceCommaDot, decodeToken
+  deleteAllKeys, loadConfig, getConfig, isNumeric, moment, replaceCommaDot, decodeToken,
+  buildPagination
 }

@@ -14,5 +14,6 @@ pm2.json
 
 #log files and asset files
 /assets/
+/assets/logs/
 
 runbuild.sh
