@@ -3,8 +3,7 @@ import * as express from 'express';
 //Controller
 import DataClientController from '../../controllers/DataClientController';
 const DataClientCtl = new DataClientController();
-import { DataMonitoringController } from '../../controllers/DataMonitoringController';
-const DataMonitoringCtl = new DataMonitoringController();
+import { DataMonitoringCtl } from '../../controllers/DataMonitoringController';
 import { handleMqttExport, getMqttExportHeaders } from "../../controllers/mqtt.controller";
 
 
@@ -120,6 +119,12 @@ router.get('/station/monitoring', JwtMiddleware('adm:usr'), (req, res) =>
   DataMonitoringCtl.handlerMonitoring(req, res)
 );
 
+router.get(
+  '/station/status',
+  JwtMiddleware('adm:usr'),
+  (req, res) => DataMonitoringCtl.handlerStatus(req, res)
+);
+
 router.get('/datamqtt/list', JwtMiddleware('adm:usr'), DataClientCtl.handleMqttDataList);
-// router.get("/mqtt-data/export", handleMqttDataList);
+
 export = router;

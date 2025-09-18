@@ -11,7 +11,9 @@ build
 .vscode
 pm2.json
 /public/img/mockups/
-
+deploy.sh
+deploy.log
+deploy.err
 #log files and asset files
 /assets/
 /assets/logs/

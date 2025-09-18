@@ -1,0 +1,1 @@
+cd /root/apps/svc && git pull && nvm use 14 && npm install && nvm use 22 && npm install && rm -rf build && tsc && pm2 start pm2.json

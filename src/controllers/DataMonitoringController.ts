@@ -1,20 +1,17 @@
 import { Request, Response } from 'express';
 import {
-  logger,
-  sendResponseCustom,
-  sendResponseError,
-  errorCodes,
-  createError,
-  validateParamsAll,
   db,
 } from '../utils/util';
 import moment from 'moment';
 import { time } from 'console';
 
-export class DataMonitoringController {
+
+
+class DataMonitoringController {
   private cache: any = null;
   private cacheTimestamp: number = 0;
 
+  // === MONITORING DETAIL ===
   async handlerMonitoring(req: Request, res: Response) {
     try {
       const now = Date.now();
@@ -41,26 +38,26 @@ export class DataMonitoringController {
 
         allowedUuids = rows;
 
-        // Kalau UUID dari query tidak diberikan, pakai UUID yang diperbolehkan
         if (!uuid) {
           uuid = allowedUuids;
         }
       }
 
-      // Ambil semua data terbaru
       const rows = await db
         .raw(
           `
-    SELECT DISTINCT ON (id_stasiun) 
-      uuid, id, id_stasiun, temperature, do_, tur, ct, ph, orp, bod, cod, tss, n, no3_3, no2, depth, time, last_update
-    FROM mqtt_datas
-    ORDER BY id_stasiun, time desc
-  `
+          SELECT DISTINCT ON (id_stasiun) 
+            uuid, id, id_stasiun, temperature, do_, tur, ct, ph, orp, bod, cod, 
+            tss, n, no3_3, no2, depth, time
+          FROM mqtt_datas
+          ORDER BY id_stasiun, time DESC
+        `
         )
         .then((result: { rows: any }) => result.rows);
+
       const nowMoment = moment();
       const result = rows.map((item: any) => {
-        const lastUpdate = moment(item.last_update);
+        const lastUpdate = moment(item.time);
         const minutesDiff = nowMoment.diff(lastUpdate, 'minutes');
         const status = minutesDiff <= 5 ? 'hidup' : 'mati';
 
@@ -82,34 +79,83 @@ export class DataMonitoringController {
           no2: item.no2,
           depth: item.depth,
           status,
-          minutesDiff: minutesDiff,
+          minutesDiff,
           time: moment(item.time).format('DD/MM/YYYY HH:mm:ss'),
-          lastUpdate: moment(item.last_update).format('DD/MM/YYYY HH:mm:ss'),
         };
       });
 
       const filtered = this.applyFilter(
-        result,
-        uuid,
-        id_stasiun,
-        allowedUuids,
-        role_id
-      );
-      const sorted = this.sortByStasiun(filtered);
+      result,
+      uuid,
+      id_stasiun,
+      allowedUuids,
+      role_id
+    );
+    const sorted = this.sortByStasiun(filtered);
 
-      res.json({
-        success: true,
-        total: sorted.length,
-        data: sorted,
-      });
+    // Hitung status hidup/mati
+    const hidupCount = sorted.filter((x) => x.status === 'hidup').length;
+    const matiCount = sorted.filter((x) => x.status === 'mati').length;
+
+    res.json({
+      success: true,
+      total: sorted.length,
+      Hidup: hidupCount,
+      Mati: matiCount,
+      data: sorted,
+    });
     } catch (error: any) {
-      console.error('❌ Error in handlerMonitoring:', error);
-      res
-        .status(500)
-        .json({ success: false, message: 'Internal Server Error' });
+    console.error('❌ Error in handlerMonitoring:', error);
+    res.status(500).json({ success: false, message: 'Internal Server Error' });
     }
   }
 
+  // === STATUS SAJA ===
+  async handlerStatus(req: Request, res: Response) {
+    try {
+      const rows = await db
+        .raw(
+          `
+          SELECT DISTINCT ON (id_stasiun) 
+            uuid, id_stasiun, time
+          FROM mqtt_datas
+          ORDER BY id_stasiun, time DESC
+        `
+        )
+        .then((result: { rows: any }) => result.rows);
+
+      const nowMoment = moment();
+      const result = rows.map((item: any) => {
+        const lastUpdate = moment(item.time);
+        const minutesDiff = nowMoment.diff(lastUpdate, 'minutes');
+        const status = minutesDiff <= 5 ? 'hidup' : 'mati';
+
+        return {
+          uuid: item.uuid,
+          id_stasiun: item.id_stasiun,
+          status,
+          minutesDiff,
+          time: moment(item.time).format('DD/MM/YYYY HH:mm:ss'),
+        };
+      });
+
+       // Hitung status hidup/mati
+        const hidupCount = result.filter((x: { status: string; }) => x.status === 'hidup').length;
+        const matiCount = result.filter((x: { status: string; }) => x.status === 'mati').length;
+       res.json({
+      success: true,
+      total: result.length,
+      Hidup: hidupCount,
+      Mati: matiCount,
+      data: result,
+      });
+    } catch (error: any) {
+      console.error('❌ Error in handlerStatus:', error);
+      res.status(500).json({ success: false, message: 'Internal Server Error' });
+    }
+  }
+
+  // === UTIL ===
   private applyFilter(
     data: any[],
     uuid?: string | string[],
@@ -133,3 +179,5 @@ export class DataMonitoringController {
     return data.sort((a, b) => a.id_stasiun.localeCompare(b.id_stasiun));
   }
 }
+
+export const DataMonitoringCtl = new DataMonitoringController();

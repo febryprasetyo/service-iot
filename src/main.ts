@@ -12,7 +12,6 @@ import { logger, db, loadConfig } from './utils/util';
 import { RequestLogger } from './utils/requestlogger';
 import { ResponseLogger } from './utils/responselogger';
 import routes from './routes/index';
-import scheduledFunction from './utils/processData';
 import MqttHandler from './config/mqttHandler';
 
 const upload = multer();
@@ -21,13 +20,10 @@ const port = normalizePort(process.env.PORT || 3000);
 const app = express();
 var server = http.createServer(app);
 
-/* Swagger files start */
-// const swaggerFile: any = (process.cwd()+"/src/swagger/swagger.json");
-// const swaggerData: any = fs.readFileSync(swaggerFile, 'utf8');
-// const swaggerDocument = JSON.parse(swaggerData);
+
 import { swagger } from './swagger/swagger';
+import MqttMonitor from './config/mqttMonitor';
 const swaggerDocument = JSON.parse(swagger);
-/* Swagger files end */
 
 function main() {
   // view engine setup
@@ -133,9 +129,10 @@ async function onListening() {
   var mqttClient = new MqttHandler();
   mqttClient.connect();
 
-  //Running scheduler
-  // let ctx = new scheduledFunction()
-  // ctx.initScheduledJobs()
+  // var mqttShow = new MqttMonitor();
+  // mqttShow.connect();
+
+  
 }
 
 main();
