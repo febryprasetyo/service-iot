@@ -13,6 +13,8 @@ import { RequestLogger } from './utils/requestlogger';
 import { ResponseLogger } from './utils/responselogger';
 import routes from './routes/index';
 import MqttHandler from './config/mqttHandler';
+import { setupWebSocket } from './websocket'
+
 
 const upload = multer();
 
@@ -26,6 +28,9 @@ import MqttMonitor from './config/mqttMonitor';
 const swaggerDocument = JSON.parse(swagger);
 
 function main() {
+
+
+
   // view engine setup
   app.set('views', path.join(__dirname, 'views'));
   app.set('view engine', 'jade');
@@ -126,13 +131,14 @@ async function onListening() {
   logger.info(`Server Listening on ${bind}`);
 
   // Running & Connect Mqtt
-  var mqttClient = new MqttHandler();
-  mqttClient.connect();
+  // var mqttClient = new MqttHandler();
+  // mqttClient.connect();
 
+  setupWebSocket(server);
   // var mqttShow = new MqttMonitor();
   // mqttShow.connect();
 
-  
+
 }
 
 main();

@@ -1,6 +1,15 @@
 import { Request, Response, NextFunction } from "express";
 import { isValidateToken, decodeToken, logger } from "../utils/util";
 
+// Extend Express Request interface to include 'user'
+declare global {
+  namespace Express {
+    interface Request {
+      user?: any;
+    }
+  }
+}
+
 function JwtMiddleware(access:string) {
   return async function (req: Request, res: Response, next: NextFunction ) {
     var authorization = req.headers['authorization']
@@ -37,6 +46,8 @@ function JwtMiddleware(access:string) {
         
         req.body.user_id = data.userData.user_id
         req.body.role_id = data.userData.role_id
+        req.user = data.userData;
+
         next();
       } catch (err) {
         res.status(401).json({

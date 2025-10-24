@@ -1069,86 +1069,86 @@ class DataClientController {
    * @param {*} req
    * @author Roby Parlan
    */
-// async handleMqttList(req: any, res: any) {
-//     try {
-//       let limit = req.query.limit ? req.query.limit : 100;
-//       let offset = req.query.offset ? req.query.offset : 0;
-//       let startDate = req.query.startDate
-//         ? moment(req.query.startDate).format('YYYY-MM-DD')
-//         : null;
-//       let endDate = req.query.endDate
-//         ? moment(req.query.endDate).format('YYYY-MM-DD')
-//         : null;
-//       let startHour = req.query.startHour ? req.query.startHour : null;
-//       let endHour = req.query.endHour ? req.query.endHour : null;
-//       let namaStasiun = req.query.namaStasiun ? req.query.namaStasiun : null;
+  // async handleMqttList(req: any, res: any) {
+  //     try {
+  //       let limit = req.query.limit ? req.query.limit : 100;
+  //       let offset = req.query.offset ? req.query.offset : 0;
+  //       let startDate = req.query.startDate
+  //         ? moment(req.query.startDate).format('YYYY-MM-DD')
+  //         : null;
+  //       let endDate = req.query.endDate
+  //         ? moment(req.query.endDate).format('YYYY-MM-DD')
+  //         : null;
+  //       let startHour = req.query.startHour ? req.query.startHour : null;
+  //       let endHour = req.query.endHour ? req.query.endHour : null;
+  //       let namaStasiun = req.query.namaStasiun ? req.query.namaStasiun : null;
 
-//       let query = db
-//         .select(
-//           db.raw(`
-//         ROW_NUMBER() OVER (ORDER BY md.time DESC) AS number,
-//         d.nama_stasiun, md.*`)
-//         )
-//         .from('mqtt_datas AS md')
-//         .leftJoin(db.raw(`devices AS d on d.id_mesin = md."uuid"`))
-//         .orderByRaw(`md.time DESC`)
-//         .limit(parseInt(limit), { skipBinding: true })
-//         .offset(
-//           parseInt(offset) === 0
-//             ? parseInt(offset)
-//             : parseInt(limit) * parseInt(offset)
-//         );
+  //       let query = db
+  //         .select(
+  //           db.raw(`
+  //         ROW_NUMBER() OVER (ORDER BY md.time DESC) AS number,
+  //         d.nama_stasiun, md.*`)
+  //         )
+  //         .from('mqtt_datas AS md')
+  //         .leftJoin(db.raw(`devices AS d on d.id_mesin = md."uuid"`))
+  //         .orderByRaw(`md.time DESC`)
+  //         .limit(parseInt(limit), { skipBinding: true })
+  //         .offset(
+  //           parseInt(offset) === 0
+  //             ? parseInt(offset)
+  //             : parseInt(limit) * parseInt(offset)
+  //         );
 
-//       let qt = db
-//         .select(db.raw(`count(md.*)`))
-//         .from('mqtt_datas AS md')
-//         .leftJoin(db.raw(`devices AS d on d.id_mesin = md."uuid"`));
+  //       let qt = db
+  //         .select(db.raw(`count(md.*)`))
+  //         .from('mqtt_datas AS md')
+  //         .leftJoin(db.raw(`devices AS d on d.id_mesin = md."uuid"`));
 
-//       if (startDate && endDate) {
-//         query = query.whereRaw(
-//           `(to_char(time, 'YYYY-MM-DD')::text || ' '|| to_char(time, 'hh:mm:ss')::text) BETWEEN ? AND ?`,
-//           [
-//             startDate + ' ' + (startHour || '00:00:00'),
-//             endDate + ' ' + (endHour || '00:00:00'),
-//           ]
-//         );
-//         qt = qt.whereRaw(
-//           `(to_char(time, 'YYYY-MM-DD')::text || ' '|| to_char(time, 'hh:mm:ss')::text) BETWEEN ? AND ?`,
-//           [
-//             startDate + ' ' + (startHour || '00:00:00'),
-//             endDate + ' ' + (endHour || '00:00:00'),
-//           ]
-//         );
-//       }
+  //       if (startDate && endDate) {
+  //         query = query.whereRaw(
+  //           `(to_char(time, 'YYYY-MM-DD')::text || ' '|| to_char(time, 'hh:mm:ss')::text) BETWEEN ? AND ?`,
+  //           [
+  //             startDate + ' ' + (startHour || '00:00:00'),
+  //             endDate + ' ' + (endHour || '00:00:00'),
+  //           ]
+  //         );
+  //         qt = qt.whereRaw(
+  //           `(to_char(time, 'YYYY-MM-DD')::text || ' '|| to_char(time, 'hh:mm:ss')::text) BETWEEN ? AND ?`,
+  //           [
+  //             startDate + ' ' + (startHour || '00:00:00'),
+  //             endDate + ' ' + (endHour || '00:00:00'),
+  //           ]
+  //         );
+  //       }
 
-//       if (req.body.role_id !== 'adm') {
-//         query = query.leftJoin(db.raw(`users u on u.device_id = d.id`));
-//         qt = qt.leftJoin(db.raw(`users u on u.device_id = d.id`));
-//         query = query.whereRaw(`u.id = ?`, req.body.user_id);
-//         qt = qt.whereRaw(`u.id = ?`, req.body.user_id);
-//       }
+  //       if (req.body.role_id !== 'adm') {
+  //         query = query.leftJoin(db.raw(`users u on u.device_id = d.id`));
+  //         qt = qt.leftJoin(db.raw(`users u on u.device_id = d.id`));
+  //         query = query.whereRaw(`u.id = ?`, req.body.user_id);
+  //         qt = qt.whereRaw(`u.id = ?`, req.body.user_id);
+  //       }
 
-//       if (namaStasiun) {
-//         query = query.whereRaw(`d.nama_stasiun ILIKE ?`, `%${namaStasiun}%`);
-//         qt = qt.whereRaw(`d.nama_stasiun ILIKE ?`, `%${namaStasiun}%`);
-//       }
+  //       if (namaStasiun) {
+  //         query = query.whereRaw(`d.nama_stasiun ILIKE ?`, `%${namaStasiun}%`);
+  //         qt = qt.whereRaw(`d.nama_stasiun ILIKE ?`, `%${namaStasiun}%`);
+  //       }
 
-//       let data = await query;
-//       let totalData = await qt;
+  //       let data = await query;
+  //       let totalData = await qt;
 
-//       return sendResponseCustom(res, {
-//         success: true,
-//         totalData: totalData[0].count,
-//         data,
-//       });
-//     } catch (error: any) {
-//       if (!errorCodes[error.code]) logger.error(error);
+  //       return sendResponseCustom(res, {
+  //         success: true,
+  //         totalData: totalData[0].count,
+  //         data,
+  //       });
+  //     } catch (error: any) {
+  //       if (!errorCodes[error.code]) logger.error(error);
 
-//       return sendResponseError(res, error);
-//     }
-//   }  
+  //       return sendResponseError(res, error);
+  //     }
+  //   }  
 
-async handleMqttList(req: any, res: any) {
+  async handleMqttList(req: any, res: any) {
     try {
       const page = req.query.page ? parseInt(req.query.page as string, 10) : 1;
       const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 100;
@@ -1403,49 +1403,49 @@ async handleMqttList(req: any, res: any) {
 
 
   async handleMqttDataList(req: any, res: any) {
-  const { startDate, endDate } = req.query;
+    const { startDate, endDate } = req.query;
 
-  if (!startDate || !endDate) {
-    return res.status(400).json({ error: "startDate and endDate are required" });
-  }
+    if (!startDate || !endDate) {
+      return res.status(400).json({ error: "startDate and endDate are required" });
+    }
 
-  try {
-    res.setHeader("Content-Type", "text/csv");
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename="mqtt_data_export.csv"`
-    );
+    try {
+      res.setHeader("Content-Type", "text/csv");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="mqtt_data_export.csv"`
+      );
 
-    // gabungkan query dari kedua tabel
-   const query = db("mqtt_datas")
-  .select("*")
-  .whereBetween("created_at", [startDate, endDate])
-  .unionAll((qb: { select: (arg0: string) => { (): any; new(): any; from: { (arg0: string): { (): any; new(): any; whereBetween: { (arg0: string, arg1: any[]): void; new(): any; }; }; new(): any; }; }; }) => {
-    qb.select("*")
-      .from("mqtt_datas_archive")
-      .whereBetween("created_at", [startDate, endDate]);
-  })
-  .orderBy("created_at", "asc");
+      // gabungkan query dari kedua tabel
+      const query = db("mqtt_datas")
+        .select("*")
+        .whereBetween("created_at", [startDate, endDate])
+        .unionAll((qb: { select: (arg0: string) => { (): any; new(): any; from: { (arg0: string): { (): any; new(): any; whereBetween: { (arg0: string, arg1: any[]): void; new(): any; }; }; new(): any; }; }; }) => {
+          qb.select("*")
+            .from("mqtt_datas_archive")
+            .whereBetween("created_at", [startDate, endDate]);
+        })
+        .orderBy("created_at", "asc");
 
-    // stream hasil query
-    const queryStream = query.stream();
-    const csvStream = stringify({ header: true });
+      // stream hasil query
+      const queryStream = query.stream();
+      const csvStream = stringify({ header: true });
 
-    pipeline(queryStream, csvStream, res, (err: any) => {
-      if (err) {
-        console.error("Pipeline failed:", err);
-        if (!res.headersSent) {
-          res.status(500).json({ error: "Export failed" });
+      pipeline(queryStream, csvStream, res, (err: any) => {
+        if (err) {
+          console.error("Pipeline failed:", err);
+          if (!res.headersSent) {
+            res.status(500).json({ error: "Export failed" });
+          }
         }
+      });
+    } catch (error) {
+      console.error("Export failed:", error);
+      if (!res.headersSent) {
+        res.status(500).json({ error: "Failed to export data" });
       }
-    });
-  } catch (error) {
-    console.error("Export failed:", error);
-    if (!res.headersSent) {
-      res.status(500).json({ error: "Failed to export data" });
     }
   }
-   }
 }
 
 export = DataClientController;
