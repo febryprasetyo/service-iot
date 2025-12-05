@@ -19,3 +19,8 @@ deploy.err
 /assets/logs/
 
 runbuild.sh
+/src/generated/prisma
+public.sql
+PROJECT IOT local.postman_collection.json
+db_bak.sql
+db.sql

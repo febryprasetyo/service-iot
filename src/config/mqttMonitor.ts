@@ -66,7 +66,7 @@ class MqttHandler {
           .insert({
 
             uuid: id_mesin,
-            // time: timeFormatted,
+            time: timeFormatted,
             temperature: toFixed2(latestData.Temperature),
             do_: toFixed2(latestData.DO),
             tur: toFixed2(latestData.TUR),

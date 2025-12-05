@@ -8,17 +8,9 @@ import QueryStream from "pg-query-stream";
 import { pipeline } from "stream/promises";
 import { stringify } from "csv-stringify";
 import ExcelJS from "exceljs";
+import { Transform } from "stream";
 
-const pool = new Pool({
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  host: process.env.DB_HOST,
-  port: Number(process.env.DB_PORT),
-  database: process.env.DB_DATABASE,
-});
 
-const getFileName = (format: string) =>
-  `mqtt_export_${moment().format("YYYYMMDD_HHmmss")}.${format}`;
 
 
 // Versi akhir masih dicoba
@@ -40,7 +32,7 @@ const exportableHeaders = [
   { header: "NO3", key: "no3_3" },
   { header: "NO32", key: "no2" },
   { header: "Depth", key: "depth" },
-  
+
 ];
 
 // ================== EXPORT HANDLER ==================

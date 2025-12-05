@@ -93,7 +93,7 @@ class DataClientController {
         .select(
           db.raw(`
         s.id, s.nama_stasiun, s.id_mesin, s.address,
-        s.province_name, s.province_id, s.city_name, s.city_id 
+        s.province_name, s.province_id, s.city_name, s.city_id
       `)
         )
         .from('stations AS s');
@@ -102,7 +102,7 @@ class DataClientController {
         .select(db.raw(`COUNT(s.*) as total`))
         .from('stations AS s');
 
-      if (req.body.role_id !== 'adm') {
+      if (req.body.role_id === 'usr') {
         query = query.leftJoin(db.raw(`devices d on d.id_mesin = s.id_mesin`));
         query = query.leftJoin(db.raw(`users u on d.dinas_id = u.id`));
         query = query.whereRaw(`u.id = ?`, req.body.user_id);
@@ -748,23 +748,42 @@ class DataClientController {
       let dataUser = await db
         .select(
           db.raw(
-            `usr.id, usr.username, usr.api_key, usr.secret_key, COALESCE(dv.nama_dinas, usr.nama_dinas) nama_dinas`
+            `usr.id, usr.username, usr.api_key, usr.secret_key, usr.role_id, COALESCE(dv.nama_dinas, usr.nama_dinas) nama_dinas`
           )
         )
         .from('users AS usr')
         .leftJoin(db.raw(`devices AS dv on dv.id = usr.device_id`))
+        .whereRaw(`usr.role_id != ?`, ['adm'])
         .orderBy('usr.created_at', 'DESC')
         .limit(reqBody.limit, { skipBinding: true })
         .offset(reqBody.offset);
 
       let countDataUser = await db
         .select(db.raw(`COUNT(*) as total`))
-        .from('users');
+        .from('users')
+        .whereRaw(`role_id != ?`, ['adm']);
+
+      // Grouping berdasarkan role_id
+      const groupedData = {
+        user: [] as any[],
+        engineering: [] as any[],
+      };
+
+      dataUser.forEach((user: any) => {
+        const { role_id, ...userData } = user;
+
+        if (role_id === 'usr') {
+          groupedData.user.push(userData);
+        } else if (role_id === 'eng') {
+          groupedData.engineering.push(userData);
+        }
+      });
 
       return sendResponseCustom(res, {
         success: true,
         data: {
-          values: dataUser,
+          user: groupedData.user,
+          engineering: groupedData.engineering,
           total: countDataUser.length == 0 ? 0 : countDataUser[0].total,
         },
       });
@@ -808,7 +827,7 @@ class DataClientController {
         .select(db.raw(`d.id AS device_id, d.nama_dinas, d.id_mesin`))
         .from('devices AS d');
 
-      if (req.body.role_id !== 'adm') {
+      if (req.body.role_id === 'usr') {
         query = query.leftJoin(db.raw(`users u on u.id = d.dinas_id`));
         query = query.whereRaw(`u.id = ?`, req.body.user_id);
       }
@@ -868,7 +887,7 @@ class DataClientController {
           db.raw(`devices s on upper(s.nama_stasiun) = upper(rk.id_stasiun)`)
         );
 
-      if (req.body.role_id !== 'adm') {
+      if (req.body.role_id === 'usr') {
         query = query.leftJoin(db.raw(`users u on u.id = s.dinas_id`));
         qt = qt.leftJoin(db.raw(`users u on u.id = s.dinas_id`));
         query = query.whereRaw(`u.id = ?`, req.body.user_id);
@@ -946,7 +965,7 @@ class DataClientController {
           `((rk.payload::jsonb->'data'->>'Tanggal'::text) || ' ' || (rk.payload::jsonb->'data'->>'Jam'::text)) DESC`
         );
 
-      if (req.body.role_id !== 'adm') {
+      if (req.body.role_id === 'usr') {
         query = query.leftJoin(db.raw(`users u on u.id = s.dinas_id`));
         query = query.whereRaw(`u.id = ?`, req.body.user_id);
       }
@@ -1054,7 +1073,7 @@ class DataClientController {
         'Content-Type',
         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
       );
-      const filename = `res_klhk_${moment().format('YYYYMMDDHHmmsss')}.xlsx`;
+      const filename = `data_integrasi_${moment().format('YYYYMMDDHHmmsss')}.xlsx`;
       res.header('Content-Disposition', `attachment; filename="${filename}"`);
       return res.status(200).send(excelBuffer);
     } catch (error: any) {
@@ -1146,7 +1165,7 @@ class DataClientController {
 
   //       return sendResponseError(res, error);
   //     }
-  //   }  
+  //   }
 
   async handleMqttList(req: any, res: any) {
     try {
@@ -1229,7 +1248,7 @@ class DataClientController {
       }
 
       // filter role user
-      if (req.body.role_id !== "adm") {
+      if (req.body.role_id === "usr") {
         query = query
           .leftJoin({ u: "users" }, "u.device_id", "d.id")
           .where("u.id", req.body.user_id);
@@ -1446,6 +1465,93 @@ class DataClientController {
       }
     }
   }
+
+  async handleMqttDataExcelStream(req: any, res: any) {
+  const { startDate, endDate } = req.query;
+
+  if (!startDate || !endDate) {
+    return res.status(400).json({ error: "startDate and endDate are required" });
+  }
+
+  try {
+    // Set header untuk file Excel
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
+    res.setHeader(
+      "Content-Disposition",
+      'attachment; filename="mqtt_data_export.xlsx"'
+    );
+
+    // Buat workbook streaming
+    const workbook = new ExcelJS.stream.xlsx.WorkbookWriter({
+      stream: res,
+      useStyles: true,
+      useSharedStrings: true,
+    });
+
+    // Query stream
+    const query = db("mqtt_datas")
+      .select("*")
+      .whereBetween("created_at", [startDate, endDate])
+      .unionAll((qb: { select: (arg0: string) => { (): any; new(): any; from: { (arg0: string): { (): any; new(): any; whereBetween: { (arg0: string, arg1: any[]): void; new(): any; }; }; new(): any; }; }; }) => {
+        qb.select("*")
+          .from("mqtt_datas_archive")
+          .whereBetween("created_at", [startDate, endDate]);
+      })
+      .orderBy("created_at", "asc");
+
+    const queryStream = query.stream();
+
+    let sheetIndex = 1;
+    let rowCount = 0;
+    let worksheet = workbook.addWorksheet(`MQTT Data ${sheetIndex}`);
+    let headerSet = false;
+
+    queryStream.on("data", (row: {}) => {
+      // Set kolom sekali per sheet
+      if (!headerSet) {
+        worksheet.columns = Object.keys(row).map((key) => ({
+          header: key,
+          key: key,
+          width: 20,
+        }));
+        headerSet = true;
+      }
+
+      worksheet.addRow(row).commit();
+      rowCount++;
+
+      // Jika melebihi batas Excel → buat sheet baru
+      if (rowCount >= 1048576) {
+        worksheet.commit();
+        sheetIndex++;
+        worksheet = workbook.addWorksheet(`MQTT Data ${sheetIndex}`);
+        headerSet = false;
+        rowCount = 0;
+      }
+    });
+
+    queryStream.on("end", async () => {
+      worksheet.commit();
+      await workbook.commit(); // tutup workbook
+    });
+
+    queryStream.on("error", (err: any) => {
+      console.error("Query stream failed:", err);
+      if (!res.headersSent) {
+        res.status(500).json({ error: "Export failed" });
+      }
+    });
+  } catch (error) {
+    console.error("Export failed:", error);
+    if (!res.headersSent) {
+      res.status(500).json({ error: "Failed to export Excel file" });
+    }
+  }
+}
+
 }
 
 export = DataClientController;

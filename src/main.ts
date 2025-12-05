@@ -6,7 +6,6 @@ import cors from 'cors';
 import http from 'http';
 import multer from 'multer';
 import 'dotenv/config';
-import swaggerUi from 'swagger-ui-express';
 import fs = require('fs');
 import { logger, db, loadConfig } from './utils/util';
 import { RequestLogger } from './utils/requestlogger';
@@ -14,6 +13,8 @@ import { ResponseLogger } from './utils/responselogger';
 import routes from './routes/index';
 import MqttHandler from './config/mqttHandler';
 import { setupWebSocket } from './websocket'
+import swaggerUi from 'swagger-ui-express';
+import { swaggerSpec } from './config/swagger';
 
 
 const upload = multer();
@@ -23,9 +24,7 @@ const app = express();
 var server = http.createServer(app);
 
 
-import { swagger } from './swagger/swagger';
 import MqttMonitor from './config/mqttMonitor';
-const swaggerDocument = JSON.parse(swagger);
 
 function main() {
 
@@ -61,8 +60,10 @@ function main() {
   app.use(
     '/api/docs',
     swaggerUi.serve,
-    swaggerUi.setup(swaggerDocument, undefined, undefined, undefined)
+    swaggerUi.setup(swaggerSpec)
   );
+
+
 
   // catch 404 and forward to error handler
   app.use(function (req: any, res: any, next: any) {
@@ -131,8 +132,8 @@ async function onListening() {
   logger.info(`Server Listening on ${bind}`);
 
   // Running & Connect Mqtt
-  // var mqttClient = new MqttHandler();
-  // mqttClient.connect();
+  var mqttClient = new MqttHandler();
+  mqttClient.connect();
 
   setupWebSocket(server);
   // var mqttShow = new MqttMonitor();

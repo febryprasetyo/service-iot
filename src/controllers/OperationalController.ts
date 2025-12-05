@@ -14,23 +14,24 @@ class OperationController {
     // Handler Pulsa
     async handlerPulsaCreate(req: any, res:any) {
         try {
-            const { tanggal, nama_paket, masa_aktif, harga } = req.body;
+            const { tanggal, nama_paket, masa_aktif, harga, station } = req.body;
             const pic = req.user?.username;
 
             let rules = {
                 tanggal: 'required|string',
                 nama_paket: 'required|string',
-                harga: 'required|string'
+                harga: 'required|string',
+                station: 'required|string'
             };
-            await validateParamsAll({ tanggal, nama_paket, harga }, rules).catch((err) => {
+            await validateParamsAll({ tanggal, nama_paket, harga, station }, rules).catch((err) => {
                 delete err.failed;
                 throw createError('', 'E_BAD_REQUEST', err);
             });
 
-            const [id] = await db('paket_data').insert({ tanggal, nama_paket, masa_aktif, harga, pic }).returning('id');
+            const [id] = await db('paket_data').insert({ tanggal, nama_paket, masa_aktif, harga, pic, station }).returning('id');
             return sendResponseCustom(res, {
                 success: true,
-                message: `Pengajuan untuk ${nama_paket} oleh ${pic} berhasil dibuat.`
+                message: `Pengajuan untuk stasiun ${station} oleh ${pic} berhasil dibuat.`
             });
         } catch (error: any) {
             return sendResponseError(res, error);
@@ -66,7 +67,7 @@ class OperationController {
     }
     async handlerPulsaUpdate(req: any, res:any) {
         const { id } = req.params;
-        const { tanggal, nama_paket, masa_aktif, harga } = req.body;
+        const { tanggal, nama_paket, masa_aktif, harga, station } = req.body;
         const updated = await db('paket_data')
             .where({ id: req.params.id })
             .update({
@@ -74,6 +75,7 @@ class OperationController {
                 nama_paket,
                 masa_aktif,
                 harga,
+                station,
                 updated_at: db.fn.now()
             });
 
@@ -98,23 +100,24 @@ class OperationController {
      // Handler Listrik
     async handlerListrikCreate(req: any, res:any) {
         try {
-            const { tanggal, nama, kwh, harga } = req.body;
+            const { tanggal, nama, kwh, harga, station } = req.body;
             const pic = req.user?.username;
 
             let rules = {
                 tanggal: 'required|string',
                 nama: 'required|string',
-                harga: 'required|string'
+                harga: 'required|string',
+                station: 'required|string'
             };
-            await validateParamsAll({ tanggal, nama, harga }, rules).catch((err) => {
+            await validateParamsAll({ tanggal, nama, harga, station }, rules).catch((err) => {
                 delete err.failed;
                 throw createError('', 'E_BAD_REQUEST', err);
             });
 
-            const [id] = await db('token_listrik').insert({ tanggal, nama, kwh, harga, pic }).returning('id');
+            const [id] = await db('token_listrik').insert({ tanggal, nama, kwh, harga, pic, station }).returning('id');
             return sendResponseCustom(res, {
                 success: true,
-                message: `Pengajuan untuk ${nama} oleh ${pic} berhasil dibuat.`
+                message: `Pengajuan untuk stasiun ${station} oleh ${pic} berhasil dibuat.`
             });
         } catch (error: any) {
             return sendResponseError(res, error);
@@ -150,7 +153,7 @@ class OperationController {
     }
     async handlerListrikUpdate(req: any, res:any) {
         const { id } = req.params;
-        const { tanggal, nama, kwh, harga } = req.body;
+        const { tanggal, nama, kwh, harga, station } = req.body;
         const updated = await db('token_listrik')
             .where({ id: req.params.id })
             .update({
@@ -158,6 +161,7 @@ class OperationController {
                 nama,
                 kwh,
                 harga,
+                station,
                 updated_at: db.fn.now()
             });
 

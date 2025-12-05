@@ -62,14 +62,19 @@ class MqttHandler {
   }
 
   async initDeviceCache() {
-    const devices = await db("devices").select("id_mesin", "nama_stasiun");
-    this.deviceCache.clear();
-    for (const d of devices) {
-      if (d.id_mesin && d.nama_stasiun) {
-        this.deviceCache.set(d.id_mesin, d.nama_stasiun);
+    try {
+      const devices = await db("devices").select("id_mesin", "nama_stasiun");
+      
+      this.deviceCache.clear();
+      for (const d of devices) {
+        if (d.id_mesin) {
+          this.deviceCache.set(d.id_mesin, d.nama_stasiun || 'UNKNOWN');
+        }
       }
+      logger.info(`  UUID: SYSTEM | TIME: ${moment().format("YYYY-MM-DD HH:mm:ss")} | Device cache loaded (${this.deviceCache.size} items)  `);
+    } catch (error) {
+      logger.error(`  UUID: SYSTEM | TIME: ${moment().format("YYYY-MM-DD HH:mm:ss")} | Failed to load device cache: ${error}  `);
     }
-    logger.info(`  UUID: SYSTEM | TIME: ${moment().format("YYYY-MM-DD HH:mm:ss")} | Device cache loaded (${this.deviceCache.size} items)  `);
   }
 
   startCacheRefresher(intervalMs = 5 * 60 * 1000) {
@@ -138,59 +143,23 @@ class MqttHandler {
 
       if (!uuid || dataStream.length === 0) return;
 
-      const namaStasiun = this.deviceCache.get(uuid) ?? null;
+      const namaStasiun = this.deviceCache.get(uuid) ?? 'UNKNOWN';
 
+      const el = dataStream[dataStream.length - 1];
+      const tm = el["time"]
+        ? moment(el["time"], "DD-MM-YYYY HH:mm:ss").format("YYYY-MM-DD HH:mm:ss")
+        : moment().format("YYYY-MM-DD HH:mm:ss");
 
-        const el = dataStream[dataStream.length - 1];
-        const tm = el["time"]
-          ? moment(el["time"], "DD-MM-YYYY HH:mm:ss").format("YYYY-MM-DD HH:mm:ss")
-          : moment().format("YYYY-MM-DD HH:mm:ss");
-
-    //   if (!namaStasiun) {
-    //     this.log(uuid, moment().format("YYYY-MM-DD HH:mm:ss"), "Tidak punya relasi ke id_stasiun, data di-skip", "warn");
-    //     return;
-    //   }
-    //   const baseRow: SensorRow = {
-    //     uuid,
-    //     time: tm,
-    //     temperature: parseFloat(el["Temperature"])?.toFixed(2),
-    //     do_: parseFloat(el["DO"])?.toFixed(2),
-    //     tur: parseFloat(el["TUR"])?.toFixed(2),
-    //     ph: parseFloat(el["PH"])?.toFixed(2),
-    //     bod: parseFloat(el["BOD"])?.toFixed(2),
-    //     cod: parseFloat(el["COD"])?.toFixed(2),
-    //     tss: parseFloat(el["TSS"])?.toFixed(2),
-    //     depth: parseFloat(el["DEPTH"])?.toFixed(2),
-    //     no3_3: parseFloat(el["NO3-3"])?.toFixed(2),
-    //     n: parseFloat(el["N"])?.toFixed(2),
-    //     ct: parseFloat(el["CT"])?.toFixed(2),
-    //     no2: parseFloat(el["NO2"])?.toFixed(2),
-    //     orp: parseFloat(el["ORP"])?.toFixed(2),
-    //     id_stasiun: namaStasiun ?? 'UNKNOWN',
-    //     is_success: false,
-    //   };
-    //   // Simpan ke buffer untuk mqtt_datas
-    //   this.buffer.set(uuid, baseRow);
-    //   this.log(uuid, tm, "Updated buffer (last data saved for this minute)", "debug");
-
-    //    // Tambahan untuk mqtt_monitoring
-    // const { is_success, ...baseRowWithoutSuccess } = baseRow;
-
-    // const monitoringRow: MonitoringRow = {
-    //   ...baseRowWithoutSuccess,
-    //   pump_status: el["Pump_Status"] ?? null,
-    //   cv_status: el["CV_Status"] ?? null,
-    //   read_status: el["Read_Status"] ?? null
-    // };
-
-
-    // await db("mqtt_monitoring")
-    //   .insert(monitoringRow)
-    //   .onConflict("uuid")
-    //   .merge();
-
-    // this.log(uuid, tm, "Updated mqtt_monitoring (realtime)", "debug");
-
+      // ====== VALIDASI STATUS ======
+    // Nilai default jika tidak ada Read_Status (anggap aktif)
+    let readStatus = typeof el["Read_Status"] === "undefined" || el["Read_Status"] === null
+      ? 1
+      : parseInt(el["Read_Status"]);
+    // Abaikan jika Read_Status == 0
+    if (readStatus === 0) {
+      this.log(uuid, tm, "Read_Status = 0, data diabaikan", "debug");
+      return;
+    }
     const baseRow: SensorRow = {
       uuid,
       time: tm,
@@ -207,12 +176,12 @@ class MqttHandler {
       ct: parseFloat(el["CT"])?.toFixed(2),
       no2: parseFloat(el["NO2"])?.toFixed(2),
       orp: parseFloat(el["ORP"])?.toFixed(2),
-      id_stasiun: namaStasiun ?? 'UNKNOWN',
+      id_stasiun: namaStasiun,
       is_success: true
     };
 
     // ✅ Simpan ke mqtt_monitoring (selalu)
-       // Tambahan untuk mqtt_monitoring
+    // Tambahan untuk mqtt_monitoring
     const { is_success, ...baseRowWithoutSuccess } = baseRow;
 
     const monitoringRow: MonitoringRow = {
@@ -222,7 +191,6 @@ class MqttHandler {
       read_status: el["Read_Status"] ?? null
     };
 
-
     await db("mqtt_monitoring")
       .insert(monitoringRow)
       .onConflict("uuid")
@@ -230,16 +198,52 @@ class MqttHandler {
 
     this.log(uuid, tm, "Updated mqtt_monitoring (realtime)", "debug");
 
+    // ✅ Simpan ke sensor_data (selalu, 1 data per uuid)
+    const parseVal = (val: any) => {
+      const num = parseFloat(val);
+      return isNaN(num) ? null : num;
+    };
+
+    const sensorData = {
+      uuid: uuid,
+      nama_stasiun: namaStasiun,
+      time: tm,
+      temperature: parseVal(el["Temperature"]),
+      do_: parseVal(el["DO"]),
+      tur: parseVal(el["TUR"]),
+      ct: parseVal(el["CT"]),
+      ph: parseVal(el["PH"]),
+      orp: parseVal(el["ORP"]),
+      bod: parseVal(el["BOD"]),
+      cod: parseVal(el["COD"]),
+      tss: parseVal(el["TSS"]),
+      n: parseVal(el["N"]),
+      no2: parseVal(el["NO2"]),
+      no3_3: parseVal(el["NO3-3"]),
+      depth: parseVal(el["DEPTH"]),
+      pump_status: el["Pump_Status"] == 1,
+      cv_status: el["CV_Status"] == 1,
+      read_status: el["Read_Status"] == 1,
+      id_mesin: uuid
+    };
+
+    try {
+      await db("sensor_data")
+        .insert(sensorData)
+        .onConflict("uuid")
+        .merge();
+      this.log(uuid, tm, "Updated sensor_data", "debug");
+    } catch (err) {
+      this.log(uuid, tm, `Failed to update sensor_data: ${err}`, "error");
+    }
+
     // ✅ Simpan ke mqtt_datas hanya jika punya relasi
-    if (namaStasiun) {
+    if (namaStasiun && namaStasiun !== 'UNKNOWN') {
       this.buffer.set(uuid, baseRow);
       this.log(uuid, tm, "Buffered for mqtt_datas (relasi ditemukan)", "debug");
     } else {
       this.log(uuid, tm, "Relasi tidak ditemukan, tidak disimpan ke mqtt_datas", "warn");
     }
-
-
-
     } catch (err) {
       this.log("SYSTEM", moment().format("YYYY-MM-DD HH:mm:ss"), `Failed to parse message: ${err}`, "error");
     }

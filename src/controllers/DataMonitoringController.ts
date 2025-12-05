@@ -46,8 +46,8 @@ class DataMonitoringController {
       const rows = await db
         .raw(
           `
-          SELECT DISTINCT ON (id_stasiun) 
-            uuid, id, id_stasiun, temperature, do_, tur, ct, ph, orp, bod, cod, 
+          SELECT DISTINCT ON (id_stasiun)
+            uuid, id, id_stasiun, temperature, do_, tur, ct, ph, orp, bod, cod,
             tss, n, no3_3, no2, depth, time
           FROM mqtt_datas
           ORDER BY id_stasiun, time DESC
@@ -111,49 +111,122 @@ class DataMonitoringController {
   }
 
   // === STATUS SAJA ===
+  // async handlerStatus(req: Request, res: Response) {
+  //   try {
+  //     const rows = await db
+  //       .raw(
+  //         `
+  //         SELECT DISTINCT ON (id_stasiun)
+  //           uuid, id_stasiun, time
+  //         FROM mqtt_datas
+  //         ORDER BY id_stasiun, time DESC
+  //       `
+  //       )
+  //       .then((result: { rows: any }) => result.rows);
+
+  //     const nowMoment = moment();
+  //     const result = rows.map((item: any) => {
+  //       const lastUpdate = moment(item.time);
+  //       const minutesDiff = nowMoment.diff(lastUpdate, 'minutes');
+  //       const status = minutesDiff <= 5 ? 'hidup' : 'mati';
+
+  //       return {
+  //         uuid: item.uuid,
+  //         id_stasiun: item.id_stasiun,
+  //         status,
+  //         minutesDiff,
+  //         time: moment(item.time).format('DD/MM/YYYY HH:mm:ss'),
+  //       };
+  //     });
+
+  //      // Hitung status hidup/mati
+  //       const hidupCount = result.filter((x: { status: string; }) => x.status === 'hidup').length;
+  //       const matiCount = result.filter((x: { status: string; }) => x.status === 'mati').length;
+  //      res.json({
+  //     success: true,
+  //     total: result.length,
+  //     Hidup: hidupCount,
+  //     Mati: matiCount,
+  //     data: result,
+  //     });
+  //   } catch (error: any) {
+  //     console.error('❌ Error in handlerStatus:', error);
+  //     res.status(500).json({ success: false, message: 'Internal Server Error' });
+  //   }
+  // }
   async handlerStatus(req: Request, res: Response) {
-    try {
-      const rows = await db
-        .raw(
-          `
-          SELECT DISTINCT ON (id_stasiun) 
-            uuid, id_stasiun, time
-          FROM mqtt_datas
-          ORDER BY id_stasiun, time DESC
-        `
-        )
-        .then((result: { rows: any }) => result.rows);
+  try {
+    const { role_id, user_id } = req.body;
 
-      const nowMoment = moment();
-      const result = rows.map((item: any) => {
-        const lastUpdate = moment(item.time);
-        const minutesDiff = nowMoment.diff(lastUpdate, 'minutes');
-        const status = minutesDiff <= 5 ? 'hidup' : 'mati';
+    // Ambil stasiun milik user (jika bukan admin)
+    let stationQuery = db('stations as s').select('s.id', 's.nama_stasiun', 's.id_mesin');
 
-        return {
-          uuid: item.uuid,
-          id_stasiun: item.id_stasiun,
-          status,
-          minutesDiff,
-          time: moment(item.time).format('DD/MM/YYYY HH:mm:ss'),
-        };
-      });
+    if (role_id !== 'adm') {
+      stationQuery = stationQuery
+        .leftJoin('devices as d', 'd.id_mesin', 's.id_mesin')
+        .leftJoin('users as u', 'd.dinas_id', 'u.id')
+        .where('u.id', user_id);
+    }
 
-       // Hitung status hidup/mati
-        const hidupCount = result.filter((x: { status: string; }) => x.status === 'hidup').length;
-        const matiCount = result.filter((x: { status: string; }) => x.status === 'mati').length;
-       res.json({
+    const stations = await stationQuery;
+
+    if (stations.length === 0) {
+      return res.json({ success: true, total: 0, Hidup: 0, Mati: 0, data: [] });
+    }
+
+    const stationNames = stations.map((s : any) => s.nama_stasiun); // bukan s.id
+    // Ambil data MQTT terbaru per stasiun
+    const mqttRows = await db
+  .raw(
+    `
+    SELECT DISTINCT ON (id_stasiun)
+      uuid, id_stasiun, time
+    FROM mqtt_datas
+    WHERE id_stasiun = ANY(?::text[])
+    ORDER BY id_stasiun, time DESC
+  `,
+    [stationNames]
+  )
+  .then((r: { rows: any[] }) => r.rows);
+
+
+
+
+    const nowMoment = moment();
+    const result = stations.map((station : any) => {
+  const mqtt = mqttRows.find((m : any) => m.id_stasiun === station.nama_stasiun);
+  const lastUpdate = mqtt?.time ? moment(mqtt.time) : null;
+  const minutesDiff = lastUpdate ? nowMoment.diff(lastUpdate, 'minutes') : null;
+  const status = minutesDiff !== null && minutesDiff <= 5 ? 'hidup' : 'mati';
+
+  return {
+      id_stasiun: station.id,
+      nama_stasiun: station.nama_stasiun,
+      id_mesin: station.id_mesin,
+      uuid: mqtt?.uuid || null,
+      status,
+      minutesDiff,
+      time: mqtt?.time && lastUpdate ? lastUpdate.format('DD/MM/YYYY HH:mm:ss') : null
+    };
+  });
+
+
+
+    const hidupCount = result.filter((x : {status : string}) => x.status === 'hidup').length;
+    const matiCount = result.filter((x : {status : string}) => x.status === 'mati').length;
+
+    res.json({
       success: true,
       total: result.length,
       Hidup: hidupCount,
       Mati: matiCount,
-      data: result,
-      });
-    } catch (error: any) {
-      console.error('❌ Error in handlerStatus:', error);
-      res.status(500).json({ success: false, message: 'Internal Server Error' });
-    }
+      data: result
+    });
+  } catch (error: any) {
+    console.error('❌ Error in handlerStatus:', error);
+    res.status(500).json({ success: false, message: 'Internal Server Error' });
   }
+}
 
   // === UTIL ===
   private applyFilter(

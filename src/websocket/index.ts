@@ -5,9 +5,28 @@ import { broadcastMonitoring, sendMonitoringNow } from './broadcaster';
 export function setupWebSocket(server: any) {
   const wss = new WebSocketServer({ server });
 
-  wss.on('connection', (ws: WSWebSocket) => {
+  wss.on('connection', async (ws: WSWebSocket, req: any) => {
     const client = registerClient(ws);
     console.log('WebSocket client connected');
+
+    // Auto-subscribe from URL path: /monitoring/:uuid
+    if (req.url && req.url.startsWith('/monitoring/')) {
+      const parts = req.url.split('/');
+      const uuid = parts[2]; // ["", "monitoring", "uuid"]
+      
+      if (uuid) {
+        client.uuid = uuid;
+        console.log(`Client auto-subscribed to ${uuid} via URL`);
+        ws.send(JSON.stringify({ type: 'info', message: `Subscribed to ${uuid}` }));
+        
+        // Kirim data awal langsung
+        try {
+          await sendMonitoringNow(ws, uuid);
+        } catch (err) {
+          console.error('Error sending initial data:', err);
+        }
+      }
+    }
 
     ws.on('message', async (msg: string) => {
       try {
