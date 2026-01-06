@@ -178,7 +178,6 @@ rawData.forEach(record => {
     res.statusMutu,                 // Status
     res.paramDominan,               // Param Tertinggi
     res.nilaiIndexDominan.toString(), // Nilai Index Tertinggi
-    
     // Detail Index
     idx.Amonia.toString(),
     idx.BOD.toString(),

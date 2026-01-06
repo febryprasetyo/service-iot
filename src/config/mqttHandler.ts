@@ -1,5 +1,5 @@
 import * as Mqtt from 'mqtt';
-import { db, moment, logger } from '../utils/util';
+import { db, moment, logger, nowWib } from '../utils/util';
 import 'dotenv/config';
 
 var brokerUrl: any = process.env.MQTT_BROKER_URL;
@@ -53,7 +53,7 @@ type MonitoringRow = Omit<SensorRow, 'is_success'> &{
 class MqttHandler {
   public mqttClient!: Mqtt.MqttClient;
   private deviceCache: Map<string, string> = new Map();
-  private buffer: Map<string, SensorRow> = new Map();
+  private bufferMqtt: SensorRow[] = [];
   private flushInterval: NodeJS.Timeout | null = null;
 
   private log(uuid: string, time: string, msg: string, level: "info" | "warn" | "error" | "debug" = "info") {
@@ -71,9 +71,9 @@ class MqttHandler {
           this.deviceCache.set(d.id_mesin, d.nama_stasiun || 'UNKNOWN');
         }
       }
-      logger.info(`  UUID: SYSTEM | TIME: ${moment().format("YYYY-MM-DD HH:mm:ss")} | Device cache loaded (${this.deviceCache.size} items)  `);
+      logger.info(`  UUID: SYSTEM | TIME: ${nowWib()} | Device cache loaded (${this.deviceCache.size} items)  `);
     } catch (error) {
-      logger.error(`  UUID: SYSTEM | TIME: ${moment().format("YYYY-MM-DD HH:mm:ss")} | Failed to load device cache: ${error}  `);
+      logger.error(`  UUID: SYSTEM | TIME: ${nowWib()} | Failed to load device cache: ${error}  `);
     }
   }
 
@@ -85,15 +85,15 @@ class MqttHandler {
     this.mqttClient = Mqtt.connect(brokerUrl, options);
 
     this.mqttClient.on("connect", async () => {
-      logger.info(`  UUID: SYSTEM | TIME: ${moment().format("YYYY-MM-DD HH:mm:ss")} | MQTT connected  `);
+      logger.info(`  UUID: SYSTEM | TIME: ${nowWib()} | MQTT connected to ${brokerUrl} `);
       await this.initDeviceCache();
       this.startCacheRefresher();
 
       this.mqttClient.subscribe(mqttTopic, (err) => {
         if (err) {
-          logger.error(`  UUID: SYSTEM | TIME: ${moment().format("YYYY-MM-DD HH:mm:ss")} | Failed to subscribe: ${err}  `);
+          logger.error(`  UUID: SYSTEM | TIME: ${nowWib()} | Failed to subscribe: ${err}  `);
         } else {
-          logger.info(`  UUID: SYSTEM | TIME: ${moment().format("YYYY-MM-DD HH:mm:ss")} | Subscribed to topic: ${mqttTopic}  `);
+          logger.info(`  UUID: SYSTEM | TIME: ${nowWib()} | Subscribed to topic: ${mqttTopic}  `);
         }
       });
 
@@ -101,12 +101,12 @@ class MqttHandler {
     });
 
     this.mqttClient.on("error", (err: any) => {
-      logger.error(`  UUID: SYSTEM | TIME: ${moment().format("YYYY-MM-DD HH:mm:ss")} | MQTT Error: ${err}  `);
+      logger.error(`  UUID: SYSTEM | TIME: ${nowWib()} | MQTT Error: ${err}  `);
       this.mqttClient.end();
     });
 
     this.mqttClient.on("close", () => {
-      logger.warn(`  UUID: SYSTEM | TIME: ${moment().format("YYYY-MM-DD HH:mm:ss")} | MQTT disconnected  `);
+      logger.warn(`  UUID: SYSTEM | TIME: ${nowWib()} | MQTT disconnected  `);
     });
 
     this.mqttClient.on("message", (topic, message) => {
@@ -116,24 +116,53 @@ class MqttHandler {
 
   private startBufferFlusher() {
     if (this.flushInterval) clearInterval(this.flushInterval);
-    this.flushInterval = setInterval(() => this.flushAll(), 60 * 1000);
+    this.flushInterval = setInterval(() => this.saveMqttData(), 60 * 1000);
   }
 
-  private async flushAll() {
-    const rows = Array.from(this.buffer.values());
-    if (rows.length === 0) return;
-
-    logger.info(`  UUID: SYSTEM | TIME: ${moment().format("YYYY-MM-DD HH:mm:ss")} | SYNC DATA STARTED  `);
-    try {
-      await db("mqtt_datas").insert(rows);
-      logger.info(`  UUID: SYSTEM | TIME: ${moment().format("YYYY-MM-DD HH:mm:ss")} | Flushed ${rows.length} records (last data per UUID)  `);
-      logger.info(`  UUID: SYSTEM | TIME: ${moment().format("YYYY-MM-DD HH:mm:ss")} | SYNC DATA FINISHED  `);
-    } catch (err) {
-      logger.error(`  UUID: SYSTEM | TIME: ${moment().format("YYYY-MM-DD HH:mm:ss")} | Failed to flush buffer: ${err}  `);
+  async saveMqttData() {
+    if (this.bufferMqtt.length === 0) {
+      return;
     }
 
-    this.buffer.clear();
+    try {
+      await db.raw('SELECT 1'); // Check DB connection
+    } catch (dbError) {
+      logger.error('Database connection lost. Skipping flush to preserve buffer.', dbError);
+      return; 
+    }
+
+    const dataToInsert = [...this.bufferMqtt];
+    this.bufferMqtt = []; // Clear buffer immediately
+
+    logger.info(`  UUID: SYSTEM | TIME: ${nowWib()} | Flushing ${dataToInsert.length} records...`);
+
+    // Sanitize and Timestamp
+    const finalData = dataToInsert.map(row => {
+      const { is_success, ...cleanRow } = row; // Remove is_success if it exists
+      return {
+        ...cleanRow,
+        created_at: nowWib() // Force server time (WIB)
+      };
+    });
+
+    const BATCH_SIZE = 500;
+    
+    for (let i = 0; i < finalData.length; i += BATCH_SIZE) {
+      const chunk = finalData.slice(i, i + BATCH_SIZE);
+      
+      try {
+        await db('mqtt_datas').insert(chunk);
+          
+        logger.info(`  UUID: SYSTEM | TIME: ${nowWib()} | Saved chunk ${Math.floor(i/BATCH_SIZE) + 1} (${chunk.length} records)`);
+      } catch (error: any) {
+        logger.error(`  UUID: SYSTEM | TIME: ${nowWib()} | Error saving chunk: ${error}`);
+        // Consider re-queueing failed chunks or logging explicitly
+      }
+    }
   }
+
+
+
 
   async handleMessage(topic: string, message: Buffer) {
     try {
@@ -146,9 +175,10 @@ class MqttHandler {
       const namaStasiun = this.deviceCache.get(uuid) ?? 'UNKNOWN';
 
       const el = dataStream[dataStream.length - 1];
+      // Keep device time as-is (device sends time in WIB format)
       const tm = el["time"]
         ? moment(el["time"], "DD-MM-YYYY HH:mm:ss").format("YYYY-MM-DD HH:mm:ss")
-        : moment().format("YYYY-MM-DD HH:mm:ss");
+        : moment().tz("Asia/Jakarta").format("YYYY-MM-DD HH:mm:ss");
 
       // ====== VALIDASI STATUS ======
     // Nilai default jika tidak ada Read_Status (anggap aktif)
@@ -239,13 +269,14 @@ class MqttHandler {
 
     // ✅ Simpan ke mqtt_datas hanya jika punya relasi
     if (namaStasiun && namaStasiun !== 'UNKNOWN') {
-      this.buffer.set(uuid, baseRow);
+      // Changed from this.buffer.set to this.bufferMqtt.push
+      this.bufferMqtt.push(baseRow);
       this.log(uuid, tm, "Buffered for mqtt_datas (relasi ditemukan)", "debug");
     } else {
       this.log(uuid, tm, "Relasi tidak ditemukan, tidak disimpan ke mqtt_datas", "warn");
     }
     } catch (err) {
-      this.log("SYSTEM", moment().format("YYYY-MM-DD HH:mm:ss"), `Failed to parse message: ${err}`, "error");
+      this.log("SYSTEM", nowWib(), `Failed to parse message: ${err}`, "error");
     }
   }
 

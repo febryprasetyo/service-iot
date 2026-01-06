@@ -24,3 +24,5 @@ public.sql
 PROJECT IOT local.postman_collection.json
 db_bak.sql
 db.sql
+dummy_server.js
+klhk_logs.json

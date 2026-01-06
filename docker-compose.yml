@@ -1,0 +1,66 @@
+version: '3.8'
+
+services:
+  app:
+    container_name: service_iot_app
+    build: .
+    restart: always
+    ports:
+      - "${PORT:-3304}:${PORT:-3304}"
+    environment:
+      - NODE_ENV=production
+      - PORT=${PORT:-3304}
+      - DB_CLIENT=postgresql
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_DATABASE=${DB_DATABASE}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - MQTT_HOST=${MQTT_HOST}
+      - MQTT_PORT=${MQTT_PORT}
+      - MQTT_USERNAME=${MQTT_USERNAME}
+      - MQTT_PASSWORD=${MQTT_PASSWORD}
+      - ASSET_DIR=/app/assets
+      - LOG_DIR=/app/logs
+      - SHOW_ERROR_DETAIL=${SHOW_ERROR_DETAIL}
+      - SET_TIME_CRONJOB=${SET_TIME_CRONJOB}
+      - URL_KLHK=${URL_KLHK}
+    depends_on:
+      - db
+      - redis
+    volumes:
+      - app_assets:/app/assets
+      - app_logs:/app/logs
+
+  db:
+    container_name: service_iot_db
+    image: postgres:15-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_DATABASE}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "${DB_PORT_EXTERNAL:-5433}:5432"
+
+  redis:
+    container_name: service_iot_redis
+    image: redis:alpine
+    restart: always
+    command: redis-server --requirepass ${REDIS_PASSWORD} --appendonly yes
+    volumes:
+      - redis_data:/data
+    ports:
+      - "${REDIS_PORT_EXTERNAL:-6380}:6379"
+
+volumes:
+  postgres_data:
+  redis_data:
+  app_assets:
+  app_logs:

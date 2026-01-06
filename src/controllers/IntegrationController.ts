@@ -1,4 +1,4 @@
-import { logger, db, validateParams, sendResponseCustom, moment, 
+import { logger, db, validateParams, sendResponseCustom, moment, nowWib,
   sendResponseError, errorCodes, createError, validateParamsAll, getConfig }
    from '../utils/util';
 import 'dotenv/config';
@@ -11,35 +11,19 @@ class IntegrationController {
    */
   async handleSubmitData(req: any, res: any) {
     try {
-      let reqBody = req.body
+      logger.info(`[SYNC-KLHK] Triggered via IntegrationController.handleSubmitData`);
+      
+      // Use the robust sync logic from ProcessData
+      const ProcessData = require('../utils/processData');
+      const processor = new ProcessData();
+      
+      // Run the sync process (this handles looping, deduplication, and optimistic syncing)
+      await processor.syncDataIot();
 
-      logger.info(`--------------reqbody :`, reqBody)
-
-      let options = {
-        url: process.env.URL_KLHK,
-        method: 'POST',
-        header: {
-          'Content-Type': 'Application/json'
-        },
-        data: reqBody
-      }
-
-      logger.info(`--------------options :`, options)
-
-      let result = await axios.request(options)
-
-      logger.info(`--------------result :`, result.data)
-
-      // await db('res_klhk')
-      // .insert({
-      //   payload: JSON.stringify(options.data),
-      //   data_uid: result.data.rows.data_uid,
-      //   status_code: result.data.status.statusCode,
-      //   status_desc: result.data.status.statusDesc,
-      //   id_stasiun: reqBody.data['IDStasiun']
-      // })
-
-      return sendResponseCustom(res, result.data)
+      return sendResponseCustom(res, { 
+        message: 'Sync process triggered successfully. Check logs for details.', 
+        success: true
+      });
 
     } catch (error: any) {
       if (!errorCodes[error.code])
@@ -202,8 +186,8 @@ class IntegrationController {
             data: {
               "data" : {
                 "IDStasiun" : elz.id_stasiun,
-                "Tanggal" : moment().format(`YYYY-MM-DD`),
-                "Jam" : moment().format(`HH:mm:ss`),
+                "Tanggal" : nowWib('YYYY-MM-DD'),
+                "Jam" : nowWib('HH:mm:ss'),
                 "Suhu" : (parseFloat(elz.temperature) / elz.count).toFixed(2),
                 // "DHL" : 0,
                 "TDS" : (parseFloat(elz.tds) / elz.count).toFixed(2),
@@ -238,7 +222,8 @@ class IntegrationController {
                 data_uid: result.data.rows.data_uid,
                 status_code: result.data.status.statusCode,
                 status_desc: result.data.status.statusDesc,
-                id_stasiun: options.data.data['IDStasiun']
+                id_stasiun: options.data.data['IDStasiun'],
+                created_at: nowWib()
               })
   
             logger.info(`------------------- [SYNC-SUCCESS] UPDATE SUCCESFULLY ------------------`)
@@ -250,7 +235,8 @@ class IntegrationController {
               data_uid: '-',
               status_code: null,
               status_desc: result.data,
-              id_stasiun: options.data.data['IDStasiun']
+              id_stasiun: options.data.data['IDStasiun'],
+              created_at: nowWib()
             })
             logger.info(`------------------- [SYNC-FAILED] UPDATE SUCCESFULLY ------------------`)
           }
@@ -263,7 +249,7 @@ class IntegrationController {
           .whereIn(`id`, batch)
           .update({
             is_success: true,
-            sync_time: new Date(),
+            sync_time: nowWib(),
           })
           logger.info(`------------------- [SYNC-TMPDATA] Success Update mqtt_datas ------------------`)
         }
@@ -282,7 +268,7 @@ class IntegrationController {
           .whereIn(`id`, batch)
           .update({
             is_success: true,
-            sync_time: new Date(),
+            sync_time: nowWib(),
           })
         }
   

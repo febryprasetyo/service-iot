@@ -6,7 +6,7 @@ import db from '../config/database';
 import validatorMessages from '../config/validatorMessages';
 import { validator } from 'indicative'
 import _, { reject } from 'lodash'
-import moment from 'moment'
+import moment from 'moment-timezone'
 import FormData from 'form-data';
 import axios from 'axios'
 import fs from 'fs';
@@ -339,10 +339,34 @@ function buildPagination(currentPage: number, totalPages: number) {
   return pages;
 }
 
+// WIB Timezone Helpers (GMT+7)
+const WIB_TIMEZONE = 'Asia/Jakarta';
+
+/**
+ * Get current time in WIB timezone
+ * @param format Optional format string, defaults to 'YYYY-MM-DD HH:mm:ss'
+ */
+function nowWib(format: string = 'YYYY-MM-DD HH:mm:ss'): string {
+  return moment().tz(WIB_TIMEZONE).format(format);
+}
+
+/**
+ * Convert any date/time to WIB timezone
+ * @param date Date string or Date object
+ * @param inputFormat Input format if date is string
+ * @param outputFormat Output format, defaults to 'YYYY-MM-DD HH:mm:ss'
+ */
+function toWib(date: string | Date, inputFormat?: string, outputFormat: string = 'YYYY-MM-DD HH:mm:ss'): string {
+  if (inputFormat) {
+    return moment(date, inputFormat).tz(WIB_TIMEZONE).format(outputFormat);
+  }
+  return moment(date).tz(WIB_TIMEZONE).format(outputFormat);
+}
+
 
 export {
   logger, db, sendResponseCustom, sendResponseError, errorCodes, isEmpty, isNotEmpty, checkDir,
   createError, isValidateToken, validateParams, validateParamsAll,
   deleteAllKeys, loadConfig, getConfig, isNumeric, moment, replaceCommaDot, decodeToken,
-  buildPagination
+  buildPagination, nowWib, toWib, WIB_TIMEZONE
 }

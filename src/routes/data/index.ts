@@ -7,7 +7,7 @@ import { DataMonitoringCtl } from '../../controllers/DataMonitoringController';
 import { handleMqttExport, getMqttExportHeaders } from "../../controllers/mqtt.controller";
 
 
-import { JwtMiddleware } from '../../middlewares/jwtMiddleware';
+import { JwtMiddleware, JwtMiddlewareOptional } from '../../middlewares/jwtMiddleware';
 
 let router = express.Router();
 
@@ -656,6 +656,44 @@ router.get(
  *       200:
  *         description: List of MQTT data retrieved successfully
  */
-router.get('/datamqtt/list', JwtMiddleware('adm:eng:usr'), DataClientCtl.handleMqttDataList);
+
+/**
+ * @swagger
+ * /data/ika:
+ *   get:
+ *     summary: Get IKA Logs
+ *     tags: [Monitoring]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: sort_by
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: sort_dir
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: id_stasiun
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: id_mesin
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: List of IKA logs retrieved successfully
+ */
+router.get('/ika', JwtMiddlewareOptional('adm:eng:usr'), (req, res) => DataMonitoringCtl.handlerIkaLogs(req, res));
 
 export = router;

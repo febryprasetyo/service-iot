@@ -55,7 +55,9 @@ function main() {
 
   app.get('/', (req: any, res: any) => res.send('Bismillah Service API'));
 
+
   app.use('/api', routes);
+
 
   app.use(
     '/api/docs',
@@ -139,6 +141,19 @@ async function onListening() {
   // var mqttShow = new MqttMonitor();
   // mqttShow.connect();
 
+
+  // Start Aggregation Scheduler
+  const { aggregationScheduler } = require('./utils/aggregationJob');
+  aggregationScheduler.start();
+  logger.info("Aggregation Scheduler Started");
+
+  // KLHK Sync scheduler (optional if using external trigger, but kept for legacy compat if needed)
+  // const ProcessData = require('./utils/processData');
+  // new ProcessData().initScheduledJobs(); // Keeps the Cron alive? Check implementation.
+  // The processData.ts initScheduledJobs uses node-cron to call syncDataIot(), which now just queues.
+  // So it's safe to keep running if user wants the app to self-trigger.
+  const ProcessData = require('./utils/processData');
+  new ProcessData().initScheduledJobs();
 
 }
 

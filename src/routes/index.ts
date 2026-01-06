@@ -9,6 +9,7 @@ import dataRouter from './data/index';
 import inventoryRouter from './inventory/index';
 import pengajuanRouter from './pengajuan/index';
 import monitoringRouter from './monitoring/index'
+import maintenanceRouter from './maintenance/index';
 
 router.get('/', (req: any, res: any) => res.send('Bismillah Service API'));
 
@@ -20,5 +21,6 @@ router.use('/data', dataRouter);
 router.use('/inventory', inventoryRouter);
 router.use('/pengajuan', pengajuanRouter);
 router.use('/monitoring', monitoringRouter );
+router.use('/maintenance', maintenanceRouter);
 
 export = router;

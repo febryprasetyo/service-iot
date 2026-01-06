@@ -1,6 +1,9 @@
 import { Request, Response } from 'express';
 import { db, moment } from '../utils/util';
 
+import connection from '../config/redis';
+import { getMonitoringDataWithStatus } from '../utils/statusHelper';
+
 class MonitoringController   {
     async getMonitoringByUuid(req: Request, res: Response) {
     try {
@@ -20,34 +23,30 @@ class MonitoringController   {
         const hoursDiff = now.diff(lastUpdate, 'hours');
         const isAlive = hoursDiff <= 3;
 
-        const status = isAlive ? 'aktif' : 'mati';
+        const mainStatus = isAlive ? 'aktif' : 'mati';
+
+        // Use Helper to get processed data
+        // It returns { sensors, ika }
+        const result = await getMonitoringDataWithStatus(uuid, row, isAlive);
+        const { sensors, ika } = result || { sensors: {}, ika: {} };
 
         const data = {
-        uuid: row.uuid,
-        id_stasiun: row.id_stasiun,
-        time: row.time,
-        temperature: isAlive ? row.temperature : '0',
-        do_: isAlive ? row.do_ : '0',
-        tur: isAlive ? row.tur : '0',
-        ph: isAlive ? row.ph : '0',
-        bod: isAlive ? row.bod : '0',
-        cod: isAlive ? row.cod : '0',
-        tss: isAlive ? row.tss : '0',
-        depth: isAlive ? row.depth : '0',
-        no3_3: isAlive ? row.no3_3 : '0',
-        n: isAlive ? row.n : '0',
-        ct: isAlive ? row.ct : '0',
-        no2: isAlive ? row.no2 : '0',
-        orp: isAlive ? row.orp : '0',
-        pump_status: isAlive ? row.pump_status : '0',
-        cv_status: isAlive ? row.cv_status : '0',
-        read_status: isAlive ? row.read_status : '0'
+            uuid: row.uuid,
+            id_stasiun: row.id_stasiun,
+            time: row.time,
+            
+            ...sensors, // Spread processed values and statuses
+
+            pump_status: isAlive ? row.pump_status : '0',
+            cv_status: isAlive ? row.cv_status : '0',
+            read_status: isAlive ? row.read_status : '0'
         };
 
         return res.json({
-        success: true,
-        status,
-        data
+            success: true,
+            status: mainStatus,
+            data,
+            ika: ika // Separate field as requested
         });
     } catch (err) {
         return res.status(500).json({
