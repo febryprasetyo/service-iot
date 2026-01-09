@@ -4,7 +4,7 @@ import { db, logger, moment, nowWib } from './util';
 import axios from 'axios';
 
 // 1. Definisikan Queue
-export const klhkSyncQueue = new Queue('klhk-sync', { connection });
+export const klhkSyncQueue = new Queue('klhk-sync', { connection: connection as any });
 
 // 2. Definisikan Worker untuk memproses job
 const worker = new Worker('klhk-sync', async (job: Job) => {
@@ -98,7 +98,7 @@ const worker = new Worker('klhk-sync', async (job: Job) => {
         throw error; // Let BullMQ handle retry for other errors
     }
 }, { 
-    connection,
+    connection: connection as any,
     concurrency: 5, // Process 5 requests in parallel
     limiter: {
         max: 10, // Max 10 requests

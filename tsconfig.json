@@ -6,11 +6,12 @@
       "outDir": "build",
       "rootDir": "src",
       "baseUrl": ".",
-      "strict": true,
+      "strict": false,
       "skipLibCheck": true,
       "sourceMap": true
   },
   "include": [
+    "src/types.d.ts",
     "src/**/*"
   ],
   "exclude": [

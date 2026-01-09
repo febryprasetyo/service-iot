@@ -870,6 +870,8 @@ class DataClientController {
         .leftJoin(
           db.raw(`devices s on upper(s.nama_stasiun) = upper(rk.id_stasiun)`)
         )
+        .whereRaw(`rk.payload::text ~ '^\\s*[\\{\\[]'`) // Filter hanya JSON valid (dimulai dengan { atau [)
+        .whereRaw(`jsonb_typeof(rk.payload::jsonb) IS NOT NULL`) // Pastikan payload dapat di‑cast ke jsonb
         .limit(parseInt(limit), { skipBinding: true })
         .offset(
           parseInt(offset) === 0
@@ -885,7 +887,8 @@ class DataClientController {
         .from('res_klhk AS rk')
         .leftJoin(
           db.raw(`devices s on upper(s.nama_stasiun) = upper(rk.id_stasiun)`)
-        );
+        )
+        .whereRaw(`rk.payload::text ~ '^\\s*[\\{\\[]'`) // Filter hanya JSON valid (dimulai dengan { atau [)
 
       if (req.body.role_id === 'usr') {
         query = query.leftJoin(db.raw(`users u on u.id = s.dinas_id`));

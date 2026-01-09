@@ -1,5 +1,5 @@
 import { logger, db, createError, errorCodes, moment, replaceCommaDot } from "../utils/util";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import jwt from 'jwt-simple';
 class ModelUser {
 
