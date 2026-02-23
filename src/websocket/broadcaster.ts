@@ -33,7 +33,7 @@ export async function broadcastMonitoring() {
     // I will stick to `sensor_data` but ensure field mapping match helper expectation.
     // Helper expects: temperature, do_, ph, tur, bod, cod, tss, depth, no3_3, n, ct, no2, orp.
     // `sensor_data` has these.
-    
+
     const row = await db('sensor_data').where({ uuid: client.uuid }).first();
     if (!row) continue;
 
@@ -61,17 +61,17 @@ export async function broadcastMonitoring() {
 
     // Use raw values from row (original MQTT) but positive-sanitized (except ORP), and statuses from helper
     const sanitize = (val: any) => {
-        const num = parseFloat(val);
-        // If it's NaN, return original val (or 0?), assuming original for now.
-        // If < 0, return 0. Else return val.
-        if (isNaN(num)) return val;
-        return num < 0 ? 0 : num;
+      const num = parseFloat(val);
+      // If it's NaN, return original val (or 0?), assuming original for now.
+      // If < 0, return 0. Else return val.
+      if (isNaN(num)) return val;
+      return num < 0 ? 0 : num;
     };
-    
+
     // Helper specifically for values that are already fixed strings or numbers
     const getVal = (val: any, allowNegative = false) => {
-        if (allowNegative) return val;
-        return sanitize(val);
+      if (allowNegative) return val;
+      return sanitize(val);
     };
 
     const payload = {
@@ -85,7 +85,7 @@ export async function broadcastMonitoring() {
       depth_status,
       no2_status,
       no3_status,
-      
+
       temperature: getVal(row.temperature),
       status_temperature: sensors.status_temperature,
 
@@ -128,7 +128,7 @@ export async function broadcastMonitoring() {
       pump_status: row.pump_status,
       cv_status: row.cv_status,
       read_status: row.read_status,
-      
+
       ika: ika // Include IKA in payload
     };
 
@@ -139,7 +139,7 @@ export async function broadcastMonitoring() {
 export async function sendMonitoringNow(ws: WSWebSocket, uuid: string) {
   const now = moment();
   const row = await db('sensor_data').where({ uuid }).first();
-  
+
   if (!row) {
     ws.send(JSON.stringify({
       type: 'error',
@@ -169,17 +169,17 @@ export async function sendMonitoringNow(ws: WSWebSocket, uuid: string) {
   const result = await getMonitoringDataWithStatus(uuid, row, isAlive);
   const { sensors, ika } = result || { sensors: {}, ika: {} };
 
-   // Use raw values from row (original MQTT) but positive-sanitized (except ORP), and statuses from helper
-   const sanitize = (val: any) => {
-      const num = parseFloat(val);
-      if (isNaN(num)) return val;
-      return num < 0 ? 0 : num;
-    };
-    
-    const getVal = (val: any, allowNegative = false) => {
-        if (allowNegative) return val;
-        return sanitize(val);
-    };
+  // Use raw values from row (original MQTT) but positive-sanitized (except ORP), and statuses from helper
+  const sanitize = (val: any) => {
+    const num = parseFloat(val);
+    if (isNaN(num)) return val;
+    return num < 0 ? 0 : num;
+  };
+
+  const getVal = (val: any, allowNegative = false) => {
+    if (allowNegative) return val;
+    return sanitize(val);
+  };
 
   const payload = {
     uuid: row.uuid,
@@ -192,7 +192,7 @@ export async function sendMonitoringNow(ws: WSWebSocket, uuid: string) {
     depth_status,
     no2_status,
     no3_status,
-    
+
     temperature: getVal(row.temperature),
     status_temperature: sensors.status_temperature,
 
@@ -240,4 +240,16 @@ export async function sendMonitoringNow(ws: WSWebSocket, uuid: string) {
   };
 
   ws.send(JSON.stringify({ type: 'monitoring', data: payload }));
+}
+
+export function broadcastNotification(notification: any) {
+  const payload = JSON.stringify({ type: 'notification', data: notification });
+  let count = 0;
+  for (const client of clients) {
+    if (client.socket.readyState === client.socket.OPEN) {
+      client.socket.send(payload);
+      count++;
+    }
+  }
+  console.log(`[BROADCASTER] Broadcasted notification to ${count} clients. Notification ID: ${notification?.id}`);
 }

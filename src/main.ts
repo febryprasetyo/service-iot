@@ -147,6 +147,11 @@ async function onListening() {
   aggregationScheduler.start();
   logger.info("Aggregation Scheduler Started");
 
+  // Start Offline Monitor
+  const { offlineMonitorScheduler } = require('./utils/offlineMonitor');
+  offlineMonitorScheduler.start();
+  logger.info("Offline Monitor Scheduler Started");
+
   // KLHK Sync scheduler (optional if using external trigger, but kept for legacy compat if needed)
   // const ProcessData = require('./utils/processData');
   // new ProcessData().initScheduledJobs(); // Keeps the Cron alive? Check implementation.

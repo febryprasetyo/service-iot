@@ -3,7 +3,7 @@ import { db, logger, nowWib } from '../utils/util';
 import connection from '../config/redis';
 
 class MaintenanceController {
-  
+
   /**
    * Set Maintenance Status
    * POST /maintenance
@@ -11,19 +11,32 @@ class MaintenanceController {
    */
   async handleSetMaintenance(req: Request, res: Response) {
     try {
-      const { uuid, status, activity_type, description, next_calibration_date } = req.body;
-      const created_by = (req as any).user?.username || 'admin'; 
+      const { uuid, activity_type, description, next_calibration_date, progress, report_id } = req.body;
+      let { status } = req.body;
+      const created_by = (req as any).user?.username || 'admin';
 
       if (!uuid || !status) {
-        return res.status(400).json({ 
-          status: { code: 400, description: 'UUID and Status are required' } 
+        return res.status(400).json({
+          status: { code: 400, description: 'UUID and Status are required' }
         });
+      }
+
+      // Map display status to system status if needed
+      const statusMap: Record<string, string> = {
+        'RUSAK': 'stop',
+        'SEDANG DIPERBAIKI': 'maintenance',
+        'KALIBRASI': 'calibration',
+        'NORMAL': 'start'
+      };
+
+      if (statusMap[status]) {
+        status = statusMap[status];
       }
 
       const validStatuses = ['maintenance', 'calibration', 'stop', 'start'];
       if (!validStatuses.includes(status)) {
-        return res.status(400).json({ 
-          status: { code: 400, description: `Invalid status. Must be one of: ${validStatuses.join(', ')}` } 
+        return res.status(400).json({
+          status: { code: 400, description: `Invalid status. Must be one of: ${validStatuses.join(', ')}` }
         });
       }
 
@@ -44,9 +57,25 @@ class MaintenanceController {
         status,
         activity_type,
         description,
+        progress: progress || null,
+        report_id: report_id || null,
         created_by,
         created_at: nowWib()
       });
+
+      // 2b. Auto-update Report Status
+      if (report_id) {
+        let newReportStatus = '';
+        if (progress === 'Pengerjaan') newReportStatus = 'Eskalasi';
+        else if (progress === 'Selesai') newReportStatus = 'Selesai';
+
+        if (newReportStatus) {
+          await db('reports').where('id', report_id).update({
+            status: newReportStatus,
+            updated_at: nowWib()
+          });
+        }
+      }
 
       // 3. Update Station Status Table
       let instrument_status = 'NORMAL';
@@ -61,6 +90,28 @@ class MaintenanceController {
       }
 
       await db('stations').where('id_mesin', uuid).update(updateData);
+
+      // 4. Create Notification
+      const station = await db('stations').where('id_mesin', uuid).first();
+      const stationName = station?.nama_stasiun || uuid;
+
+      let notifType: any = 'maintenance';
+      let notifMessage = `Stasiun ${stationName} baru saja diperbarui statusnya menjadi ${instrument_status}.`;
+
+      if (activity_type || description) {
+        notifType = 'logbook';
+        const logContent = activity_type || description;
+        // Combine status update and logbook entry into one clear message
+        notifMessage = `Update Stasiun ${stationName}: Status berubah menjadi ${instrument_status}. Log: ${logContent}`;
+      }
+
+      const NotificationService = require('../utils/notificationService').default;
+      await NotificationService.createNotification({
+        type: notifType,
+        uuid: uuid,
+        message: notifMessage,
+        created_by: created_by
+      });
 
       return res.status(200).json({
         status: {
@@ -93,8 +144,8 @@ class MaintenanceController {
       const { limit = 20, offset = 0 } = req.query;
 
       if (!uuid) {
-        return res.status(400).json({ 
-          status: { code: 400, description: 'UUID is required' } 
+        return res.status(400).json({
+          status: { code: 400, description: 'UUID is required' }
         });
       }
 
@@ -128,8 +179,8 @@ class MaintenanceController {
       const { uuid, next_calibration_date } = req.body;
 
       if (!uuid || !next_calibration_date) {
-        return res.status(400).json({ 
-          status: { code: 400, description: 'UUID and Next Calibration Date are required' } 
+        return res.status(400).json({
+          status: { code: 400, description: 'UUID and Next Calibration Date are required' }
         });
       }
 

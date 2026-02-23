@@ -70,6 +70,65 @@ class DataClientController {
   }
 
   /**
+   * API Handle Create Role
+   * @param {*} req
+   * @author Roby Parlan
+   */
+  async handleCreateRole(req: any, res: any) {
+    try {
+      let reqBody = req.body;
+      let rules = {
+        id: 'required|string',
+        role_name: 'required|string',
+        order_no: 'number',
+      };
+
+      await validateParamsAll(reqBody, rules).catch((err) => {
+        delete err.failed;
+        throw createError(err.message_id || err.message_en, 'E_BAD_REQUEST', err);
+      });
+
+      let check = await db.select(db.raw(`id`)).from('roles').whereRaw(`id = ?`, reqBody.id);
+      if (check.length > 0) {
+        throw createError(`Role ID ${reqBody.id} already exists`, 'E_BAD_REQUEST');
+      }
+
+      await db('roles').insert({
+        id: reqBody.id.toLowerCase(),
+        role_name: reqBody.role_name,
+        order_no: reqBody.order_no || 0,
+      });
+
+      return sendResponseCustom(res, {
+        success: true,
+        message: 'Role berhasil ditambahkan',
+      });
+    } catch (error: any) {
+      if (!errorCodes[error.code]) logger.error(error);
+      return sendResponseError(res, error);
+    }
+  }
+
+  /**
+   * API Handle Role List
+   * @param {*} req
+   * @author Roby Parlan
+   */
+  async handleRoleList(req: any, res: any) {
+    try {
+      let data = await db.select(db.raw(`*`)).from('roles').orderBy('order_no', 'asc');
+      return sendResponseCustom(res, {
+        success: true,
+        data,
+      });
+    } catch (error: any) {
+      if (!errorCodes[error.code]) logger.error(error);
+
+      return sendResponseError(res, error);
+    }
+  }
+
+  /**
    * API Handle List
    * @param {*} req
    * @author Roby Parlan
@@ -86,7 +145,7 @@ class DataClientController {
       // Validate the request params
       await validateParamsAll(reqBody, rules).catch((err) => {
         delete err.failed;
-        throw createError('', 'E_BAD_REQUEST', err);
+        throw createError(err.message_id || err.message_en, 'E_BAD_REQUEST', err);
       });
 
       let query = db
@@ -156,7 +215,7 @@ class DataClientController {
       // Validate the request params
       await validateParamsAll(reqBody, rules).catch((err) => {
         delete err.failed;
-        throw createError('', 'E_BAD_REQUEST', err);
+        throw createError(err.message_id || err.message_en, 'E_BAD_REQUEST', err);
       });
 
       let dataProvince = await db
@@ -234,7 +293,7 @@ class DataClientController {
       // Validate the request params
       await validateParamsAll(reqBody, rules).catch((err) => {
         delete err.failed;
-        throw createError('', 'E_BAD_REQUEST', err);
+        throw createError(err.message_id || err.message_en, 'E_BAD_REQUEST', err);
       });
 
       let data = await db
@@ -313,7 +372,7 @@ class DataClientController {
       // Validate the request params
       await validateParamsAll(reqBody, rules).catch((err) => {
         delete err.failed;
-        throw createError('', 'E_BAD_REQUEST', err);
+        throw createError(err.message_id || err.message_en, 'E_BAD_REQUEST', err);
       });
 
       let data = await db
@@ -355,7 +414,7 @@ class DataClientController {
       // Validate the request params
       await validateParamsAll(reqBody, rules).catch((err) => {
         delete err.failed;
-        throw createError('', 'E_BAD_REQUEST', err);
+        throw createError(err.message_id || err.message_en, 'E_BAD_REQUEST', err);
       });
 
       // let data = await db.select(db.raw(`*`)).from('devices').whereRaw(`id_mesin = ?`, reqBody.id_mesin)
@@ -408,7 +467,7 @@ class DataClientController {
       // Validate the request params
       await validateParamsAll(reqBody, rules).catch((err) => {
         delete err.failed;
-        throw createError('', 'E_BAD_REQUEST', err);
+        throw createError(err.message_id || err.message_en, 'E_BAD_REQUEST', err);
       });
 
       let checkDevice = await db
@@ -464,7 +523,7 @@ class DataClientController {
       // Validate the request params
       await validateParamsAll(reqBody, rules).catch((err) => {
         delete err.failed;
-        throw createError('', 'E_BAD_REQUEST', err);
+        throw createError(err.message_id || err.message_en, 'E_BAD_REQUEST', err);
       });
 
       let checkDevice = await db
@@ -504,7 +563,7 @@ class DataClientController {
       // Validate the request params
       await validateParamsAll(reqBody, rules).catch((err) => {
         delete err.failed;
-        throw createError('', 'E_BAD_REQUEST', err);
+        throw createError(err.message_id || err.message_en, 'E_BAD_REQUEST', err);
       });
 
       let dataDevice = await db
@@ -570,13 +629,22 @@ class DataClientController {
         nama_dinas: 'required',
         api_key: 'required',
         secret_key: 'required',
+        role_id: 'string',
       };
 
       // Validate the request params
       await validateParamsAll(reqBody, rules).catch((err) => {
         delete err.failed;
-        throw createError('', 'E_BAD_REQUEST', err);
+        throw createError(err.message_id || err.message_en, 'E_BAD_REQUEST', err);
       });
+
+      let roleId = reqBody.role_id || 'usr';
+      
+      // Validate role exists
+      let roleCheck = await db.select(db.raw(`id`)).from('roles').whereRaw(`id = ?`, roleId);
+      if (roleCheck.length === 0) {
+        throw createError(`Role ${roleId} not found`, 'E_BAD_REQUEST');
+      }
 
       let data = await db
         .select(db.raw(`*`))
@@ -600,7 +668,7 @@ class DataClientController {
         nama_dinas: reqBody.nama_dinas,
         api_key: reqBody.api_key.trim(),
         secret_key: reqBody.secret_key.trim(),
-        role_id: 'usr',
+        role_id: roleId,
         created_by: reqBody.user_id,
         is_active: true,
       });
@@ -632,13 +700,21 @@ class DataClientController {
         nama_dinas: 'required',
         api_key: 'required',
         secret_key: 'required',
+        role_id: 'string',
       };
 
       // Validate the request params
       await validateParamsAll(reqBody, rules).catch((err) => {
         delete err.failed;
-        throw createError('', 'E_BAD_REQUEST', err);
+        throw createError(err.message_id || err.message_en, 'E_BAD_REQUEST', err);
       });
+
+      if (reqBody.role_id) {
+        let roleCheck = await db.select(db.raw(`id`)).from('roles').whereRaw(`id = ?`, reqBody.role_id);
+        if (roleCheck.length === 0) {
+          throw createError(`Role ${reqBody.role_id} not found`, 'E_BAD_REQUEST');
+        }
+      }
 
       let data = await db
         .select(db.raw(`*`))
@@ -672,6 +748,7 @@ class DataClientController {
           device_id: deviceId,
           api_key: reqBody.api_key.trim(),
           secret_key: reqBody.secret_key.trim(),
+          role_id: reqBody.role_id,
           updated_at: new Date(),
         });
 
@@ -702,7 +779,7 @@ class DataClientController {
       // Validate the request params
       await validateParamsAll(reqBody, rules).catch((err) => {
         delete err.failed;
-        throw createError('', 'E_BAD_REQUEST', err);
+        throw createError(err.message_id || err.message_en, 'E_BAD_REQUEST', err);
       });
 
       let checkUser = await db
@@ -742,7 +819,7 @@ class DataClientController {
       // Validate the request params
       await validateParamsAll(reqBody, rules).catch((err) => {
         delete err.failed;
-        throw createError('', 'E_BAD_REQUEST', err);
+        throw createError(err.message_id || err.message_en, 'E_BAD_REQUEST', err);
       });
 
       let dataUser = await db
@@ -870,8 +947,7 @@ class DataClientController {
         .leftJoin(
           db.raw(`devices s on upper(s.nama_stasiun) = upper(rk.id_stasiun)`)
         )
-        .whereRaw(`rk.payload::text ~ '^\\s*[\\{\\[]'`) // Filter hanya JSON valid (dimulai dengan { atau [)
-        .whereRaw(`jsonb_typeof(rk.payload::jsonb) IS NOT NULL`) // Pastikan payload dapat di‑cast ke jsonb
+        .whereRaw(`rk.payload IS JSON`) // Filter only valid JSON
         .limit(parseInt(limit), { skipBinding: true })
         .offset(
           parseInt(offset) === 0
@@ -879,7 +955,7 @@ class DataClientController {
             : parseInt(limit) * parseInt(offset)
         )
         .orderByRaw(
-          `((rk.payload::jsonb->'data'->>'Tanggal'::text) || ' ' || (rk.payload::jsonb->'data'->>'Jam'::text)) DESC`
+          `CASE WHEN rk.payload IS JSON THEN ((rk.payload::jsonb->'data'->>'Tanggal'::text) || ' ' || (rk.payload::jsonb->'data'->>'Jam'::text)) ELSE NULL END DESC`
         );
 
       let qt = db
@@ -888,7 +964,7 @@ class DataClientController {
         .leftJoin(
           db.raw(`devices s on upper(s.nama_stasiun) = upper(rk.id_stasiun)`)
         )
-        .whereRaw(`rk.payload::text ~ '^\\s*[\\{\\[]'`) // Filter hanya JSON valid (dimulai dengan { atau [)
+        .whereRaw(`rk.payload IS JSON`);
 
       if (req.body.role_id === 'usr') {
         query = query.leftJoin(db.raw(`users u on u.id = s.dinas_id`));
@@ -898,15 +974,16 @@ class DataClientController {
       }
 
       if (startDate && endDate) {
+        const datePath = `CASE WHEN rk.payload IS JSON THEN ((rk.payload::jsonb->'data'->>'Tanggal'::text) || ' ' || (rk.payload::jsonb->'data'->>'Jam'::text)) ELSE NULL END`;
         query = query.whereRaw(
-          `((rk.payload::jsonb->'data'->>'Tanggal'::text) || ' ' || (rk.payload::jsonb->'data'->>'Jam'::text)) between  ? and ?`,
+          `${datePath} between ? and ?`,
           [
             startDate + ' ' + (startHour || '00:00:00'),
             endDate + ' ' + (endHour || '00:00:00'),
           ]
         );
         qt = qt.whereRaw(
-          `((rk.payload::jsonb->'data'->>'Tanggal'::text) || ' ' || (rk.payload::jsonb->'data'->>'Jam'::text)) between  ? and ?`,
+          `${datePath} between ? and ?`,
           [
             startDate + ' ' + (startHour || '00:00:00'),
             endDate + ' ' + (endHour || '00:00:00'),
@@ -964,8 +1041,9 @@ class DataClientController {
         .leftJoin(
           db.raw(`devices s on upper(s.nama_stasiun) = upper(rk.id_stasiun)`)
         )
+        .whereRaw(`rk.payload IS JSON`) // Ensure only valid JSON is processed
         .orderByRaw(
-          `((rk.payload::jsonb->'data'->>'Tanggal'::text) || ' ' || (rk.payload::jsonb->'data'->>'Jam'::text)) DESC`
+          `CASE WHEN rk.payload IS JSON THEN ((rk.payload::jsonb->'data'->>'Tanggal'::text) || ' ' || (rk.payload::jsonb->'data'->>'Jam'::text)) ELSE NULL END DESC`
         );
 
       if (req.body.role_id === 'usr') {
@@ -974,8 +1052,9 @@ class DataClientController {
       }
 
       if (startDate && endDate) {
+        const datePath = `CASE WHEN rk.payload IS JSON THEN ((rk.payload::jsonb->'data'->>'Tanggal'::text) || ' ' || (rk.payload::jsonb->'data'->>'Jam'::text)) ELSE NULL END`;
         query = query.whereRaw(
-          `((rk.payload::jsonb->'data'->>'Tanggal'::text) || ' ' || (rk.payload::jsonb->'data'->>'Jam'::text)) between  ? and ?`,
+          `${datePath} between ? and ?`,
           [
             startDate + ' ' + (startHour || '00:00:00'),
             endDate + ' ' + (endHour || '00:00:00'),

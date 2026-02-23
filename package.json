@@ -5,9 +5,9 @@
   "main": "index.js",
   "scripts": {
     "test1": "echo \"Error: no test specified\" && exit 1",
-    "build": "tsc",
+    "build": "tsc && cp -r src/views build/",
     "serve": "node ./build/main.js",
-    "dev": "nodemon --watch src --ext ts --exec ts-node ./src/main.ts",
+    "dev": "nodemon --watch src --ext ts --exec ts-node ./src/main.ts ",
     "start": "nodemon",
     "pm2": "tsc && node ./build/main.js",
     "retention:test": "ts-node src/utils/testRetention.ts",

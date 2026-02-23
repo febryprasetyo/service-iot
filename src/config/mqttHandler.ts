@@ -43,7 +43,7 @@ type SensorRow = {
   is_success: boolean;
 };
 
-type MonitoringRow = Omit<SensorRow, 'is_success'> &{
+type MonitoringRow = Omit<SensorRow, 'is_success'> & {
   pump_status?: string | number | null;
   cv_status?: string | number | null;
   read_status?: string | number | null;
@@ -64,7 +64,7 @@ class MqttHandler {
   async initDeviceCache() {
     try {
       const devices = await db("devices").select("id_mesin", "nama_stasiun");
-      
+
       this.deviceCache.clear();
       for (const d of devices) {
         if (d.id_mesin) {
@@ -128,7 +128,7 @@ class MqttHandler {
       await db.raw('SELECT 1'); // Check DB connection
     } catch (dbError) {
       logger.error('Database connection lost. Skipping flush to preserve buffer.', dbError);
-      return; 
+      return;
     }
 
     const dataToInsert = [...this.bufferMqtt];
@@ -146,14 +146,14 @@ class MqttHandler {
     });
 
     const BATCH_SIZE = 500;
-    
+
     for (let i = 0; i < finalData.length; i += BATCH_SIZE) {
       const chunk = finalData.slice(i, i + BATCH_SIZE);
-      
+
       try {
         await db('mqtt_datas').insert(chunk);
-          
-        logger.info(`  UUID: SYSTEM | TIME: ${nowWib()} | Saved chunk ${Math.floor(i/BATCH_SIZE) + 1} (${chunk.length} records)`);
+
+        logger.info(`  UUID: SYSTEM | TIME: ${nowWib()} | Saved chunk ${Math.floor(i / BATCH_SIZE) + 1} (${chunk.length} records)`);
       } catch (error: any) {
         logger.error(`  UUID: SYSTEM | TIME: ${nowWib()} | Error saving chunk: ${error}`);
         // Consider re-queueing failed chunks or logging explicitly
@@ -181,103 +181,103 @@ class MqttHandler {
         : moment().tz("Asia/Jakarta").format("YYYY-MM-DD HH:mm:ss");
 
       // ====== VALIDASI STATUS ======
-    // Nilai default jika tidak ada Read_Status (anggap aktif)
-    let readStatus = typeof el["Read_Status"] === "undefined" || el["Read_Status"] === null
-      ? 1
-      : parseInt(el["Read_Status"]);
-    // Logika baru: Jika Read_Status == 0, tetap update monitoring (realtime), tapi JANGAN simpan history/sensor_data
-    
-    const baseRow: SensorRow = {
-      uuid,
-      time: tm,
-      temperature: parseFloat(el["Temperature"])?.toFixed(2),
-      do_: parseFloat(el["DO"])?.toFixed(2),
-      tur: parseFloat(el["TUR"])?.toFixed(2),
-      ph: parseFloat(el["PH"])?.toFixed(2),
-      bod: parseFloat(el["BOD"])?.toFixed(2),
-      cod: parseFloat(el["COD"])?.toFixed(2),
-      tss: parseFloat(el["TSS"])?.toFixed(2),
-      depth: parseFloat(el["DEPTH"])?.toFixed(2),
-      no3_3: parseFloat(el["NO3-3"])?.toFixed(2),
-      n: parseFloat(el["N"])?.toFixed(2),
-      ct: parseFloat(el["CT"])?.toFixed(2),
-      no2: parseFloat(el["NO2"])?.toFixed(2),
-      orp: parseFloat(el["ORP"])?.toFixed(2),
-      id_stasiun: namaStasiun,
-      is_success: true
-    };
+      // Nilai default jika tidak ada Read_Status (anggap aktif)
+      let readStatus = typeof el["Read_Status"] === "undefined" || el["Read_Status"] === null
+        ? 1
+        : parseInt(el["Read_Status"]);
+      // Logika baru: Jika Read_Status == 0, tetap update monitoring (realtime), tapi JANGAN simpan history/sensor_data
 
-    // ✅ Simpan ke mqtt_monitoring (selalu, meskipun Read_Status=0)
-    const { is_success, ...baseRowWithoutSuccess } = baseRow;
+      const baseRow: SensorRow = {
+        uuid,
+        time: tm,
+        temperature: parseFloat(el["Temperature"])?.toFixed(2),
+        do_: parseFloat(el["DO"])?.toFixed(2),
+        tur: parseFloat(el["TUR"])?.toFixed(2),
+        ph: parseFloat(el["PH"])?.toFixed(2),
+        bod: parseFloat(el["BOD"])?.toFixed(2),
+        cod: parseFloat(el["COD"])?.toFixed(2),
+        tss: parseFloat(el["TSS"])?.toFixed(2),
+        depth: parseFloat(el["DEPTH"])?.toFixed(2),
+        no3_3: parseFloat(el["NO3-3"])?.toFixed(2),
+        n: parseFloat(el["N"])?.toFixed(2),
+        ct: parseFloat(el["CT"])?.toFixed(2),
+        no2: parseFloat(el["NO2"])?.toFixed(2),
+        orp: parseFloat(el["ORP"])?.toFixed(2),
+        id_stasiun: namaStasiun,
+        is_success: true
+      };
 
-    const monitoringRow: MonitoringRow = {
-      ...baseRowWithoutSuccess,
-      pump_status: el["Pump_Status"] ?? null,
-      cv_status: el["CV_Status"] ?? null,
-      read_status: el["Read_Status"] ?? null
-    };
+      // ✅ Simpan ke mqtt_monitoring (selalu, meskipun Read_Status=0)
+      const { is_success, ...baseRowWithoutSuccess } = baseRow;
 
-    await db("mqtt_monitoring")
-      .insert(monitoringRow)
-      .onConflict("uuid")
-      .merge();
-    
-    // Status tracking for log
-    let sensorDataStatus = "SKIPPED";
-    let historyStatus = "SKIPPED";
+      const monitoringRow: MonitoringRow = {
+        ...baseRowWithoutSuccess,
+        pump_status: el["Pump_Status"] ?? null,
+        cv_status: el["CV_Status"] ?? null,
+        read_status: el["Read_Status"] ?? null
+      };
 
-    // Hanya simpan ke sensor_data dan history jika Read_Status != 0
-    
-    // ✅ Simpan ke sensor_data (1 data per uuid)
-    const parseVal = (val: any) => {
-      const num = parseFloat(val);
-      return isNaN(num) ? null : num;
-    };
-
-    const sensorData = {
-      uuid: uuid,
-      nama_stasiun: namaStasiun,
-      time: tm,
-      temperature: parseVal(el["Temperature"]),
-      do_: parseVal(el["DO"]),
-      tur: parseVal(el["TUR"]),
-      ct: parseVal(el["CT"]),
-      ph: parseVal(el["PH"]),
-      orp: parseVal(el["ORP"]),
-      bod: parseVal(el["BOD"]),
-      cod: parseVal(el["COD"]),
-      tss: parseVal(el["TSS"]),
-      n: parseVal(el["N"]),
-      no2: parseVal(el["NO2"]),
-      no3_3: parseVal(el["NO3-3"]),
-      depth: parseVal(el["DEPTH"]),
-      pump_status: el["Pump_Status"] == 1,
-      cv_status: el["CV_Status"] == 1,
-      read_status: el["Read_Status"] == 1,
-      id_mesin: uuid
-    };
-
-    try {
-      await db("sensor_data")
-        .insert(sensorData)
+      await db("mqtt_monitoring")
+        .insert(monitoringRow)
         .onConflict("uuid")
         .merge();
-      sensorDataStatus = "OK";
-    } catch (err) {
-      sensorDataStatus = "FAIL";
-      this.log(uuid, tm, `Failed to update sensor_data: ${err}`, "error");
-    }
 
-    // ✅ Simpan ke mqtt_datas (Buffer History) hanya jika punya relasi
-    if (namaStasiun && namaStasiun !== 'UNKNOWN') {
-      this.bufferMqtt.push(baseRow);
-      historyStatus = "BUFFERED";
-    } else {
-      historyStatus = "NO_RELATION";
-    }
+      // Status tracking for log
+      let sensorDataStatus = "SKIPPED";
+      let historyStatus = "SKIPPED";
 
-    // Consolidated Log
-    this.log(uuid, tm, `Processed: [Realtime: OK] [Sensor: ${sensorDataStatus}] [History: ${historyStatus}]`, "debug");
+      // Hanya simpan ke sensor_data dan history jika Read_Status != 0
+
+      // ✅ Simpan ke sensor_data (1 data per uuid)
+      const parseVal = (val: any) => {
+        const num = parseFloat(val);
+        return isNaN(num) ? null : num;
+      };
+
+      const sensorData = {
+        uuid: uuid,
+        nama_stasiun: namaStasiun,
+        time: tm,
+        temperature: parseVal(el["Temperature"]),
+        do_: parseVal(el["DO"]),
+        tur: parseVal(el["TUR"]),
+        ct: parseVal(el["CT"]),
+        ph: parseVal(el["PH"]),
+        orp: parseVal(el["ORP"]),
+        bod: parseVal(el["BOD"]),
+        cod: parseVal(el["COD"]),
+        tss: parseVal(el["TSS"]),
+        n: parseVal(el["N"]),
+        no2: parseVal(el["NO2"]),
+        no3_3: parseVal(el["NO3-3"]),
+        depth: parseVal(el["DEPTH"]),
+        pump_status: el["Pump_Status"] == 1,
+        cv_status: el["CV_Status"] == 1,
+        read_status: el["Read_Status"] == 1,
+        id_mesin: uuid
+      };
+
+      try {
+        await db("sensor_data")
+          .insert(sensorData)
+          .onConflict("uuid")
+          .merge();
+        sensorDataStatus = "OK";
+      } catch (err) {
+        sensorDataStatus = "FAIL";
+        // Silent fail on sensor_data as requested by user - treated as normal behavior
+      }
+
+      // ✅ Simpan ke mqtt_datas (Buffer History) hanya jika punya relasi
+      if (namaStasiun && namaStasiun !== 'UNKNOWN') {
+        this.bufferMqtt.push(baseRow);
+        historyStatus = "BUFFERED";
+      } else {
+        historyStatus = "NO_RELATION";
+      }
+
+      // Consolidated Log
+      this.log(uuid, tm, `Processed: [Realtime: OK] [Sensor: ${sensorDataStatus}] [History: ${historyStatus}]`, "debug");
 
     } catch (err) {
       this.log("SYSTEM", nowWib(), `Failed to parse message: ${err}`, "error");

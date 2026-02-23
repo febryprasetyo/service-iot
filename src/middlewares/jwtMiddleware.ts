@@ -45,6 +45,7 @@ function JwtMiddleware(access:string) {
           return;
         }
         
+        if (!req.body) req.body = {};
         req.body.user_id = data.userData.user_id
         req.body.role_id = data.userData.role_id
         req.user = data.userData;
@@ -89,6 +90,7 @@ function JwtMiddlewareOptional(access:string) {
           
           let accessList = access.split(':')
           if (accessList.includes(data.userData.role_id)) {
+              if (!req.body) req.body = {};
               req.body.user_id = data.userData.user_id
               req.body.role_id = data.userData.role_id
               req.user = data.userData;

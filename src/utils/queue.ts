@@ -25,9 +25,18 @@ const worker = new Worker('klhk-sync', async (job: Job) => {
         const url_klhk = process.env.URL_KLHK || process.env.KLHK_API_URL;
         if (!url_klhk) throw new Error("URL_KLHK/KLHK_API_URL not set in .env");
 
+        const https = require('https');
+        const agent = new https.Agent({ 
+            rejectUnauthorized: false,
+            checkServerIdentity: () => undefined 
+        });
+        
+        logger.info(`[WORKER] Sending to ${url_klhk} with SSL bypass`);
+
         const response = await axios.post(url_klhk, data, {
             headers: { 'Content-Type': 'application/json' },
-            timeout: 30000 
+            timeout: 30000,
+            httpsAgent: agent
         });
         
         // Reset failure count on success

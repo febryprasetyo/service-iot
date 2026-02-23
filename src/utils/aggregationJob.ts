@@ -113,58 +113,9 @@ export async function runAggregation(targetHour?: moment.Moment) {
             v_orp  = applyMaint(); s_orp  = applyStatus();
 
         } else {
-            // --- Normal Operation : Broken Sensor Check ---
-            const BROKEN_VAL = -3;
-            const STATUS_OFFLINE = 'OFFLINE';
-
-            // 1. Check COD first (Reference for BOD/TSS)
-            // If COD itself is 0 -> It is Broken (Offline)
-            const originalCodPositive = v_cod > 0;
-            if (v_cod === 0) {
-                v_cod = BROKEN_VAL;
-                s_cod = STATUS_OFFLINE;
-            }
-
-            // 2. BOD & TSS Logic (Exception Rule)
-            // Rule: If 0, only Broken if COD <= 0. If COD > 0, keep 0 (Normal).
-            if (v_bod === 0) {
-                if (originalCodPositive) {
-                    // Valid 0
-                    s_bod = 'NORMAL';
-                } else {
-                    v_bod = BROKEN_VAL;
-                    s_bod = STATUS_OFFLINE;
-                }
-            }
-            if (v_tss === 0) {
-                if (originalCodPositive) {
-                    s_tss = 'NORMAL';
-                } else {
-                    v_tss = BROKEN_VAL;
-                    s_tss = STATUS_OFFLINE;
-                }
-            }
-
-            // 3. General Sensors Logic
-            // If 0 -> Broken (Offline)
-            const checkBroken = (val: number, status: string): [number, string] => {
-                if (val === 0) return [BROKEN_VAL, STATUS_OFFLINE];
-                return [val, status];
-            };
-
-            [v_temp, s_temp] = checkBroken(v_temp, s_temp);
-            [v_do, s_do]     = checkBroken(v_do, s_do);
-            [v_ph, s_ph]     = checkBroken(v_ph, s_ph);
-            [v_tur, s_tur]   = checkBroken(v_tur, s_tur);
-            [v_ct, s_ct]     = checkBroken(v_ct, s_ct);
-            // v_cod handled above
-            // v_bod handled above
-            // v_tss handled above
-            [v_n, s_n]       = checkBroken(v_n, s_n);
-            [v_no2, s_no2]   = checkBroken(v_no2, s_no2);
-            [v_no3, s_no3]   = checkBroken(v_no3, s_no3);
-            [v_depth, s_depth] = checkBroken(v_depth, s_depth);
-            [v_orp, s_orp]   = checkBroken(v_orp, s_orp);
+            // --- Normal Operation : Broken Sensor Check (temporarily disabled) ---
+            // Keep original sensor values (including 0) and retain NORMAL status.
+            // No modifications are applied to v_* or s_* variables.
         }
 
         // Calculate IKA

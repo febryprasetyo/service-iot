@@ -66,7 +66,7 @@ router.post(
  */
 router.get(
   '/history/:uuid',
-  JwtMiddleware('adm:eng:usr'),
+  JwtMiddleware('adm:eng'),
   MaintenanceCtl.getLogbookHistory
 );
 
@@ -96,5 +96,111 @@ router.post(
   JwtMiddleware('adm:eng'),
   MaintenanceCtl.handleUpdateCalibration
 );
+
+const ReportCtl = require('../../controllers/ReportController').default;
+
+// Report Routes
+
+/**
+ * @swagger
+ * /maintenance/reports:
+ *   get:
+ *     summary: Get list of maintenance reports
+ *     tags: [Reports]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: station_uuid
+ *         schema: { type: string }
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [Open, Eskalasi, Selesai]
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer, default: 20 }
+ *       - in: query
+ *         name: offset
+ *         schema: { type: integer, default: 0 }
+ *     responses:
+ *       200:
+ *         description: List of reports
+ */
+router.get('/reports', JwtMiddleware('adm:eng'), (req, res) => ReportCtl.list(req, res));
+
+/**
+ * @swagger
+ * /maintenance/reports/{id}:
+ *   get:
+ *     summary: Get report details
+ *     tags: [Reports]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: integer }
+ *     responses:
+ *       200:
+ *         description: Report details with history
+ */
+router.get('/reports/:id', JwtMiddleware('adm:eng'), (req, res) => ReportCtl.detail(req, res));
+
+/**
+ * @swagger
+ * /maintenance/reports:
+ *   post:
+ *     summary: Create new report
+ *     tags: [Reports]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [title, station_uuid, category, description]
+ *             properties:
+ *               title: { type: string }
+ *               station_uuid: { type: string }
+ *               category: { type: string }
+ *               description: { type: string }
+ *     responses:
+ *       200:
+ *         description: Report created
+ */
+router.post('/reports', JwtMiddleware('adm:eng'), (req, res) => ReportCtl.create(req, res));
+
+/**
+ * @swagger
+ * /maintenance/reports/{id}:
+ *   put:
+ *     summary: Update a report
+ *     tags: [Reports]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: integer }
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               title: { type: string }
+ *               description: { type: string }
+ *               category: { type: string }
+ *               pic_name: { type: string }
+ *     responses:
+ *       200:
+ *         description: Report updated
+ */
+router.put('/reports/:id', JwtMiddleware('adm:eng'), (req, res) => ReportCtl.update(req, res));
 
 export = router;

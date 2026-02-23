@@ -4,7 +4,7 @@ import jwt from 'jwt-simple';
 import 'dotenv/config';
 import db from '../config/database';
 import validatorMessages from '../config/validatorMessages';
-import { validator } from 'indicative'
+import { validateAll, sanitize } from 'indicative'
 import _, { reject } from 'lodash'
 import moment from 'moment-timezone'
 import FormData from 'form-data';
@@ -211,15 +211,16 @@ async function validateParamsAll(params: any, rules: any) {
   var result = { failed: false, message_en: '', message_id: '' }
 
   var messageTemplates = { ...validatorMessages }
-  await validator.validateAll(params, rules, messageTemplates)
-    .then((res) => {
+  return validateAll(params, rules, messageTemplates)
+    .then(() => {
       return result
     })
     .catch((err) => {
       result.failed = true
+      
       var failRequired = [], failOther = []
-      const arrMsg = err
-      logger.info(`err-------------- : `, err)
+      const arrMsg = Array.isArray(err) ? err : [];
+      
       for (var i = 0; i < arrMsg.length; i++) {
         if (arrMsg[i].validation === 'required')
           failRequired.push(arrMsg[i].field)
@@ -232,7 +233,7 @@ async function validateParamsAll(params: any, rules: any) {
         result.message_id = 'Parameter ' + failRequired + ' tidak boleh kosong'
       }
       else if (failRequired.length > 1) {
-        result.message_en = 'Parameters [' + failRequired + '] is required'
+        result.message_en = 'Parameters [' + failRequired + '] are required'
         result.message_id = 'Parameters [' + failRequired + '] tidak boleh kosong'
       }
 
@@ -246,6 +247,15 @@ async function validateParamsAll(params: any, rules: any) {
         result.message_en += failOther[i] + '; '
         result.message_id += failOther[i].replace('length must be', 'panjang harus') + '; '
       }
+      
+      if (!result.message_en) {
+          result.message_en = 'Validation error occurred';
+          result.message_id = 'Terjadi kesalahan validasi';
+          if (!Array.isArray(err)) {
+              result.message_en += ': ' + (err.message || JSON.stringify(err));
+          }
+      }
+      
       throw result
     })
 }

@@ -62,6 +62,57 @@ router.get(
 
 /**
  * @swagger
+ * /data/role-list:
+ *   get:
+ *     summary: Get list of roles
+ *     tags: [User]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of roles retrieved successfully
+ */
+router.get(
+  '/role-list',
+  JwtMiddleware('adm:eng:usr'),
+  DataClientCtl.handleRoleList
+);
+
+/**
+ * @swagger
+ * /data/role/create:
+ *   post:
+ *     summary: Create a new role
+ *     tags: [User]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - id
+ *               - role_name
+ *             properties:
+ *               id:
+ *                 type: string
+ *               role_name:
+ *                 type: string
+ *               order_no:
+ *                 type: integer
+ *     responses:
+ *       200:
+ *         description: Role created successfully
+ */
+router.post(
+  '/role/create',
+  JwtMiddleware('adm'),
+  DataClientCtl.handleCreateRole
+);
+
+/**
+ * @swagger
  * /data/station/list:
  *   post:
  *     summary: Get list of stations
@@ -414,6 +465,8 @@ router.get(
  *                 type: string
  *               secret_key:
  *                 type: string
+ *               role_id:
+ *                 type: string
  *     responses:
  *       200:
  *         description: User created successfully
@@ -451,6 +504,8 @@ router.post(
  *               api_key:
  *                 type: string
  *               secret_key:
+ *                 type: string
+ *               role_id:
  *                 type: string
  *     responses:
  *       200:
@@ -695,5 +750,65 @@ router.get(
  *         description: List of IKA logs retrieved successfully
  */
 router.get('/ika', JwtMiddlewareOptional('adm:eng:usr'), (req, res) => DataMonitoringCtl.handlerIkaLogs(req, res));
+
+// Notification Routes
+const NotificationCtl = require('../../controllers/NotificationController').default;
+
+/**
+ * @swagger
+ * /data/notifications:
+ *   get:
+ *     summary: Get list of notifications
+ *     tags: [Notifications]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer, default: 20 }
+ *       - in: query
+ *         name: offset
+ *         schema: { type: integer, default: 0 }
+ *     responses:
+ *       200:
+ *         description: List of notifications
+ */
+router.get('/notifications', JwtMiddleware('adm:eng'), (req, res) => NotificationCtl.handleList(req, res));
+
+/**
+ * @swagger
+ * /data/notifications/read:
+ *   post:
+ *     summary: Mark a notification as read
+ *     tags: [Notifications]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [id]
+ *             properties:
+ *               id: { type: integer }
+ *     responses:
+ *       200:
+ *         description: Notification marked as read
+ */
+router.post('/notifications/read', JwtMiddleware('adm:eng'), (req, res) => NotificationCtl.handleRead(req, res));
+
+/**
+ * @swagger
+ * /data/notifications/read-all:
+ *   post:
+ *     summary: Mark all notifications as read
+ *     tags: [Notifications]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: All notifications marked as read
+ */
+router.post('/notifications/read-all', JwtMiddleware('adm:eng'), (req, res) => NotificationCtl.handleReadAll(req, res));
 
 export = router;

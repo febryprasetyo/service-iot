@@ -1,1 +1,1 @@
-rm -rf build && tsc && pm2 start pm2.json
+rm -rf build && npm run build && pm2 start pm2.json

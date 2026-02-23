@@ -1,18 +1,18 @@
 import { Request, Response } from 'express';
 import {
     createError,
-  db,
-  errorCodes,
-  logger,
-  sendResponseCustom,
-  sendResponseError,
-  validateParamsAll, moment
+    db,
+    errorCodes,
+    logger,
+    sendResponseCustom,
+    sendResponseError,
+    validateParamsAll, moment
 } from '../utils/util';
 
 
 class OperationController {
     // Handler Pulsa
-    async handlerPulsaCreate(req: any, res:any) {
+    async handlerPulsaCreate(req: any, res: any) {
         try {
             const { tanggal, nama_paket, masa_aktif, harga, station } = req.body;
             const pic = req.user?.username;
@@ -28,7 +28,8 @@ class OperationController {
                 throw createError('', 'E_BAD_REQUEST', err);
             });
 
-            const [id] = await db('paket_data').insert({ tanggal, nama_paket, masa_aktif, harga, pic, station }).returning('id');
+            const [idResult] = await db('paket_data').insert({ tanggal, nama_paket, masa_aktif, harga, pic, station }).returning('id');
+            const id = idResult.id || idResult;
             return sendResponseCustom(res, {
                 success: true,
                 message: `Pengajuan untuk stasiun ${station} oleh ${pic} berhasil dibuat.`
@@ -38,8 +39,8 @@ class OperationController {
         }
 
     }
-    async handlerPulsaGetAll(req: any, res:any) {
-       const page = parseInt(req.query.page as string) || 1;
+    async handlerPulsaGetAll(req: any, res: any) {
+        const page = parseInt(req.query.page as string) || 1;
         const limit = parseInt(req.query.limit as string) || 10;
         const offset = (page - 1) * limit;
 
@@ -59,13 +60,13 @@ class OperationController {
         });
 
     }
-    async handlerPulsaGetById(req: any, res:any) {
+    async handlerPulsaGetById(req: any, res: any) {
         const { id } = req.params;
         const row = await db('paket_data').where({ id }).first();
         row ? res.json(row) : res.status(404).json({ error: 'Not found' });
 
     }
-    async handlerPulsaUpdate(req: any, res:any) {
+    async handlerPulsaUpdate(req: any, res: any) {
         const { id } = req.params;
         const { tanggal, nama_paket, masa_aktif, harga, station } = req.body;
         const updated = await db('paket_data')
@@ -79,26 +80,26 @@ class OperationController {
                 updated_at: db.fn.now()
             });
 
-            if (updated === 0) {
+        if (updated === 0) {
             return res.status(404).json({ success: false, message: 'Data tidak ditemukan' });
-            }
+        }
         return sendResponseCustom(res, {
             success: true,
             message: `Pengajuan nomor id ${id} berhasil diperbarui.`
         });
 
     }
-    async handlerPulsaDelete(req: any, res:any) {
+    async handlerPulsaDelete(req: any, res: any) {
         const { id } = req.params;
-        await db('paket_data').where({ id}).del();
+        await db('paket_data').where({ id }).del();
         return sendResponseCustom(res, {
             success: true,
             message: `Pengajuan nomor id ${id} berhasil dihapus.`
         });
     }
 
-     // Handler Listrik
-    async handlerListrikCreate(req: any, res:any) {
+    // Handler Listrik
+    async handlerListrikCreate(req: any, res: any) {
         try {
             const { tanggal, nama, kwh, harga, station } = req.body;
             const pic = req.user?.username;
@@ -114,7 +115,8 @@ class OperationController {
                 throw createError('', 'E_BAD_REQUEST', err);
             });
 
-            const [id] = await db('token_listrik').insert({ tanggal, nama, kwh, harga, pic, station }).returning('id');
+            const [idResult] = await db('token_listrik').insert({ tanggal, nama, kwh, harga, pic, station }).returning('id');
+            const id = idResult.id || idResult;
             return sendResponseCustom(res, {
                 success: true,
                 message: `Pengajuan untuk stasiun ${station} oleh ${pic} berhasil dibuat.`
@@ -123,7 +125,7 @@ class OperationController {
             return sendResponseError(res, error);
         }
     }
-    async handlerListrikGetAll(req: any, res:any) {
+    async handlerListrikGetAll(req: any, res: any) {
         const page = parseInt(req.query.page as string) || 1;
         const limit = parseInt(req.query.limit as string) || 10;
         const offset = (page - 1) * limit;
@@ -145,13 +147,13 @@ class OperationController {
 
 
     }
-    async handlerListrikGetById(req: any, res:any) {
+    async handlerListrikGetById(req: any, res: any) {
 
         const { id } = req.params;
         const row = await db('token_listrik').where({ id }).first();
         row ? res.json(row) : res.status(404).json({ error: 'Not found' });
     }
-    async handlerListrikUpdate(req: any, res:any) {
+    async handlerListrikUpdate(req: any, res: any) {
         const { id } = req.params;
         const { tanggal, nama, kwh, harga, station } = req.body;
         const updated = await db('token_listrik')
@@ -165,17 +167,17 @@ class OperationController {
                 updated_at: db.fn.now()
             });
 
-            if (updated === 0) {
+        if (updated === 0) {
             return res.status(404).json({ success: false, message: 'Data tidak ditemukan' });
-            }
+        }
         return sendResponseCustom(res, {
             success: true,
             message: `Pengajuan nomor id ${id} berhasil diperbarui.`
         });
     }
-    async handlerListrikDelete(req: any, res:any) {
+    async handlerListrikDelete(req: any, res: any) {
         const { id } = req.params;
-        await db('token_listrik').where({ id}).del();
+        await db('token_listrik').where({ id }).del();
         return sendResponseCustom(res, {
             success: true,
             message: `Pengajuan nomor id ${id} berhasil dihapus.`
