@@ -1,4 +1,4 @@
-import { logger, db, errorCodes, moment, nowWib }
+import { logger, syncLogger, db, errorCodes, moment, nowWib }
    from './util';
 import { klhkSyncQueue } from './queue';
 import axios from 'axios';
@@ -16,14 +16,14 @@ class ProcessData {
    */
   async syncDataIot() {
     if (ProcessData.isSyncing) {
-        logger.warn(`[SYNC-KLHK] Sync process is already running. Skipping this trigger.`);
+        syncLogger.warn(`[SYNC-KLHK] Sync process is already running. Skipping this trigger.`);
         return;
     }
 
     ProcessData.isSyncing = true;
 
     try {
-      logger.info(`[SYNC-KLHK] Starting sync process check (triggering queue)...`);
+      syncLogger.info(`[SYNC-KLHK] Starting sync process check (triggering queue)...`);
 
       let hasMoreData = true;
       let iterationCount = 0;
@@ -41,10 +41,10 @@ class ProcessData {
         // DEBUG LOGGING
         try {
             const debugQuery = unsyncedDataQuery.clone().toString();
-            logger.info(`[SYNC-KLHK] Executing query: ${debugQuery}`);
-            logger.info(`[SYNC-KLHK] Time check: ${moment().format()} (Syncing data before: ${moment().startOf('hour').format()})`);
+            syncLogger.info(`[SYNC-KLHK] Executing query: ${debugQuery}`);
+            syncLogger.info(`[SYNC-KLHK] Time check: ${moment().format()} (Syncing data before: ${moment().startOf('hour').format()})`);
         } catch (e) {
-            logger.error(`[SYNC-KLHK] Error logging query: ${e}`);
+            syncLogger.error(`[SYNC-KLHK] Error logging query: ${e}`);
         }
 
         const unsyncedData = await unsyncedDataQuery
@@ -66,8 +66,31 @@ class ProcessData {
             'h.tss_avg',
             'u.api_key',
             'u.secret_key',
+            'd.id_mesin',
+            'd.category' // Added category
+          )
+          /* OLD SELECT WITHOUT CATEGORY
+          .select(
+            'h.id', 
+            'h.uuid',
+            'h.hour_timestamp',
+            'h.nama_stasiun',
+            'h.temperature_avg',
+            'h.ct_avg',
+            'h.do_avg',
+            'h.ph_avg',
+            'h.tur_avg',
+            'h.depth_avg',
+            'h.no3_3_avg',
+            'h.n_avg',
+            'h.cod_avg',
+            'h.bod_avg',
+            'h.tss_avg',
+            'u.api_key',
+            'u.secret_key',
             'd.id_mesin'
           )
+          */
           .orderBy('h.hour_timestamp', 'asc') // Order to ensure consistent deduplication if multiple records exist
           .limit(BATCH_SIZE);
 
@@ -83,7 +106,7 @@ class ProcessData {
 
         for (const row of unsyncedData) {
           if (!row.nama_stasiun) {
-            logger.warn(`[SYNC-KLHK] Skipping record with ID ${row.id} due to missing nama_stasiun.`);
+            syncLogger.warn(`[SYNC-KLHK] Skipping record with ID ${row.id} due to missing nama_stasiun.`);
             skippedIds.push(row.id);
             continue;
           }
@@ -113,7 +136,7 @@ class ProcessData {
         const allIdsToMark = [...skippedIds, ...queuedIds];
         const uniqueStationHourData = Array.from(stationHourDataMap.values());
 
-        logger.info(`[SYNC-KLHK] Fetched ${unsyncedData.length} records. Processing ${uniqueStationHourData.length} unique station-hour records. Skipping ${skippedIds.length} duplicates/invalid.`);
+        syncLogger.info(`[SYNC-KLHK] Fetched ${unsyncedData.length} records. Processing ${uniqueStationHourData.length} unique station-hour records. Skipping ${skippedIds.length} duplicates/invalid.`);
 
         // 2. Queue jobs for unique records
         for (const row of uniqueStationHourData) {
@@ -124,7 +147,7 @@ class ProcessData {
           }
 
           const timestampMoment = moment(row.hour_timestamp);
-          logger.info(`[SYNC-KLHK] Processing Row ID: ${row.id} | Raw TS: ${row.hour_timestamp} | Parsed: ${timestampMoment.format()}`);
+          syncLogger.info(`[SYNC-KLHK] Processing Row ID: ${row.id} | Raw TS: ${row.hour_timestamp} | Parsed: ${timestampMoment.format()}`);
           
           // Add 1 hour to make JAM consistent with sync time
           // Example: Sync at 14:00 sends data from 13:00, but labeled as 14:00
@@ -137,17 +160,17 @@ class ProcessData {
               // Use payloadTimestamp (hour_timestamp + 1 hour) for Tanggal and Jam
               Tanggal: payloadTimestamp.format('YYYY-MM-DD'),
               Jam: payloadTimestamp.format('HH:mm:ss'),
-              Suhu: row.temperature_avg?.toFixed(2),
-              TDS: row.ct_avg?.toFixed(2),
-              DO: row.do_avg?.toFixed(2),
-              PH: row.ph_avg?.toFixed(2),
-              Turbidity: row.tur_avg?.toFixed(2),
-              Kedalaman: row.depth_avg?.toFixed(2),
-              Nitrat: row.no3_3_avg?.toFixed(2),
-              Amonia: row.n_avg?.toFixed(2),
-              COD: row.cod_avg?.toFixed(2),
-              BOD: row.bod_avg?.toFixed(2),
-              TSS: row.tss_avg?.toFixed(2)
+              Suhu: row.temperature_avg ? parseFloat(row.temperature_avg.toFixed(2)) : null,
+              TDS: row.ct_avg ? parseFloat(row.ct_avg.toFixed(2)) : null,
+              DO: row.do_avg ? parseFloat(row.do_avg.toFixed(2)) : null,
+              PH: row.ph_avg ? parseFloat(row.ph_avg.toFixed(2)) : null,
+              Turbidity: row.tur_avg ? parseFloat(row.tur_avg.toFixed(2)) : null,
+              Kedalaman: row.depth_avg ? parseFloat(row.depth_avg.toFixed(2)) : null,
+              Nitrat: row.no3_3_avg ? parseFloat(row.no3_3_avg.toFixed(2)) : null,
+              Amonia: row.n_avg ? parseFloat(row.n_avg.toFixed(2)) : null,
+              COD: row.cod_avg ? parseFloat(row.cod_avg.toFixed(2)) : null,
+              BOD: row.bod_avg ? parseFloat(row.bod_avg.toFixed(2)) : null,
+              TSS: row.tss_avg ? parseFloat(row.tss_avg.toFixed(2)) : null
             },
             apikey: row.api_key,
             apisecret: row.secret_key
@@ -158,13 +181,25 @@ class ProcessData {
           
           await klhkSyncQueue.add('klhk-sync-job', {
             rowId: row.id, // Pass the original row ID to mark as synced later
-            data: payload
+            data: payload,
+            category: row.category // Added category
           }, {
             jobId: jobId, // BullMQ will reject duplicate jobs with same jobId
             attempts: 3,
             backoff: { type: 'exponential', delay: 5000 },
             removeOnComplete: true
           });
+          /* OLD QUEUE ADD WITHOUT CATEGORY
+          await klhkSyncQueue.add('klhk-sync-job', {
+            rowId: row.id, 
+            data: payload
+          }, {
+            jobId: jobId, 
+            attempts: 3,
+            backoff: { type: 'exponential', delay: 5000 },
+            removeOnComplete: true
+          });
+          */
         }
 
         logger.info(`[SYNC-KLHK] Queued ${uniqueStationHourData.length} jobs.`);
@@ -179,9 +214,9 @@ class ProcessData {
                         synced_to_klhk: true,
                         sync_attempted_at: db.fn.now()
                     });
-                logger.info(`[SYNC-KLHK] Marked ${allIdsToMark.length} records (queued + duplicates) as synced to prevent re-fetching.`);
+                syncLogger.info(`[SYNC-KLHK] Marked ${allIdsToMark.length} records (queued + duplicates) as synced to prevent re-fetching.`);
             } catch (err) {
-                logger.error(`[SYNC-KLHK] Failed to mark records as synced: ${err}`);
+                syncLogger.error(`[SYNC-KLHK] Failed to mark records as synced: ${err}`);
             }
         }
         
@@ -199,7 +234,7 @@ class ProcessData {
       }
 
     } catch (error: any) {
-      logger.error(`[SYNC-KLHK] Error in sync trigger: ${error}`);
+      syncLogger.error(`[SYNC-KLHK] Error in sync trigger: ${error}`);
     } finally {
       ProcessData.isSyncing = false;
     }

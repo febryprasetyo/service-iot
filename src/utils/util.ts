@@ -14,6 +14,8 @@ import fs from 'fs';
 let config: any = {}
 
 const logger = require('./logger').init(app);
+const mqttLogger = require('./logger').getLogger('mqtt');
+const syncLogger = require('./logger').getLogger('sync');
 
 const errorCodes: any = { E_BAD_REQUEST: 400, E_NOT_FOUND: 404, E_UNAUTHORIZED: 401, E_INTERNAL: 500, E_FILE_NOT_FOUND: 404 }
 
@@ -375,7 +377,7 @@ function toWib(date: string | Date, inputFormat?: string, outputFormat: string =
 
 
 export {
-  logger, db, sendResponseCustom, sendResponseError, errorCodes, isEmpty, isNotEmpty, checkDir,
+  logger, mqttLogger, syncLogger, db, sendResponseCustom, sendResponseError, errorCodes, isEmpty, isNotEmpty, checkDir,
   createError, isValidateToken, validateParams, validateParamsAll,
   deleteAllKeys, loadConfig, getConfig, isNumeric, moment, replaceCommaDot, decodeToken,
   buildPagination, nowWib, toWib, WIB_TIMEZONE

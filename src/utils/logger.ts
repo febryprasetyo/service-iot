@@ -18,6 +18,16 @@ const configs : any = {
       filename: process.env.LOG_DIR + '/app.log',
       pattern: '-yyyy-MM-dd'
     },
+    mqtt: {
+      type: 'dateFile',
+      filename: process.env.LOG_DIR + '/mqtt.log',
+      pattern: '-yyyy-MM-dd'
+    },
+    sync: {
+      type: 'dateFile',
+      filename: process.env.LOG_DIR + '/sync.log',
+      pattern: '-yyyy-MM-dd'
+    },
     errorFile: {
       type: 'dateFile',
       filename: process.env.LOG_DIR + '/error.log',
@@ -32,6 +42,14 @@ const configs : any = {
   categories: {
     default: {
       appenders: ['app', 'errors', 'console'],
+      level: 'DEBUG'
+    },
+    mqtt: {
+      appenders: ['mqtt', 'errors', 'console'],
+      level: 'DEBUG'
+    },
+    sync: {
+      appenders: ['sync', 'errors', 'console'],
       level: 'DEBUG'
     },
     http: {
@@ -54,6 +72,11 @@ class Logger {
     }));
 
     return logger;
+  }
+
+  static getLogger(category: string = 'default'): any {
+    var log4js: any = require('log4js');
+    return log4js.getLogger(category);
   }
 
 }

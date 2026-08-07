@@ -1,5 +1,5 @@
 import * as Mqtt from 'mqtt';
-import { db, moment, logger, nowWib } from '../utils/util';
+import { db, moment, logger, mqttLogger, nowWib } from '../utils/util';
 import 'dotenv/config';
 
 var brokerUrl: any = process.env.MQTT_BROKER_URL;
@@ -58,7 +58,7 @@ class MqttHandler {
 
   private log(uuid: string, time: string, msg: string, level: "info" | "warn" | "error" | "debug" = "info") {
     const logMsg = `  UUID: ${uuid} | TIME: ${time} | ${msg}  `;
-    logger[level](logMsg);
+    mqttLogger[level](logMsg);
   }
 
   async initDeviceCache() {
@@ -71,9 +71,9 @@ class MqttHandler {
           this.deviceCache.set(d.id_mesin, d.nama_stasiun || 'UNKNOWN');
         }
       }
-      logger.info(`  UUID: SYSTEM | TIME: ${nowWib()} | Device cache loaded (${this.deviceCache.size} items)  `);
+      mqttLogger.info(`  UUID: SYSTEM | TIME: ${nowWib()} | Device cache loaded (${this.deviceCache.size} items)  `);
     } catch (error) {
-      logger.error(`  UUID: SYSTEM | TIME: ${nowWib()} | Failed to load device cache: ${error}  `);
+      mqttLogger.error(`  UUID: SYSTEM | TIME: ${nowWib()} | Failed to load device cache: ${error}  `);
     }
   }
 
@@ -85,15 +85,15 @@ class MqttHandler {
     this.mqttClient = Mqtt.connect(brokerUrl, options);
 
     this.mqttClient.on("connect", async () => {
-      logger.info(`  UUID: SYSTEM | TIME: ${nowWib()} | MQTT connected to ${brokerUrl} `);
+      mqttLogger.info(`  UUID: SYSTEM | TIME: ${nowWib()} | MQTT connected to ${brokerUrl} `);
       await this.initDeviceCache();
       this.startCacheRefresher();
 
       this.mqttClient.subscribe(mqttTopic, (err) => {
         if (err) {
-          logger.error(`  UUID: SYSTEM | TIME: ${nowWib()} | Failed to subscribe: ${err}  `);
+          mqttLogger.error(`  UUID: SYSTEM | TIME: ${nowWib()} | Failed to subscribe: ${err}  `);
         } else {
-          logger.info(`  UUID: SYSTEM | TIME: ${nowWib()} | Subscribed to topic: ${mqttTopic}  `);
+          mqttLogger.info(`  UUID: SYSTEM | TIME: ${nowWib()} | Subscribed to topic: ${mqttTopic}  `);
         }
       });
 
@@ -101,12 +101,12 @@ class MqttHandler {
     });
 
     this.mqttClient.on("error", (err: any) => {
-      logger.error(`  UUID: SYSTEM | TIME: ${nowWib()} | MQTT Error: ${err}  `);
+      mqttLogger.error(`  UUID: SYSTEM | TIME: ${nowWib()} | MQTT Error: ${err}  `);
       this.mqttClient.end();
     });
 
     this.mqttClient.on("close", () => {
-      logger.warn(`  UUID: SYSTEM | TIME: ${nowWib()} | MQTT disconnected  `);
+      mqttLogger.warn(`  UUID: SYSTEM | TIME: ${nowWib()} | MQTT disconnected  `);
     });
 
     this.mqttClient.on("message", (topic, message) => {
@@ -127,14 +127,14 @@ class MqttHandler {
     try {
       await db.raw('SELECT 1'); // Check DB connection
     } catch (dbError) {
-      logger.error('Database connection lost. Skipping flush to preserve buffer.', dbError);
+      mqttLogger.error('Database connection lost. Skipping flush to preserve buffer.', dbError);
       return;
     }
 
     const dataToInsert = [...this.bufferMqtt];
     this.bufferMqtt = []; // Clear buffer immediately
 
-    logger.info(`  UUID: SYSTEM | TIME: ${nowWib()} | Flushing ${dataToInsert.length} records...`);
+    mqttLogger.info(`  UUID: SYSTEM | TIME: ${nowWib()} | Flushing ${dataToInsert.length} records...`);
 
     // Sanitize and Timestamp
     const finalData = dataToInsert.map(row => {
@@ -153,9 +153,9 @@ class MqttHandler {
       try {
         await db('mqtt_datas').insert(chunk);
 
-        logger.info(`  UUID: SYSTEM | TIME: ${nowWib()} | Saved chunk ${Math.floor(i / BATCH_SIZE) + 1} (${chunk.length} records)`);
+        mqttLogger.info(`  UUID: SYSTEM | TIME: ${nowWib()} | Saved chunk ${Math.floor(i / BATCH_SIZE) + 1} (${chunk.length} records)`);
       } catch (error: any) {
-        logger.error(`  UUID: SYSTEM | TIME: ${nowWib()} | Error saving chunk: ${error}`);
+        mqttLogger.error(`  UUID: SYSTEM | TIME: ${nowWib()} | Error saving chunk: ${error}`);
         // Consider re-queueing failed chunks or logging explicitly
       }
     }

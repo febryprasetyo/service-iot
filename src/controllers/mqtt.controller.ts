@@ -1,5 +1,6 @@
 import {
   logger,
+  mqttLogger,
   db,
   moment,
 } from '../utils/util';
@@ -132,7 +133,7 @@ export const handleMqttExport = async (req: any, res: any) => {
         ),
       });
 
-      console.log("CSV streaming started...");
+      mqttLogger.info("CSV streaming started...");
       let rowCount = 0;
 
       const mappedStream = stream.pipe(
@@ -151,7 +152,7 @@ export const handleMqttExport = async (req: any, res: any) => {
             });
             rowCount++;
             if (rowCount % 10000 === 0) {
-              console.log(`CSV rows streamed: ${rowCount}`);
+              mqttLogger.info(`CSV rows streamed: ${rowCount}`);
             }
             cb(null, obj);
           },
@@ -159,7 +160,7 @@ export const handleMqttExport = async (req: any, res: any) => {
       );
 
       await pipeline(mappedStream, csvStream, res);
-      console.log("CSV streaming finished, total rows:", rowCount);
+      mqttLogger.info("CSV streaming finished, total rows:", rowCount);
       return;
     }
 
@@ -183,7 +184,7 @@ export const handleMqttExport = async (req: any, res: any) => {
         width: 18,
       }));
 
-      console.log("XLSX streaming started...");
+      mqttLogger.info("XLSX streaming started...");
       let rowCount = 0;
 
       for await (const row of stream) {
@@ -200,18 +201,18 @@ export const handleMqttExport = async (req: any, res: any) => {
         worksheet.addRow(rowObj).commit();
         rowCount++;
         if (rowCount % 10000 === 0) {
-          console.log(`XLSX rows streamed: ${rowCount}`);
+          mqttLogger.info(`XLSX rows streamed: ${rowCount}`);
         }
       }
 
       await workbook.commit();
-      console.log("XLSX streaming finished, total rows:", rowCount);
+      mqttLogger.info("XLSX streaming finished, total rows:", rowCount);
       return;
     }
 
     return res.status(400).json({ error: "Invalid format. Use csv or xlsx." });
   } catch (error) {
-    console.error("Export failed:", error);
+    mqttLogger.error("Export failed:", error);
     if (!res.headersSent) {
       res.status(500).json({ error: "Failed to export data" });
     }

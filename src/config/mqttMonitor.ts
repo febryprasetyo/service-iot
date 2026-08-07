@@ -28,9 +28,9 @@ class MqttHandler {
     this.mqttClient = Mqtt.connect(brokerUrl, options);
 
     this.mqttClient.on('connect', () => {
-      console.log('MQTT connected');
+      logger.info('MQTT connected');
       this.mqttClient?.subscribe(subtopic, (err: Error | null) => {
-        if (err) console.error('Subscribe error:', err);
+        if (err) logger.error('Subscribe error:', err);
       });
     });
 
@@ -40,7 +40,7 @@ class MqttHandler {
         const { uuid, data } = payload;
 
         if (!uuid || !Array.isArray(data) || data.length === 0) {
-          console.warn('Invalid payload format');
+          logger.warn('Invalid payload format');
           return;
         }
 

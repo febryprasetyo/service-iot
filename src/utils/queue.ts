@@ -1,6 +1,6 @@
 import { Queue, Worker, Job } from 'bullmq';
 import connection from '../config/redis';
-import { db, logger, moment, nowWib } from './util';
+import { db, logger, syncLogger, moment, nowWib } from './util';
 import axios from 'axios';
 
 // 1. Definisikan Queue
@@ -8,7 +8,7 @@ export const klhkSyncQueue = new Queue('klhk-sync', { connection: connection as 
 
 // 2. Definisikan Worker untuk memproses job
 const worker = new Worker('klhk-sync', async (job: Job) => {
-    const { rowId, data } = job.data;
+    const { rowId, data, category } = job.data;
     
     // Circuit Breaker Check
     const cbKey = 'circuit:klhk:failure_count';
@@ -18,12 +18,26 @@ const worker = new Worker('klhk-sync', async (job: Job) => {
         throw new Error("Circuit breaker open: Too many recent failures. Skipping job.");
     }
     
-    logger.info(`[WORKER] Processing sync for row ID: ${rowId}`);
+    syncLogger.info(`[WORKER] Processing sync for row ID: ${rowId} (Category: ${category})`);
 
     try {
-        // Kirim ke KLHK
+        // SELECT TARGET URL BASED ON CATEGORY
+        let url_klhk = process.env.URL_KLH; // Default to KLH if not specified or KLH
+
+        if (category === 'DLH') {
+            url_klhk = process.env.URL_DLH;
+        } else if (category === 'KLH') {
+            url_klhk = process.env.URL_KLH;
+        } else {
+            // Fallback for any other cases or missing category
+            url_klhk = process.env.URL_KLH || process.env.URL_KLHK || process.env.KLHK_API_URL;
+        }
+
+        /* OLD URL SELECTION
         const url_klhk = process.env.URL_KLHK || process.env.KLHK_API_URL;
-        if (!url_klhk) throw new Error("URL_KLHK/KLHK_API_URL not set in .env");
+        */
+
+        if (!url_klhk) throw new Error("Target URL (URL_KLH/URL_DLH/URL_KLHK) not set in .env");
 
         const https = require('https');
         const agent = new https.Agent({ 
@@ -31,7 +45,7 @@ const worker = new Worker('klhk-sync', async (job: Job) => {
             checkServerIdentity: () => undefined 
         });
         
-        logger.info(`[WORKER] Sending to ${url_klhk} with SSL bypass`);
+        syncLogger.info(`[WORKER] Sending to ${url_klhk} with SSL bypass`);
 
         const response = await axios.post(url_klhk, data, {
             headers: { 'Content-Type': 'application/json' },
@@ -70,7 +84,7 @@ const worker = new Worker('klhk-sync', async (job: Job) => {
                  created_at: nowWib()
              });
 
-             logger.info(`[WORKER] Sync success for row ID: ${rowId} (Station: ${data.data.IDStasiun})`);
+             syncLogger.info(`[WORKER] Sync success for row ID: ${rowId} (Station: ${data.data.IDStasiun})`);
         } else {
             throw new Error(`KLHK API returned status ${response.status}`);
         }
@@ -78,7 +92,7 @@ const worker = new Worker('klhk-sync', async (job: Job) => {
         const errorRes = error.response?.data || error.message;
         const status = error.response?.status || 500;
         
-        logger.error(`[WORKER] Sync failed for row ID: ${rowId}: ${error.message}`);
+        syncLogger.error(`[WORKER] Sync failed for row ID: ${rowId}: ${error.message}`);
         
         // INCREMENT FAILURE COUNT
         // If it's a connection refused error, we increment the circuit breaker
@@ -117,7 +131,7 @@ const worker = new Worker('klhk-sync', async (job: Job) => {
 
 worker.on('failed', (job: Job | undefined, err: Error) => {
     if (job) {
-      logger.error(`[WORKER] Job ${job.id} failed with ${err.message}`);
+      syncLogger.error(`[WORKER] Job ${job.id} failed with ${err.message}`);
     }
 });
 
