@@ -26,3 +26,6 @@ db_bak.sql
 db.sql
 dummy_server.js
 klhk_logs.json
+
+/.agent/
+/.agents/    
