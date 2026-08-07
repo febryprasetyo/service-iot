@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calibration Report - PT Cahaya Mas Cemerlang</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 12mm 15mm;
+            background: #fff;
+            @bottom-right {
+                content: "Halaman " counter(page) " dari " counter(pages);
+                font-family: Arial, sans-serif;
+                font-size: 8pt;
+                color: #555;
+            }
+            @bottom-left {
+                content: "PT CAHAYA MAS CEMERLANG — OFFICIAL CALIBRATION REPORT";
+                font-family: Arial, sans-serif;
+                font-size: 8pt;
+                color: #555;
+            }
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Helvetica, Arial, sans-serif;
+            font-size: 8.5pt;
+            line-height: 1.35;
+            color: #1a202c;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .header-table {
+            border-bottom: 2px solid #0f2942;
+            margin-bottom: 10px;
+        }
+
+        .header-table td,
+        .station-table td,
+        .cal-table th,
+        .cal-table td,
+        .sample-table th,
+        .sample-table td,
+        .sig-table td {
+            vertical-align: top;
+        }
+
+        .header-table td { padding-bottom: 6px; }
+
+        .company-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .company-logo {
+            width: 48px;
+            height: 48px;
+            display: block;
+            object-fit: contain;
+            flex: 0 0 auto;
+        }
+
+        .company-name-wrap {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .company-name {
+            font-size: 12.5pt;
+            font-weight: 700;
+            color: #0f2942;
+            text-transform: uppercase;
+            letter-spacing: .3px;
+            line-height: 1.1;
+        }
+
+        .company-info {
+            font-size: 7.5pt;
+            color: #334155;
+            line-height: 1.25;
+            margin-top: 3px;
+        }
+
+        .doc-main-title {
+            text-align: right;
+            font-size: 14pt;
+            font-weight: 700;
+            color: #1e3a8a;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .doc-no-title {
+            text-align: right;
+            font-size: 8.5pt;
+            font-weight: 700;
+            color: #475569;
+            margin-top: 3px;
+        }
+
+        .station-table {
+            margin-bottom: 10px;
+            background: #f8fafc;
+            border: 1px solid #cbd5e1;
+        }
+
+        .station-table td {
+            padding: 4px 8px;
+            font-size: 8.5pt;
+            vertical-align: middle;
+        }
+
+        .st-label {
+            font-weight: 700;
+            color: #1e293b;
+            width: 18%;
+        }
+
+        .st-val {
+            color: #0f172a;
+            width: 32%;
+        }
+
+        .section-header {
+            background: #0f2942;
+            color: #fff;
+            font-weight: 700;
+            font-size: 9pt;
+            padding: 4px 8px;
+            margin: 10px 0 6px;
+            text-transform: uppercase;
+            letter-spacing: .5px;
+        }
+
+        .cal-table,
+        .sample-table {
+            margin-bottom: 8px;
+            font-size: 8pt;
+        }
+
+        .cal-table th,
+        .sample-table th {
+            text-align: center;
+            padding: 4px;
+            border: 1px solid #cbd5e1;
+            font-weight: 700;
+        }
+
+        .cal-table th {
+            background: #f1f5f9;
+            color: #0f2942;
+        }
+
+        .sample-table th {
+            background: #1e3a8a;
+            color: #fff;
+            padding: 4px 2px;
+            border-color: #1e3a8a;
+        }
+
+        .cal-table td,
+        .sample-table td {
+            padding: 3.5px 5px;
+            border: 1px solid #cbd5e1;
+            text-align: center;
+            vertical-align: middle;
+        }
+
+        .text-center { text-align: center; }
+        .text-right { text-align: right; }
+        .font-bold { font-weight: 700; }
+
+        .tag-pass {
+            color: #15803d;
+            font-weight: 700;
+            background: #f0fdf4;
+            padding: 1px 4px;
+            border: 1px solid #bbf7d0;
+        }
+
+        .notes-box {
+            border: 1px solid #cbd5e1;
+            background: #fafafa;
+            padding: 6px 8px;
+            font-size: 8pt;
+            margin-bottom: 12px;
+        }
+
+        .notes-box ul {
+            margin: 2px 0 0 15px;
+            padding: 0;
+        }
+
+        .sig-table {
+            margin-top: 15px;
+            page-break-inside: avoid;
+        }
+
+        .sig-table td {
+            width: 50%;
+            text-align: center;
+            font-size: 8.5pt;
+        }
+
+        .sig-space { height: 48px; }
+
+        .sig-name {
+            font-weight: 700;
+            text-decoration: underline;
+            color: #0f172a;
+        }
+
+        .sig-sub {
+            color: #64748b;
+            font-size: 8pt;
+        }
+    </style>
+</head>
+<body>
+    <table class="header-table">
+        <tr>
+            <td style="width: 55%;">
+                <div class="company-header">
+                    <img class="company-logo" src="https://uploads.onecompiler.io/44724abkh/1786077498764/icon-cmc.png" alt="PT Cahaya Mas Cemerlang Logo">
+                    <div class="company-name-wrap">
+                        <div class="company-name">PT Cahaya Mas Cemerlang</div>
+                        <div class="company-info">
+                            <strong>Office:</strong> Komplek Majapahit Permai Blok A No.110 & C No.105, Jl. Majapahit No.18-20-22, Jakarta Pusat 10160<br>
+                            <strong>Factory:</strong> Jalan Rawa Gelam II No.3, Kawasan Industri Pulogadung, Jakarta Timur<br>
+                            <strong>Telp:</strong> 021-344 3456 <strong>(Hunting) Fax:</strong> 021-460 2340/460 2344<br>
+                            <strong>E-mail:</strong> info@cahayamascemerlang.com | <strong>Website:</strong> www.cahayamascemerlang.com
+                        </div>
+                    </div>
+                </div>
+            </td>
+            <td style="width: 45%;">
+                <div class="doc-main-title">CALIBRATION REPORT</div>
+                <div class="doc-no-title">Report No: 085/OEM-CAL/CMC/IV/2025</div>
+            </td>
+        </tr>
+    </table>
+
+    <table class="station-table">
+        <tr>
+            <td class="st-label">Station Name</td>
+            <td class="st-val">: ONLIMO KLHK Stasiun 315</td>
+            <td class="st-label">Calibration Date</td>
+            <td class="st-val">: 15 – 16 April 2025</td>
+        </tr>
+        <tr>
+            <td class="st-label">Address</td>
+            <td class="st-val">: Bendungan Palasari - DAS Ijo Gading, Bali</td>
+            <td class="st-label">Contact Person</td>
+            <td class="st-val">: PT Cahaya Mas Cemerlang / KLHK</td>
+        </tr>
+        <tr>
+            <td class="st-label">Coordinate</td>
+            <td class="st-val">: LAT -8.3272340 | LONG 114.6118410</td>
+            <td class="st-label">Phone</td>
+            <td class="st-val">: 021-344 3456</td>
+        </tr>
+    </table>
+
+    <div class="section-header">1. SENSOR PARAMETER CALIBRATION & REGISTER ADJUSTMENT</div>
+
+    <table class="cal-table">
+        <thead>
+            <tr>
+                <th style="width: 18%;">Parameter</th>
+                <th style="width: 14%;">Target/Spec</th>
+                <th style="width: 25%;">CRM / Standard Level</th>
+                <th style="width: 25%;">Calibration Result</th>
+                <th style="width: 18%;">Internal Coeff (K / B)</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td class="font-bold">DO Calibration</td>
+                <td class="text-center">%trueness 99-101</td>
+                <td>CRM 0 %<br>CRM 100 %</td>
+                <td class="text-center">0.00 %<br>100.00 % (8.77 mg/L)</td>
+                <td><strong>K:</strong> 1.233872<br><strong>B:</strong> -0.006227</td>
+            </tr>
+            <tr>
+                <td class="font-bold">Turbidity Calibration</td>
+                <td class="text-center">%trueness 90-110</td>
+                <td>CRM 4 NTU | 20 NTU<br>CRM 100 NTU | 800 NTU</td>
+                <td class="text-center">4.28 NTU | 20.83 NTU<br>100.88 NTU | 773.82 NTU</td>
+                <td><strong>K:</strong> 0.749789<br><strong>B:</strong> -4.202125</td>
+            </tr>
+            <tr>
+                <td class="font-bold">TDS Calibration</td>
+                <td class="text-center">%trueness 99-101</td>
+                <td>CRM 1.413 mS/cm | 12.89 mS/cm<br>CRM 200 mg/L</td>
+                <td class="text-center">1.4100 mS/cm | 12.8463 mS/cm<br>201.29 mg/L</td>
+                <td><strong>K:</strong> 1.052599<br><strong>B:</strong> -0.087622</td>
+            </tr>
+            <tr>
+                <td class="font-bold">COD / BOD Calibration</td>
+                <td class="text-center">%trueness 99-100</td>
+                <td>CRM 10 mg/L | CRM 100 mg/L<br>*(BOD Factory Calibrated)</td>
+                <td class="text-center">10.00 mg/L | 99.96 mg/L<br>*(Spectro Integrated)</td>
+                <td><strong>K:</strong> 1.311216<br><strong>B:</strong> 10.000000</td>
+            </tr>
+            <tr>
+                <td class="font-bold">pH Calibration</td>
+                <td class="text-center">Accuracy ± 0.05</td>
+                <td>Buffer pH 4.00 | Buffer pH 7.01<br>Buffer pH 10.01</td>
+                <td class="text-center">4.00 Unit | 7.00 Unit<br>9.98 Unit</td>
+                <td><strong>K1:</strong> -131.1295 | <strong>K2:</strong> -139.5899<br><strong>K3:</strong> -0.196530 | <strong>K4:</strong> -131.1295</td>
+            </tr>
+            <tr>
+                <td class="font-bold">TSS Calibration</td>
+                <td class="text-center">%trueness 99-100</td>
+                <td>CRM 50 mg/L</td>
+                <td class="text-center">49.89 mg/L</td>
+                <td><strong>K:</strong> 1.052599<br><strong>B:</strong> -0.087622</td>
+            </tr>
+            <tr>
+                <td class="font-bold">Amonia Calibration</td>
+                <td class="text-center">%trueness 99-101</td>
+                <td>CRM 1 mg/L</td>
+                <td class="text-center">1.01 mg/L</td>
+                <td><strong>K:</strong> 1.000000<br><strong>B:</strong> 0.577403</td>
+            </tr>
+            <tr>
+                <td class="font-bold">NO3 Calibration</td>
+                <td class="text-center">%trueness 99-100</td>
+                <td>CRM 10 mg/L | CRM 100 mg/L</td>
+                <td class="text-center">10.00 mg/L | 100.00 mg/L</td>
+                <td>*Stored internally in probe EEPROM</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="section-header">2. WATER SAMPLE MEASUREMENT & BLANK TEST</div>
+
+    <table class="sample-table">
+        <thead>
+            <tr>
+                <th style="width: 16%;">Sample Type</th>
+                <th>Temp (°C)</th>
+                <th>DO (mg/L)</th>
+                <th>TDS (mg/L)</th>
+                <th>Turb (NTU)</th>
+                <th>pH Unit</th>
+                <th>COD (mg/L)</th>
+                <th>BOD (mg/L)</th>
+                <th>TSS (mg/L)</th>
+                <th>NH3-N (mg/L)</th>
+                <th>NO3-N (mg/L)</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td class="font-bold" style="text-align: left;">Aquades (Blank)</td>
+                <td>25.0</td>
+                <td>8.77</td>
+                <td>0.00</td>
+                <td>0.00</td>
+                <td>6.96</td>
+                <td>0.00</td>
+                <td>0.00</td>
+                <td>0.00</td>
+                <td>0.00</td>
+                <td>0.00</td>
+            </tr>
+            <tr>
+                <td class="font-bold" style="text-align: left;">Water Sample (River)</td>
+                <td>25.2</td>
+                <td>6.85</td>
+                <td>145.20</td>
+                <td>12.40</td>
+                <td>7.15</td>
+                <td>18.50</td>
+                <td>4.20</td>
+                <td>15.00</td>
+                <td>0.12</td>
+                <td>2.10</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="notes-box">
+        <strong>Notes:</strong>
+        <ul>
+            <li>Tindakan rutin *periodic maintenance* 6 bulanan dan pembersihan permukaan optik sensor telah dilaksanakan sebelum proses kalibrasi dilakukan.</li>
+            <li>Seluruh register koefisien kemiringan (*Gain/K*) dan geseran titik nol (*Offset/B*) telah disinkronkan ke dalam memori probe dan controller stasiun.</li>
+            <li>Sistem WMS Stasiun 315 dinyatakan <strong>BERHASIL DIKALIBRASI & LAYAK OPERASI</strong>.</li>
+        </ul>
+    </div>
+
+    <table class="sig-table">
+        <tr>
+            <td>
+                <strong>Place / Date:</strong> Jembrana, Bali, 16 April 2025<br>
+                <strong>Calibration Officer:</strong>
+                <div class="sig-space"></div>
+                <div class="sig-name">Sidnan / Febri Joko Prasetyo</div>
+                <div class="sig-sub">PT Cahaya Mas Cemerlang</div>
+            </td>
+            <td>
+                <strong>Place / Date:</strong> Jembrana, Bali, 16 April 2025<br>
+                <strong>Customer / Representative:</strong>
+                <div class="sig-space"></div>
+                <div class="sig-name">( ___________________________ )</div>
+                <div class="sig-sub">KLHK / Pengelola Stasiun 315</div>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
