@@ -152,7 +152,7 @@ class DataClientController {
         .select(
           db.raw(`
         s.id, s.nama_stasiun, s.id_mesin, s.address,
-        s.province_name, s.province_id, s.city_name, s.city_id
+        s.province_name, s.province_id, s.city_name, s.city_id, s.coordinate
       `)
         )
         .from('stations AS s');

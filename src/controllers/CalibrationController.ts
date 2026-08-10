@@ -3,6 +3,7 @@ import puppeteer from 'puppeteer';
 import { db, sendResponseCustom, sendResponseError, createError, nowWib } from '../utils/util';
 import { CalibrationRepository } from '../repositories/CalibrationRepository';
 import { CalibrationService } from '../services/CalibrationService';
+import { evaluateCalibrationResult } from '../helpers/CalibrationCalculator';
 
 const calibrationRepository = new CalibrationRepository(db);
 const calibrationService = new CalibrationService(calibrationRepository);
@@ -52,14 +53,21 @@ class CalibrationController {
     try {
       const { limit = 20, offset = 0, status } = req.query;
 
-      const query = db('calibrations').select('*');
+      const query = db('calibrations')
+        .join('stations', 'calibrations.station_id', '=', 'stations.id')
+        .join('users', 'calibrations.officer_id', '=', 'users.id')
+        .select(
+          'calibrations.*',
+          'stations.name as station_name',
+          'users.username as officer_name'
+        );
 
       if (status) {
-        query.where('status', status);
+        query.where('calibrations.status', status);
       }
 
       const calibrations = await query
-        .orderBy('created_at', 'desc')
+        .orderBy('calibrations.created_at', 'desc')
         .limit(Number(limit))
         .offset(Number(offset));
 
@@ -87,13 +95,31 @@ class CalibrationController {
     try {
       const { id } = req.params;
 
-      const calibration = await db('calibrations').where({ id }).first();
+      const calibration = await db('calibrations')
+        .join('stations', 'calibrations.station_id', '=', 'stations.id')
+        .join('users', 'calibrations.officer_id', '=', 'users.id')
+        .where('calibrations.id', id)
+        .select(
+          'calibrations.*',
+          'stations.name as station_name',
+          'stations.address as station_address',
+          'stations.coordinate as station_coordinate',
+          'stations.city_name as station_city',
+          'users.username as officer_name'
+        )
+        .first();
+
       if (!calibration) {
         throw createError('Calibration report not found', 'E_NOT_FOUND');
       }
 
       const details = await db('calibration_details')
-        .where('calibration_id', id);
+        .join('master_parameters', 'calibration_details.parameter_id', '=', 'master_parameters.id')
+        .where('calibration_details.calibration_id', id)
+        .select(
+          'calibration_details.*',
+          'master_parameters.name as parameter_name'
+        );
 
       // Fetch standard/CRM details for each parameter detail
       const detailIds = details.map((d: any) => d.id);
@@ -129,7 +155,7 @@ class CalibrationController {
   async update(req: Request, res: Response) {
     try {
       const { id } = req.params;
-      const { contact_person, phone, notes, details, waterSamples } = req.body;
+      const { contact_person, phone, notes, details, waterSamples, parameter_ids } = req.body;
 
       const calibration = await db('calibrations').where({ id }).first();
       if (!calibration) {
@@ -149,19 +175,76 @@ class CalibrationController {
 
         await trx('calibrations').where({ id }).update(headerUpdate);
 
-        // Update details (coefficients, types, calculation_result) and standards (crm_standard_value, calibration_result)
+        // 1. Synchronize parameter details if parameter_ids is provided
+        if (parameter_ids && Array.isArray(parameter_ids)) {
+          const existingDetails = await trx('calibration_details').where('calibration_id', id);
+          const existingParamIds = existingDetails.map((d: any) => d.parameter_id);
+
+          const paramIdsToRemove = existingParamIds.filter(pid => !parameter_ids.includes(pid));
+          if (paramIdsToRemove.length > 0) {
+            const detailIdsToRemove = existingDetails
+              .filter((d: any) => paramIdsToRemove.includes(d.parameter_id))
+              .map((d: any) => d.id);
+            await trx('calibration_detail_standards').whereIn('calibration_detail_id', detailIdsToRemove).del();
+            await trx('calibration_details').whereIn('id', detailIdsToRemove).del();
+          }
+
+          const paramIdsToAdd = parameter_ids.filter(pid => !existingParamIds.includes(pid));
+          if (paramIdsToAdd.length > 0) {
+            const newDetailsData = paramIdsToAdd.map(pid => ({
+              calibration_id: id,
+              parameter_id: pid
+            }));
+            await trx('calibration_details').insert(newDetailsData);
+          }
+        }
+
+        // 2. Update details and synchronize CRM standards
         if (details && details.length > 0) {
           for (const d of details) {
+            let evaluatedResult: 'PASS' | 'FAILED' | null = null;
+            if (d.standards && d.standards.length > 0) {
+              let allPassed = true;
+              let anyChecked = false;
+              for (const s of d.standards) {
+                if (s.calibration_result !== null && s.calibration_result !== undefined &&
+                    s.min_acceptable !== null && s.min_acceptable !== undefined &&
+                    s.max_acceptable !== null && s.max_acceptable !== undefined) {
+                  anyChecked = true;
+                  const resStatus = evaluateCalibrationResult(
+                    Number(s.calibration_result),
+                    Number(s.min_acceptable),
+                    Number(s.max_acceptable)
+                  );
+                  if (resStatus === 'FAILED') {
+                    allPassed = false;
+                  }
+                }
+              }
+              if (anyChecked) {
+                evaluatedResult = allPassed ? 'PASS' : 'FAILED';
+              }
+            }
+
             const detailUpdate: any = { updated_at: nowWib() };
             if (d.coeff_type) detailUpdate.coeff_type = d.coeff_type;
             if (d.coefficients) detailUpdate.coefficients = JSON.stringify(d.coefficients);
             if (d.remark !== undefined) detailUpdate.remark = d.remark;
-            if (d.calculation_result) detailUpdate.calculation_result = d.calculation_result;
+            detailUpdate.calculation_result = evaluatedResult || d.calculation_result || null;
 
             await trx('calibration_details').where({ id: d.id, calibration_id: id }).update(detailUpdate);
 
             // Upsert standard/CRM values
             if (d.standards && d.standards.length > 0) {
+              const existingStandards = await trx('calibration_detail_standards').where('calibration_detail_id', d.id);
+              const incomingStandardIds = d.standards.map((s: any) => s.id).filter(Boolean);
+
+              const standardsToDelete = existingStandards.filter((s: any) => !incomingStandardIds.includes(s.id));
+              if (standardsToDelete.length > 0) {
+                const idsToDelete = standardsToDelete.map((s: any) => s.id);
+                await trx('calibration_detail_standards').whereIn('id', idsToDelete).del();
+              }
+
               for (const s of d.standards) {
                 const standardUpdate: any = {
                   crm_name: s.crm_name,
@@ -186,8 +269,17 @@ class CalibrationController {
           }
         }
 
-        // Upsert Water Samples
-        if (waterSamples && waterSamples.length > 0) {
+        // 3. Synchronize Water Samples
+        if (waterSamples && Array.isArray(waterSamples)) {
+          const existingWaterSamples = await trx('water_samples').where('calibration_id', id);
+          const incomingSampleIds = waterSamples.map((ws: any) => ws.id).filter(Boolean);
+
+          const samplesToDelete = existingWaterSamples.filter((ws: any) => !incomingSampleIds.includes(ws.id));
+          if (samplesToDelete.length > 0) {
+            const idsToDelete = samplesToDelete.map((ws: any) => ws.id);
+            await trx('water_samples').whereIn('id', idsToDelete).del();
+          }
+
           for (const ws of waterSamples) {
             const sampleData = {
               sample_name: ws.sample_name,
@@ -243,6 +335,10 @@ class CalibrationController {
       const calibration = await db('calibrations').where({ id }).first();
       if (!calibration) {
         throw createError('Calibration report not found', 'E_NOT_FOUND');
+      }
+
+      if (calibration.status !== 'draft') {
+        throw createError('Only drafts can be deleted', 'E_BAD_REQUEST');
       }
 
       await db('calibrations').where({ id }).del();
@@ -355,13 +451,18 @@ class CalibrationController {
         .join('users', 'calibrations.officer_id', '=', 'users.id') // Assuming users table has id
         .where('calibrations.verification_uuid', uuid)
         .select(
+          'calibrations.report_no',
           'calibrations.calibration_date',
-          'calibrations.status',
-          'calibrations.created_at',
+          'calibrations.contact_person',
+          'calibrations.phone',
           'calibrations.notes',
+          'calibrations.status',
+          'calibrations.verification_uuid',
+          'calibrations.created_at',
           'stations.name as station_name',
           'stations.address as station_address',
           'stations.coordinate as station_coordinate',
+          'stations.city_name as station_city',
           'users.username as officer_name'
         )
         .first();
