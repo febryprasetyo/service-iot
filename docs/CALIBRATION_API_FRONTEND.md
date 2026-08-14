@@ -1,4 +1,4 @@
-# Kontrak API Frontend — Calibration Report
+# Kontrak API Frontend — Laporan Kalibrasi
 
 Base URL: `/api`  
 Authentication untuk seluruh endpoint calibration: `Authorization: Bearer <access_token>`  
@@ -15,7 +15,7 @@ Semua nilai tanggal menggunakan format date-only ISO: `YYYY-MM-DD`. Nilai desima
 5. Tampilkan dan autosave dengan `PUT /calibrations/{id}`. Untuk edit berikutnya gunakan ID yang diterima dari langkah 4.
 6. Setelah semua hasil larutan terisi, panggil `POST /calibrations/{id}/submit`.
 7. Role `adm` dapat approve dengan `POST /calibrations/{id}/approve`.
-8. Report PDF tersedia di `GET /calibrations/{id}/print`.
+8. Laporan PDF tersedia di `GET /calibrations/{id}/print`.
 
 `station_id`, `report_no`, `status`, `verification_uuid`, ID detail, dan ID standard **bukan input manual UI**. Server membuatnya dan frontend menyimpan nilai respons untuk navigasi/edit berikutnya.
 
@@ -120,7 +120,7 @@ Respons sukses (`200 OK`):
 ```json
 {
   "success": true,
-  "message": "Calibration draft created successfully",
+  "message": "Draf kalibrasi berhasil dibuat.",
   "data": {
     "id": "fb9beea0-d0e1-4716-91a7-0cb9d0afe72a",
     "report_no": "CR-2026/VIII/OMS-CMC/003",
@@ -131,7 +131,7 @@ Respons sukses (`200 OK`):
     "officer_id": 10,
     "status": "draft",
     "verification_uuid": "b7dcbd4e-2237-46a2-85e3-fe3d70877155",
-    "verification_url": "https://api.example.com/api/verify/b7dcbd4e-2237-46a2-85e3-fe3d70877155",
+    "verification_url": "https://app.example.com/verify/b7dcbd4e-2237-46a2-85e3-fe3d70877155",
     "qr_code_data_url": "data:image/png;base64,iVBORw0KGgoAAAANS...",
     "created_at": "2026-08-13T10:00:00.000Z",
     "updated_at": "2026-08-13T10:00:00.000Z"
@@ -233,7 +233,9 @@ Tidak perlu package QR di frontend. Backend mengirim `qr_code_data_url` pada res
 />
 ```
 
-QR tersebut berisi persis `verification_url`. Bila domain yang tersedia adalah domain frontend, atur backend:
+QR tersebut berisi persis `verification_url`. Target QR hanya berasal dari konfigurasi backend; header permintaan seperti `Origin`, `Referer`, `Host`, `X-Forwarded-Host`, dan `X-Forwarded-Proto` tidak pernah digunakan untuk membentuk URL.
+
+Konfigurasi utama dan otoritatif adalah:
 
 ```env
 PUBLIC_CALIBRATION_FRONTEND_URL=https://app.example.com
@@ -241,13 +243,17 @@ PUBLIC_CALIBRATION_FRONTEND_URL=https://app.example.com
 
 Hasil QR menjadi `https://app.example.com/verify/{verification_uuid}`. Route frontend `/verify/:uuid` kemudian mengambil data publik dari backend dengan `GET https://api.example.com/api/verify/:uuid`.
 
-`PUBLIC_CALIBRATION_BASE_URL=https://api.example.com/api` tetap didukung sebagai fallback untuk deployment yang ingin QR langsung membuka halaman verifikasi backend.
+Bila `PUBLIC_CALIBRATION_FRONTEND_URL` tidak ditetapkan, `PUBLIC_CALIBRATION_BASE_URL=https://api.example.com/api` tetap didukung secara eksplisit untuk deployment kompatibilitas yang ingin QR langsung membuka halaman verifikasi HTML backend. Bila kedua variabel ditetapkan, `PUBLIC_CALIBRATION_FRONTEND_URL` selalu digunakan; nilai frontend yang tidak valid tidak diam-diam dialihkan ke nilai kompatibilitas.
+
+Kedua nilai harus berupa URL `http` atau `https` dengan host publik. URL lokal/pribadi seperti `localhost`, loopback, alamat IPv4 privat, domain `.local`, host satu label, skema selain HTTP(S), dan URL dengan kredensial ditolak. Bila konfigurasi hilang atau tidak publik, endpoint yang memerlukan QR mengembalikan HTTP `500` dengan pesan `URL publik kalibrasi belum dikonfigurasi dengan alamat HTTP(S) publik yang valid.`.
 
 ## 5. Autosave / edit detail laporan
 
 `PUT /calibrations/{id}`
 
 Semua field payload bersifat opsional, tetapi bila mengirim `waterSamples`, kirim **seluruh** sample yang ingin dipertahankan. Server menyinkronkan koleksi: sample existing yang ID-nya tidak ada di payload akan dihapus.
+
+Nilai `notes` dibersihkan pada batas penulisan dan kembali dibersihkan pada setiap respons JSON calibration. Format editor yang dipertahankan hanya `p`, `strong`, `b`, `em`, `i`, `u`, `s`, `strike`, `ul`, `ol`, `li`, dan `br`, tanpa atribut. Elemen skrip/media/tautan, event handler, style, serta atribut lain dibuang. Pertahanan pada respons juga melindungi frontend dari data lama yang tersimpan sebelum aturan ini berlaku.
 
 Contoh payload lengkap memakai ID dari `GET /calibrations/{id}`:
 
@@ -374,7 +380,7 @@ Respons sukses autosave:
 ```json
 {
   "success": true,
-  "message": "Calibration draft updated successfully",
+  "message": "Draf kalibrasi berhasil diperbarui.",
   "data": {
     "id": "fb9beea0-d0e1-4716-91a7-0cb9d0afe72a",
     "status": "draft",
@@ -401,8 +407,9 @@ Server membuat detail serta solution standard untuk parameter baru, dan menghapu
 
 | Endpoint | Input | Respons sukses | Catatan |
 | --- | --- | --- | --- |
-| `POST /calibrations/{id}/submit` | Tanpa body | `{ "data": { "id": "...", "status": "submitted" } }` | Semua `calibration_result` untuk semua standard wajib terisi. Server menghitung dan menyimpan `details[].calculation_result` (`PASS`/`FAILED`) secara atomik sebelum mengubah status. Draft tidak lagi dapat diedit. |
-| `POST /calibrations/{id}/approve` | Tanpa body | `{ "data": { "id": "...", "status": "approved" } }` | Hanya role `adm` dan hanya untuk report berstatus `submitted`. Role `eng` menerima 401. |
+| `POST /calibrations/{id}/submit` | Tanpa body | `{ "message": "Laporan kalibrasi berhasil diajukan.", "data": { "id": "...", "status": "submitted" } }` | Semua `calibration_result` untuk semua standar wajib terisi. Server menghitung dan menyimpan `details[].calculation_result` (`PASS`/`FAILED`) secara atomik sebelum mengubah status. Draf tidak lagi dapat diedit. |
+| `POST /calibrations/{id}/approve` | Tanpa body | `{ "message": "Laporan kalibrasi berhasil disetujui.", "data": { "id": "...", "status": "approved" } }` | Hanya role `adm` dan hanya untuk laporan berstatus `submitted`. Role `eng` menerima 401. |
+| `DELETE /calibrations/{id}` | Tanpa body | `{ "message": "Laporan kalibrasi berhasil dihapus." }` | Hanya laporan berstatus `draft` yang dapat dihapus. |
 | `GET /calibrations/{id}/print` | - | `application/pdf` | Mengunduh/menampilkan PDF laporan. Endpoint ini public pada implementasi saat ini. Header unduhan adalah `Content-Disposition: attachment; filename="Laporan_Kalibrasi_<safe-report-number>.pdf"`. Error teks endpoint ini: `Laporan kalibrasi tidak ditemukan.`, `Template laporan kalibrasi tidak ditemukan.`, atau `Gagal membuat PDF laporan kalibrasi.`. |
 | `GET /verify/{verification_uuid}` | - | JSON atau HTML | Endpoint backend public yang dipanggil halaman frontend `/verify/:uuid`. |
 
@@ -410,15 +417,25 @@ Server membuat detail serta solution standard untuk parameter baru, dan menghapu
 
 Frontend perlu menyediakan field `orp`, `nitrit`, dan `kedalaman` sebagai input opsional (`number` atau `null`), bersamaan dengan field water sample lainnya. Ketiganya disimpan serta dikembalikan API pada setiap `waterSamples[]`.
 
-Tabel preview dan PDF kini juga menampilkan kolom **ORP (mV)**, **NO2-N / Nitrit (mg/L)**, dan **Kedalaman (m)**. Nilai `null` tampil sebagai `-`.
+Tabel preview dan PDF kini juga menampilkan kolom **ORP (mV)**, **Nitrit (NO2-N) (mg/L)**, dan **Kedalaman (m)**. Istilah kimia lainnya ditampilkan sebagai **Amonia (NH3-N)** dan **Nitrat (NO3-N)**. Nilai `null` tampil sebagai `-`.
 
 ## Error yang perlu ditangani frontend
 
 | Kondisi | HTTP umum | Pesan server |
 | --- | --- | --- |
-| Token tidak ada/tidak valid | 401 | `Access token invalid!` atau `Access token expired or invalid` |
-| End date sebelum start date | 400 | `calibration_end_date must be on or after calibration_start_date.` |
-| Draft tidak ditemukan | 404 | `Calibration report not found` |
-| Autosave pada non-draft | 400 | `Only drafts can be updated` |
-| Submit tanpa nilai result | 400 | `Calibration result for CRM standard '<nilai-standard>' is missing.` |
-| Submit tanpa parameter | 400 | `Cannot submit calibration with no parameters selected.` |
+| Token tidak ada/tidak valid | 401 | `Token akses tidak valid.` atau `Token akses telah kedaluwarsa atau tidak valid.` |
+| Role tidak diizinkan pada endpoint calibration | 401 | `Anda tidak memiliki izin untuk mengakses endpoint kalibrasi ini.` |
+| Field create wajib tidak lengkap | 400 | `Kolom station_id, calibration_start_date, calibration_end_date, dan parameter_ids wajib diisi.` |
+| Tanggal akhir sebelum tanggal awal | 400 | `calibration_end_date harus sama dengan atau setelah calibration_start_date.` |
+| Laporan tidak ditemukan | 404 | `Laporan kalibrasi tidak ditemukan.` |
+| Update pada non-draf | 400 | `Hanya laporan berstatus draf yang dapat diperbarui.` |
+| Delete pada non-draf | 400 | `Hanya laporan berstatus draf yang dapat dihapus.` |
+| Submit pada non-draf | 400 | `Hanya laporan berstatus draf yang dapat diajukan.` |
+| Submit tanpa parameter | 400 | `Laporan kalibrasi tidak dapat diajukan karena belum ada parameter yang dipilih.` |
+| Detail parameter tanpa standar CRM | 400 | `Detail parameter dengan ID <id-detail> belum memiliki standar CRM.` |
+| Submit tanpa hasil standar | 400 | `Hasil kalibrasi untuk standar CRM '<nama-standar>' belum diisi.` |
+| Hasil parameter tidak dapat dihitung | 400 | `Hasil kalibrasi untuk parameter '<nama-parameter>' tidak dapat dihitung.` |
+| Approve pada status selain submitted | 400 | `Hanya laporan kalibrasi yang telah diajukan yang dapat disetujui.` |
+| UUID verifikasi tidak ditemukan | 404 | `Laporan verifikasi kalibrasi tidak ditemukan.` |
+| Konfigurasi URL publik QR hilang/tidak valid | 500 | `URL publik kalibrasi belum dikonfigurasi dengan alamat HTTP(S) publik yang valid.` |
+| Kegagalan internal lain pada controller calibration | 500 | `Terjadi kesalahan internal saat memproses kalibrasi.` |

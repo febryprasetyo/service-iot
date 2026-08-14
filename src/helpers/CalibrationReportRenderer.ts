@@ -48,41 +48,71 @@ const waterSampleColumns: WaterSampleColumn[] = [
   { names: ['cod'], field: 'cod', label: 'COD', unit: '(mg/L)' },
   { names: ['bod'], field: 'bod', label: 'BOD', unit: '(mg/L)' },
   { names: ['tss'], field: 'tss', label: 'TSS', unit: '(mg/L)' },
-  { names: ['amonia', 'nh3'], field: 'amonia', label: 'NH3-N', unit: '(mg/L)' },
-  { names: ['nitrat', 'no3'], field: 'nitrat', label: 'NO3-N', unit: '(mg/L)' },
-  { names: ['nitrit', 'no2'], field: 'nitrit', label: 'NO2-N', unit: '(mg/L)' },
+  { names: ['amonia', 'nh3', 'nh3-n', 'amonia (nh3-n)'], field: 'amonia', label: 'Amonia (NH3-N)', unit: '(mg/L)' },
+  { names: ['nitrat', 'no3', 'no3-n', 'nitrat (no3-n)'], field: 'nitrat', label: 'Nitrat (NO3-N)', unit: '(mg/L)' },
+  { names: ['nitrit', 'no2', 'no2-n', 'nitrit (no2-n)'], field: 'nitrit', label: 'Nitrit (NO2-N)', unit: '(mg/L)' },
   { names: ['kedalaman', 'level', 'depth'], field: 'kedalaman', label: 'Kedalaman', unit: '(m)' }
 ];
 
-function getDateParts(value: string | Date): { day: number; month: number; year: number } | null {
-  const dateOnly = (typeof value === 'string' ? value : value.toISOString()).slice(0, 10);
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateOnly);
-  if (!match) return null;
+const calibrationMonths = [
+  'Januari',
+  'Februari',
+  'Maret',
+  'April',
+  'Mei',
+  'Juni',
+  'Juli',
+  'Agustus',
+  'September',
+  'Oktober',
+  'November',
+  'Desember'
+] as const;
 
-  return { year: Number(match[1]), month: Number(match[2]), day: Number(match[3]) };
+function getDateParts(value: string | Date): { day: number; month: number; year: number } | null {
+  if (value instanceof Date) {
+    if (Number.isNaN(value.getTime())) return null;
+    return { year: value.getFullYear(), month: value.getMonth() + 1, day: value.getDate() };
+  }
+
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (match) {
+    const parts = { year: Number(match[1]), month: Number(match[2]), day: Number(match[3]) };
+    const parsed = new Date(parts.year, parts.month - 1, parts.day);
+    if (
+      parsed.getFullYear() !== parts.year
+      || parsed.getMonth() + 1 !== parts.month
+      || parsed.getDate() !== parts.day
+    ) return null;
+    return parts;
+  }
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return { year: parsed.getFullYear(), month: parsed.getMonth() + 1, day: parsed.getDate() };
+}
+
+function formatDateParts(parts: { day: number; month: number; year: number }): string {
+  return `${parts.day} ${calibrationMonths[parts.month - 1]} ${parts.year}`;
 }
 
 export function formatIndonesianDate(value: string | Date): string {
   const parts = getDateParts(value);
-  if (!parts) return String(value);
-  return new Intl.DateTimeFormat('id-ID', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-    timeZone: 'UTC'
-  }).format(new Date(Date.UTC(parts.year, parts.month - 1, parts.day)));
+  return parts ? formatDateParts(parts) : String(value);
 }
 
 export function formatCalibrationDateRange(startDate: string | Date, endDate: string | Date): string {
   const start = getDateParts(startDate);
   const end = getDateParts(endDate);
+  if (!start || !end) return `${formatIndonesianDate(startDate)}–${formatIndonesianDate(endDate)}`;
   if (start && end && start.year === end.year && start.month === end.month) {
     if (start.day === end.day) return formatIndonesianDate(startDate);
-    const monthYear = new Intl.DateTimeFormat('id-ID', { month: 'long', year: 'numeric', timeZone: 'UTC' })
-      .format(new Date(Date.UTC(end.year, end.month - 1, end.day)));
-    return `${start.day}–${end.day} ${monthYear}`;
+    return `${start.day}–${end.day} ${calibrationMonths[start.month - 1]} ${start.year}`;
   }
-  return `${formatIndonesianDate(startDate)} – ${formatIndonesianDate(endDate)}`;
+  if (start.year === end.year) {
+    return `${start.day} ${calibrationMonths[start.month - 1]}–${end.day} ${calibrationMonths[end.month - 1]} ${start.year}`;
+  }
+  return `${formatDateParts(start)}–${formatDateParts(end)}`;
 }
 
 export function formatReportNumberValue(value: unknown): string {
@@ -101,8 +131,11 @@ function escapeHtml(value: unknown): string {
   }[character] as string));
 }
 
-function sanitizeReportNotes(notes: string | null | undefined): string {
-  if (!notes) return '<ul><li>Tidak ada catatan.</li></ul>';
+export function sanitizeCalibrationNotes(notes: string): string;
+export function sanitizeCalibrationNotes(notes: null): null;
+export function sanitizeCalibrationNotes(notes: undefined): undefined;
+export function sanitizeCalibrationNotes(notes: string | null | undefined): string | null | undefined {
+  if (notes === null || notes === undefined) return notes;
   return sanitizeHtml(notes, {
     allowedTags: ['p', 'strong', 'b', 'em', 'i', 'u', 's', 'strike', 'ul', 'ol', 'li', 'br'],
     allowedAttributes: {},
@@ -119,9 +152,24 @@ function withUnit(value: unknown, parameterName: string, unit: string | null | u
   return parameterName.toLowerCase() === 'ph' || !unit ? formattedValue : `${formattedValue} ${unit}`;
 }
 
+export function formatCalibrationStandard(
+  standardName: string | null | undefined,
+  standardValue: number | string | null | undefined,
+  parameterName: string,
+  unit: string | null | undefined
+): string {
+  const trimmedName = String(standardName ?? '').trim();
+  const isCrm = /^crm\b/i.test(trimmedName);
+  const fallbackName = trimmedName.replace(/^crm\b\s*/i, '');
+  const displayValue = standardValue === null || standardValue === undefined
+    ? fallbackName || '-'
+    : formatReportNumberValue(standardValue);
+  const displayUnit = displayValue === '-' || parameterName.toLowerCase() === 'ph' || !unit ? '' : ` ${unit}`;
+  return `${isCrm ? 'CRM ' : ''}${displayValue}${displayUnit}`.trim();
+}
+
 function formatStandardLabel(standard: ReportStandard, parameterName: string, unit: string | null | undefined): string {
-  const prefix = /^crm\b/i.test(String(standard.crmName || '')) ? 'CRM ' : '';
-  return escapeHtml(`${prefix}${withUnit(standard.crmStandardValue, parameterName, unit)}`);
+  return escapeHtml(formatCalibrationStandard(standard.crmName, standard.crmStandardValue, parameterName, unit));
 }
 
 function formatCalibrationStatus(status: 'PASS' | 'FAILED' | null | undefined): string {
@@ -130,13 +178,33 @@ function formatCalibrationStatus(status: 'PASS' | 'FAILED' | null | undefined): 
   return '<span class="tag-pending">Menunggu</span>';
 }
 
-function formatReportPlace(value: unknown): string {
+export function formatReportPlace(value: unknown): string {
   return String(value || '')
-    .replace(/\b(kabupaten|kota)\b/gi, '')
     .trim()
+    .replace(/^(kabupaten|kota)\s+/i, '')
     .replace(/\s+/g, ' ')
     .toLowerCase()
     .replace(/\b\w/g, (character) => character.toUpperCase());
+}
+
+const calibrationParameterLabels: Record<string, string> = {
+  AMONIA: 'Amonia (NH3-N)',
+  'AMONIA (NH3-N)': 'Amonia (NH3-N)',
+  NH3: 'Amonia (NH3-N)',
+  'NH3-N': 'Amonia (NH3-N)',
+  NITRAT: 'Nitrat (NO3-N)',
+  'NITRAT (NO3-N)': 'Nitrat (NO3-N)',
+  NO3: 'Nitrat (NO3-N)',
+  'NO3-N': 'Nitrat (NO3-N)',
+  NITRIT: 'Nitrit (NO2-N)',
+  'NITRIT (NO2-N)': 'Nitrit (NO2-N)',
+  NO2: 'Nitrit (NO2-N)',
+  'NO2-N': 'Nitrit (NO2-N)'
+};
+
+export function formatCalibrationParameterName(value: string): string {
+  const trimmedValue = value.trim();
+  return calibrationParameterLabels[trimmedValue.toUpperCase()] || trimmedValue;
 }
 
 function formatCoefficients(value: ReportDetail['coefficients'], parameterName: string): string {
@@ -180,7 +248,7 @@ function renderCalibrationRows(details: ReportDetail[]): string {
     }
 
     return `<tr>
-      <td class="font-bold">Kalibrasi ${escapeHtml(detail.parameterName)}</td>
+      <td class="font-bold">Kalibrasi ${escapeHtml(formatCalibrationParameterName(detail.parameterName))}</td>
       <td class="text-center">${standardsColumn}</td>
       <td class="text-center">${readingLines.join('<br>') || '-'}</td>
       <td class="text-center">${formatCoefficients(detail.coefficients, detail.parameterName)}</td>
@@ -206,7 +274,7 @@ function renderWaterSampleTable(details: ReportDetail[], samples: any[]): { colg
 }
 
 export function buildCalibrationPdfFilename(reportNo: string | null | undefined, calibrationId: string): string {
-  const safeReportNo = String(reportNo || `calibration_${calibrationId}`).replace(/[^a-z0-9A-Z-_\.]/g, '_');
+  const safeReportNo = String(reportNo || `kalibrasi_${calibrationId}`).replace(/[^a-z0-9A-Z-_\.]/g, '_');
   return `Laporan_Kalibrasi_${safeReportNo}.pdf`;
 }
 
@@ -224,7 +292,8 @@ export function getCalibrationPdfResponseContract(reportNo: string | null | unde
 export function renderCalibrationReportHtml(template: string, input: RenderCalibrationReportInput): string {
   const sampleTable = renderWaterSampleTable(input.details, input.waterSamples);
   const place = formatReportPlace(input.stationCity || input.stationAddress);
-  const placeDate = `${place}, ${formatIndonesianDate(input.calibrationEndDate)}`;
+  const formattedEndDate = formatIndonesianDate(input.calibrationEndDate);
+  const placeDate = place ? `${place}, ${formattedEndDate}` : formattedEndDate;
 
   return template
     .replace('{{REPORT_NO}}', () => escapeHtml(input.reportNo))
@@ -236,7 +305,7 @@ export function renderCalibrationReportHtml(template: string, input: RenderCalib
     .replace('{{SAMPLE_COLGROUP}}', sampleTable.colgroup)
     .replace('{{SAMPLE_HEADERS}}', sampleTable.headers)
     .replace('{{SAMPLE_ROWS}}', sampleTable.rows)
-    .replace('{{NOTES}}', () => sanitizeReportNotes(input.notes))
+    .replace('{{NOTES}}', () => sanitizeCalibrationNotes(input.notes) || '<ul><li>Tidak ada catatan.</li></ul>')
     .replace('{{QR_CODE_IMAGE}}', () => escapeHtml(input.qrCodeImage))
     .replace('{{OFFICER_NAME}}', () => escapeHtml(input.officerName || '-'))
     .replace(/{{PLACE_DATE}}/g, () => escapeHtml(placeDate));

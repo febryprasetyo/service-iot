@@ -153,9 +153,9 @@ function sendResponseError(res: any, error: any, statusCode: any = null) {
   if (isNotEmpty(error)) {
     statusCode = errorCodes[error.code || ''] || statusCode || 500
     var message = error.message || error.code || ''
-    if (statusCode === 500) message = 'INTERNAL ERROR: ' + message
+    if (statusCode === 500 && !error.expose) message = 'INTERNAL ERROR: ' + message
     var error_detail = undefined
-    if (statusCode === 500 && process.env.SHOW_ERROR_DETAIL) {
+    if (statusCode === 500 && process.env.SHOW_ERROR_DETAIL && !error.expose) {
       error_detail = error.detail || error.stack || 'Unknown error'
     }
     if (error.detail) error_detail = error.detail

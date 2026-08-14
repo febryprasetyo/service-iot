@@ -2,12 +2,49 @@ import { readFileSync } from 'fs';
 import { resolve } from 'path';
 import {
   buildCalibrationPdfFilename,
+  formatCalibrationDateRange,
+  formatCalibrationParameterName,
+  formatCalibrationStandard,
+  formatIndonesianDate,
+  formatReportPlace,
   formatReportNumberValue,
   getCalibrationPdfResponseContract,
-  renderCalibrationReportHtml
+  renderCalibrationReportHtml,
+  sanitizeCalibrationNotes
 } from './CalibrationReportRenderer';
 
 describe('renderCalibrationReportHtml', () => {
+  it('matches the frontend golden date contract for local dates and calendar validation', () => {
+    const originalTimezone = process.env.TZ;
+    process.env.TZ = 'Asia/Jakarta';
+
+    try {
+      const localMidnight = new Date(2026, 7, 12, 0, 0, 0);
+
+      expect(localMidnight.toISOString()).toBe('2026-08-11T17:00:00.000Z');
+      expect(formatIndonesianDate(localMidnight)).toBe('12 Agustus 2026');
+      expect(formatCalibrationDateRange('2026-08-10', '2026-09-02')).toBe('10 Agustus–2 September 2026');
+      expect(formatCalibrationDateRange('2026-12-31', '2027-01-02')).toBe('31 Desember 2026–2 Januari 2027');
+      expect(formatIndonesianDate('2026-02-31')).toBe('2026-02-31');
+      expect(formatCalibrationDateRange('2026-02-31', '2026-08-12')).toBe('2026-02-31–12 Agustus 2026');
+    } finally {
+      if (originalTimezone === undefined) delete process.env.TZ;
+      else process.env.TZ = originalTimezone;
+    }
+  });
+
+  it('matches the frontend golden standard, place, parameter, and coefficient contract', () => {
+    expect(formatCalibrationStandard('0', 0, 'DO', 'mg/L')).toBe('0,00 mg/L');
+    expect(formatCalibrationStandard('CRM 5.51', null, 'DO', 'mg/L')).toBe('CRM 5.51 mg/L');
+    expect(formatCalibrationStandard('CRM pH 7', null, 'pH', 'Satuan')).toBe('CRM pH 7');
+    expect(formatReportPlace('  kota morowali UTARA  ')).toBe('Morowali Utara');
+    expect(formatReportPlace('Bukit Kota Indah')).toBe('Bukit Kota Indah');
+    expect(formatCalibrationParameterName('Amonia')).toBe('Amonia (NH3-N)');
+    expect(formatCalibrationParameterName('NO3-N')).toBe('Nitrat (NO3-N)');
+    expect(formatCalibrationParameterName('no2')).toBe('Nitrit (NO2-N)');
+    expect(formatReportNumberValue(1.413)).toBe('1,41');
+  });
+
   it('renders the Indonesian PDF acceptance fixture with localized dates, values, labels, and statuses', () => {
     const template = readFileSync(resolve(process.cwd(), 'src/views/Calibration_Report.html'), 'utf8');
 
@@ -48,9 +85,27 @@ describe('renderCalibrationReportHtml', () => {
           parameterUnit: 'mg/L',
           standards: [],
           calculationStatus: null
+        },
+        {
+          parameterName: 'Amonia',
+          parameterUnit: 'mg/L',
+          standards: [],
+          calculationStatus: null
+        },
+        {
+          parameterName: 'Nitrat',
+          parameterUnit: 'mg/L',
+          standards: [],
+          calculationStatus: null
+        },
+        {
+          parameterName: 'Nitrit',
+          parameterUnit: 'mg/L',
+          standards: [],
+          calculationStatus: null
         }
       ],
-      waterSamples: [{ sample_name: 'Air Sungai', suhu: 25, do: 5.4, ph: 7 }]
+      waterSamples: [{ sample_name: 'Air Sungai', suhu: 25, do: 5.4, ph: 7, amonia: 1, nitrat: 10, nitrit: 100 }]
     });
 
     expect(html).toContain('LAPORAN KALIBRASI');
@@ -79,6 +134,40 @@ describe('renderCalibrationReportHtml', () => {
     expect(html).toContain('<span class="tag-pending">Menunggu</span>');
     expect(html).toContain('>7,00</td>');
     expect(html).not.toContain('>7,00 Unit</td>');
+    expect(html).toContain('Kalibrasi Amonia (NH3-N)');
+    expect(html).toContain('Kalibrasi Nitrat (NO3-N)');
+    expect(html).toContain('Kalibrasi Nitrit (NO2-N)');
+    expect(html).toContain('<span class="header-label">Amonia (NH3-N)</span><span class="header-unit">(mg/L)</span>');
+    expect(html).toContain('<span class="header-label">Nitrat (NO3-N)</span><span class="header-unit">(mg/L)</span>');
+    expect(html).toContain('<span class="header-label">Nitrit (NO2-N)</span><span class="header-unit">(mg/L)</span>');
+    expect(html).toContain('<img src="data:image/png;base64,fixture" alt="Kode QR verifikasi"');
+  });
+
+  it('uses a sanitized standard name when the standard value is null', () => {
+    const template = readFileSync(resolve(process.cwd(), 'src/views/Calibration_Report.html'), 'utf8');
+    const html = renderCalibrationReportHtml(template, {
+      reportNo: 'CR-STANDARD-FALLBACK',
+      stationName: 'KLHK299',
+      calibrationStartDate: '2026-08-10',
+      calibrationEndDate: '2026-09-02',
+      stationCity: '  kota morowali UTARA  ',
+      qrCodeImage: 'data:image/png;base64,fixture',
+      details: [{
+        parameterName: 'DO',
+        parameterUnit: 'mg/L',
+        standards: [{ crmName: 'CRM <img src=x onerror=alert(1)>5.51', crmStandardValue: null }],
+        coefficients: { k: 1.413, b: 0 },
+        calculationStatus: null
+      }],
+      waterSamples: []
+    });
+
+    expect(html).toContain('<td class="st-val">: 10 Agustus–2 September 2026</td>');
+    expect(html).toContain('<strong>Tempat/Tanggal:</strong> Morowali Utara, 2 September 2026');
+    expect(html).toContain('CRM &lt;img src=x onerror=alert(1)&gt;5.51 mg/L');
+    expect(html).toContain('<strong>K:</strong> 1,41');
+    expect(html).toContain('<strong>B:</strong> 0,00');
+    expect(html).not.toContain('<img src=x onerror=alert(1)>');
   });
 
   it('escapes ordinary report text and sanitizes rich-text notes', () => {
@@ -119,6 +208,16 @@ describe('renderCalibrationReportHtml', () => {
     expect(noteMarkup).not.toMatch(/\sstyle=/i);
   });
 
+  it('exports the renderer allowlist sanitizer for calibration write boundaries', () => {
+    const hostileNotes = '<p onclick="alert(1)">Catatan <strong data-secret="x">aman</strong><em>miring</em><a href="https://evil.test">tautan</a><script>alert(2)</script></p><ul style="color:red"><li>butir</li></ul>';
+
+    expect(sanitizeCalibrationNotes(hostileNotes)).toBe(
+      '<p>Catatan <strong>aman</strong><em>miring</em>tautan</p><ul><li>butir</li></ul>'
+    );
+    expect(sanitizeCalibrationNotes(null)).toBeNull();
+    expect(sanitizeCalibrationNotes(undefined)).toBeUndefined();
+  });
+
   it('renders null, undefined, and empty numeric values as placeholders', () => {
     expect(formatReportNumberValue(null)).toBe('-');
     expect(formatReportNumberValue(undefined)).toBe('-');
@@ -148,6 +247,7 @@ describe('renderCalibrationReportHtml', () => {
 
   it('defines the visible PDF filename, headers, and errors without changing the PDF response type', () => {
     expect(buildCalibrationPdfFilename('CR/2026 VIII', 'cal-7')).toBe('Laporan_Kalibrasi_CR_2026_VIII.pdf');
+    expect(buildCalibrationPdfFilename(null, 'cal-7')).toBe('Laporan_Kalibrasi_kalibrasi_cal-7.pdf');
     expect(getCalibrationPdfResponseContract('CR/2026 VIII', 'cal-7')).toEqual({
       contentType: 'application/pdf',
       contentDisposition: 'attachment; filename="Laporan_Kalibrasi_CR_2026_VIII.pdf"',

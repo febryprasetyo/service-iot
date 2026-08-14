@@ -7,6 +7,13 @@ import { CalibrationService } from '../services/CalibrationService';
 import { evaluateStandardMeasurement, getCalibrationSpecification } from '../helpers/CalibrationCalculator';
 import { ensureDefaultSolutionStandardsForDetail, getMasterSolutionStandards } from '../helpers/CalibrationDefaults';
 import { getCalibrationPdfResponseContract, renderCalibrationReportHtml } from '../helpers/CalibrationReportRenderer';
+import {
+  CALIBRATION_MESSAGES,
+  getVerificationUrl,
+  localizeCalibrationControllerError,
+  sanitizeCalibrationRecordNotes,
+  sanitizeCalibrationWriteNotes
+} from '../helpers/CalibrationApiContract';
 
 const calibrationRepository = new CalibrationRepository(db);
 const calibrationService = new CalibrationService(calibrationRepository);
@@ -15,43 +22,6 @@ function normalizeCoefficients(coefficients: Record<string, unknown>): Record<st
   return Object.fromEntries(
     Object.entries(coefficients).map(([key, value]) => [key.toLowerCase(), value])
   );
-}
-
-/**
- * QR codes can point to the frontend verification page. That page then loads
- * the public backend data from GET /api/verify/:verification_uuid.
- *
- * PUBLIC_CALIBRATION_FRONTEND_URL example: https://app.example.com
- * PUBLIC_CALIBRATION_BASE_URL remains supported for deployments that expose
- * the backend verification page directly, e.g. https://api.example.com/api.
- */
-function getVerificationUrl(req: Request, verificationUuid: string): string {
-  const isPublicUrl = (value: string) => {
-    try {
-      const hostname = new URL(value).hostname.toLowerCase();
-      return hostname !== 'localhost' && hostname !== '127.0.0.1' && hostname !== '::1';
-    } catch (_) {
-      return false;
-    }
-  };
-  const origin = String(req.headers.origin || '');
-  const referer = String(req.headers.referer || '');
-  const refererOrigin = referer ? (() => { try { return new URL(referer).origin; } catch (_) { return ''; } })() : '';
-  const frontendBaseUrl = [process.env.PUBLIC_CALIBRATION_FRONTEND_URL, origin, refererOrigin]
-    .find((value): value is string => Boolean(value && isPublicUrl(value)));
-  if (frontendBaseUrl) return `${frontendBaseUrl.replace(/\/$/, '')}/verify/${verificationUuid}`;
-
-  const configuredApiUrl = process.env.PUBLIC_CALIBRATION_BASE_URL;
-  if (configuredApiUrl && isPublicUrl(configuredApiUrl)) {
-    return `${configuredApiUrl.replace(/\/$/, '')}/verify/${verificationUuid}`;
-  }
-
-  const protocol = ((req.headers['x-forwarded-proto'] as string) || req.protocol).split(',')[0].trim();
-  const forwardedHost = String(req.headers['x-forwarded-host'] || req.get('host') || '').split(',')[0].trim();
-  const requestApiUrl = `${process.env.PUBLIC_CALIBRATION_PROTOCOL || protocol}://${forwardedHost}/api`;
-  if (forwardedHost && isPublicUrl(requestApiUrl)) return `${requestApiUrl}/verify/${verificationUuid}`;
-
-  throw createError('PUBLIC_CALIBRATION_FRONTEND_URL must be configured with a public, non-local URL.', 'E_INTERNAL_SERVER_ERROR');
 }
 
 function deriveCalibrationStatus(parameterName: string, standards: any[]): 'PASS' | 'FAILED' | null {
@@ -136,7 +106,7 @@ class CalibrationController {
         })
       });
     } catch (error: any) {
-      return sendResponseError(res, error);
+      return sendResponseError(res, localizeCalibrationControllerError(error));
     }
   }
   
@@ -150,11 +120,11 @@ class CalibrationController {
       const user = (req as any).user;
 
       if (!station_id || !calibration_start_date || !calibration_end_date || !parameter_ids || !parameter_ids.length) {
-        throw createError('Missing required fields. station_id, calibration_start_date, calibration_end_date, and parameter_ids are required.', 'E_BAD_REQUEST');
+        throw createError(CALIBRATION_MESSAGES.requiredFields, 'E_BAD_REQUEST');
       }
 
       if (new Date(calibration_end_date) < new Date(calibration_start_date)) {
-        throw createError('calibration_end_date must be on or after calibration_start_date.', 'E_BAD_REQUEST');
+        throw createError(CALIBRATION_MESSAGES.invalidDateRange, 'E_BAD_REQUEST');
       }
 
       const officerId = user.user_id;
@@ -184,15 +154,15 @@ class CalibrationController {
 
       return sendResponseCustom(res, {
         success: true,
-        message: 'Calibration draft created successfully',
+        message: CALIBRATION_MESSAGES.draftCreated,
         data: {
-          ...data,
+          ...sanitizeCalibrationRecordNotes(data),
           verification_url: verificationUrl,
           qr_code_data_url: qrCodeDataUrl
         }
       });
     } catch (error: any) {
-      return sendResponseError(res, error);
+      return sendResponseError(res, localizeCalibrationControllerError(error));
     }
   }
 
@@ -232,11 +202,11 @@ class CalibrationController {
 
       return sendResponseCustom(res, {
         success: true,
-        data: calibrations,
+        data: calibrations.map((calibration: any) => sanitizeCalibrationRecordNotes(calibration)),
         total: parseInt(count as string)
       });
     } catch (error: any) {
-      return sendResponseError(res, error);
+      return sendResponseError(res, localizeCalibrationControllerError(error));
     }
   }
 
@@ -265,7 +235,7 @@ class CalibrationController {
         .first();
 
       if (!calibration) {
-        throw createError('Calibration report not found', 'E_NOT_FOUND');
+        throw createError(CALIBRATION_MESSAGES.reportNotFound, 'E_NOT_FOUND');
       }
 
       const details = await db('calibration_details')
@@ -298,7 +268,7 @@ class CalibrationController {
       return sendResponseCustom(res, {
         success: true,
         data: {
-          ...calibration,
+          ...sanitizeCalibrationRecordNotes(calibration),
           verification_url: verificationUrl,
           qr_code_data_url: qrCodeDataUrl,
           details: await Promise.all(details.map(async (d: any) => {
@@ -330,7 +300,7 @@ class CalibrationController {
         }
       });
     } catch (error: any) {
-      return sendResponseError(res, error);
+      return sendResponseError(res, localizeCalibrationControllerError(error));
     }
   }
 
@@ -345,11 +315,11 @@ class CalibrationController {
 
       const calibration = await db('calibrations').where({ id }).first();
       if (!calibration) {
-        throw createError('Calibration report not found', 'E_NOT_FOUND');
+        throw createError(CALIBRATION_MESSAGES.reportNotFound, 'E_NOT_FOUND');
       }
 
       if (calibration.status !== 'draft') {
-        throw createError('Only drafts can be updated', 'E_BAD_REQUEST');
+        throw createError(CALIBRATION_MESSAGES.updateDraftOnly, 'E_BAD_REQUEST');
       }
 
       await db.transaction(async (trx) => {
@@ -360,9 +330,9 @@ class CalibrationController {
         const effectiveStartDate = calibration_start_date || calibration.calibration_start_date;
         const effectiveEndDate = calibration_end_date || calibration.calibration_end_date;
         if (new Date(effectiveEndDate) < new Date(effectiveStartDate)) {
-          throw createError('calibration_end_date must be on or after calibration_start_date.', 'E_BAD_REQUEST');
+          throw createError(CALIBRATION_MESSAGES.invalidDateRange, 'E_BAD_REQUEST');
         }
-        if (notes !== undefined) headerUpdate.notes = notes;
+        if (notes !== undefined) headerUpdate.notes = sanitizeCalibrationWriteNotes(notes);
 
         await trx('calibrations').where({ id }).update(headerUpdate);
 
@@ -531,11 +501,11 @@ class CalibrationController {
 
       return sendResponseCustom(res, {
         success: true,
-        message: 'Calibration draft updated successfully',
-        data: updated
+        message: CALIBRATION_MESSAGES.draftUpdated,
+        data: sanitizeCalibrationRecordNotes(updated)
       });
     } catch (error: any) {
-      return sendResponseError(res, error);
+      return sendResponseError(res, localizeCalibrationControllerError(error));
     }
   }
 
@@ -549,21 +519,21 @@ class CalibrationController {
 
       const calibration = await db('calibrations').where({ id }).first();
       if (!calibration) {
-        throw createError('Calibration report not found', 'E_NOT_FOUND');
+        throw createError(CALIBRATION_MESSAGES.reportNotFound, 'E_NOT_FOUND');
       }
 
       if (calibration.status !== 'draft') {
-        throw createError('Only drafts can be deleted', 'E_BAD_REQUEST');
+        throw createError(CALIBRATION_MESSAGES.deleteDraftOnly, 'E_BAD_REQUEST');
       }
 
       await db('calibrations').where({ id }).del();
 
       return sendResponseCustom(res, {
         success: true,
-        message: 'Calibration report deleted successfully'
+        message: CALIBRATION_MESSAGES.reportDeleted
       });
     } catch (error: any) {
-      return sendResponseError(res, error);
+      return sendResponseError(res, localizeCalibrationControllerError(error));
     }
   }
 
@@ -577,11 +547,11 @@ class CalibrationController {
 
       const calibration = await db('calibrations').where({ id }).first();
       if (!calibration) {
-        throw createError('Calibration report not found', 'E_NOT_FOUND');
+        throw createError(CALIBRATION_MESSAGES.reportNotFound, 'E_NOT_FOUND');
       }
 
       if (calibration.status !== 'draft') {
-        throw createError('Only drafts can be submitted', 'E_BAD_REQUEST');
+        throw createError(CALIBRATION_MESSAGES.submitDraftOnly, 'E_BAD_REQUEST');
       }
 
       // Check completeness: all details must have CRM standard results filled
@@ -590,7 +560,7 @@ class CalibrationController {
         .where('detail.calibration_id', id)
         .select('detail.*', 'parameter.name as parameter_name');
       if (!details.length) {
-        throw createError('Cannot submit calibration with no parameters selected.', 'E_BAD_REQUEST');
+        throw createError(CALIBRATION_MESSAGES.noParameters, 'E_BAD_REQUEST');
       }
 
       const detailIds = details.map((d: any) => d.id);
@@ -599,11 +569,11 @@ class CalibrationController {
       for (const d of details) {
         const paramStandards = standards.filter((s: any) => s.calibration_detail_id === d.id);
         if (!paramStandards.length) {
-          throw createError(`Parameter detail ID ${d.id} is missing CRM standards.`, 'E_BAD_REQUEST');
+          throw createError(CALIBRATION_MESSAGES.parameterStandardsMissing(d.id), 'E_BAD_REQUEST');
         }
         for (const ps of paramStandards) {
           if (ps.calibration_result === null || ps.calibration_result === undefined) {
-            throw createError(`Calibration result for CRM standard '${ps.crm_name}' is missing.`, 'E_BAD_REQUEST');
+            throw createError(CALIBRATION_MESSAGES.calibrationResultMissing(ps.crm_name), 'E_BAD_REQUEST');
           }
         }
       }
@@ -616,7 +586,7 @@ class CalibrationController {
           const paramStandards = standards.filter((standard: any) => standard.calibration_detail_id === detail.id);
           const calculationResult = deriveCalibrationStatus(detail.parameter_name, paramStandards);
           if (!calculationResult) {
-            throw createError(`Unable to calculate result for parameter '${detail.parameter_name}'.`, 'E_BAD_REQUEST');
+            throw createError(CALIBRATION_MESSAGES.calculationUnavailable(detail.parameter_name), 'E_BAD_REQUEST');
           }
           await trx('calibration_details').where({ id: detail.id }).update({
             calculation_result: calculationResult,
@@ -632,11 +602,11 @@ class CalibrationController {
 
       return sendResponseCustom(res, {
         success: true,
-        message: 'Calibration report submitted successfully',
+        message: CALIBRATION_MESSAGES.reportSubmitted,
         data: { id, status: 'submitted' }
       });
     } catch (error: any) {
-      return sendResponseError(res, error);
+      return sendResponseError(res, localizeCalibrationControllerError(error));
     }
   }
 
@@ -650,11 +620,11 @@ class CalibrationController {
 
       const calibration = await db('calibrations').where({ id }).first();
       if (!calibration) {
-        throw createError('Calibration report not found', 'E_NOT_FOUND');
+        throw createError(CALIBRATION_MESSAGES.reportNotFound, 'E_NOT_FOUND');
       }
 
       if (calibration.status !== 'submitted') {
-        throw createError('Only submitted calibration reports can be approved', 'E_BAD_REQUEST');
+        throw createError(CALIBRATION_MESSAGES.approvalSubmittedOnly, 'E_BAD_REQUEST');
       }
 
       await db('calibrations').where({ id }).update({
@@ -664,11 +634,11 @@ class CalibrationController {
 
       return sendResponseCustom(res, {
         success: true,
-        message: 'Calibration report approved successfully',
+        message: CALIBRATION_MESSAGES.reportApproved,
         data: { id, status: 'approved' }
       });
     } catch (error: any) {
-      return sendResponseError(res, error);
+      return sendResponseError(res, localizeCalibrationControllerError(error));
     }
   }
 
@@ -702,9 +672,9 @@ class CalibrationController {
 
       if (!calibration) {
         if ((req.headers.accept || '').includes('text/html')) {
-          return res.status(404).send(`<!DOCTYPE html><html lang="id"><head><meta charset="UTF-8"><title>Verification Not Found</title><style>body{font-family:Arial,sans-serif;padding:24px;color:#1a202c;}h1{margin-bottom:12px;}p{line-height:1.6;}</style></head><body><h1>Data tidak ditemukan</h1><p>Kalibrasi dengan tautan ini tidak tersedia atau sudah kadaluwarsa.</p></body></html>`);
+          return res.status(404).send(`<!DOCTYPE html><html lang="id"><head><meta charset="UTF-8"><title>Verifikasi Kalibrasi Tidak Ditemukan</title><style>body{font-family:Arial,sans-serif;padding:24px;color:#1a202c;}h1{margin-bottom:12px;}p{line-height:1.6;}</style></head><body><h1>Data tidak ditemukan</h1><p>Kalibrasi dengan tautan ini tidak tersedia atau sudah kedaluwarsa.</p></body></html>`);
         }
-        throw createError('Verification report not found', 'E_NOT_FOUND');
+        throw createError(CALIBRATION_MESSAGES.verificationNotFound, 'E_NOT_FOUND');
       }
 
       // Retrieve public details
@@ -735,7 +705,7 @@ class CalibrationController {
         .where('calibration_id', rawCalibration.id);
 
       const previewData = {
-        ...calibration,
+        ...sanitizeCalibrationRecordNotes(calibration),
         details: details.map((d: any) => {
           const detailStandards = standards.filter((s: any) => s.calibration_detail_id === d.id);
           return {
@@ -797,7 +767,7 @@ class CalibrationController {
         data: previewData
       });
     } catch (error: any) {
-      return sendResponseError(res, error);
+      return sendResponseError(res, localizeCalibrationControllerError(error));
     }
   }
 

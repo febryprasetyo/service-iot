@@ -11,7 +11,19 @@ declare global {
 }
 
 
-function JwtMiddleware(access:string) {
+export type JwtMiddlewareMessages = {
+  expiredOrInvalid: string;
+  accessDenied: string;
+  invalid: string;
+};
+
+const defaultJwtMessages: JwtMiddlewareMessages = {
+  expiredOrInvalid: 'Access token expired or invalid',
+  accessDenied: 'Access API denied!',
+  invalid: 'Access token invalid!'
+};
+
+function JwtMiddleware(access:string, messages: JwtMiddlewareMessages = defaultJwtMessages) {
   return async function (req: Request, res: Response, next: NextFunction ) {
     var authorization = req.headers['authorization']
 
@@ -28,7 +40,7 @@ function JwtMiddleware(access:string) {
         if (!isValid) {
             res.status(401).json({
               success: false,
-              message: 'Access token expired or invalid'
+              message: messages.expiredOrInvalid
             });
             return;
         }
@@ -40,7 +52,7 @@ function JwtMiddleware(access:string) {
         if (!accessList.includes(data.userData.role_id)) {
           res.status(401).json({
             success: false,
-            message: 'Access API denied!'
+            message: messages.accessDenied
           });
           return;
         }
@@ -54,13 +66,13 @@ function JwtMiddleware(access:string) {
       } catch (err) {
         res.status(401).json({
           success: false,
-          message: 'Access token invalid!'
+          message: messages.invalid
         });
       }
     } else {
       res.status(401).json({
         success: false,
-        message: 'Access token invalid!'
+        message: messages.invalid
       });
       return
     }
