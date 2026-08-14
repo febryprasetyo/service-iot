@@ -69,6 +69,12 @@ const calibrationMonths = [
   'Desember'
 ] as const;
 
+const calibrationNumberFormat = new Intl.NumberFormat('id-ID', {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+  useGrouping: false
+});
+
 function getDateParts(value: string | Date): { day: number; month: number; year: number } | null {
   if (value instanceof Date) {
     if (Number.isNaN(value.getTime())) return null;
@@ -118,7 +124,7 @@ export function formatCalibrationDateRange(startDate: string | Date, endDate: st
 export function formatReportNumberValue(value: unknown): string {
   if (value === null || value === undefined || value === '') return '-';
   const numericValue = Number(value);
-  return Number.isFinite(numericValue) ? numericValue.toFixed(2).replace('.', ',') : String(value ?? '-');
+  return Number.isFinite(numericValue) ? calibrationNumberFormat.format(numericValue) : String(value ?? '-');
 }
 
 function escapeHtml(value: unknown): string {

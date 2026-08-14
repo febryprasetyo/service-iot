@@ -37,12 +37,40 @@ describe('renderCalibrationReportHtml', () => {
     expect(formatCalibrationStandard('0', 0, 'DO', 'mg/L')).toBe('0,00 mg/L');
     expect(formatCalibrationStandard('CRM 5.51', null, 'DO', 'mg/L')).toBe('CRM 5.51 mg/L');
     expect(formatCalibrationStandard('CRM pH 7', null, 'pH', 'Satuan')).toBe('CRM pH 7');
-    expect(formatReportPlace('  kota morowali UTARA  ')).toBe('Morowali Utara');
+    expect(formatReportPlace('  kota   morowali UTARA  ')).toBe('Morowali Utara');
     expect(formatReportPlace('Bukit Kota Indah')).toBe('Bukit Kota Indah');
     expect(formatCalibrationParameterName('Amonia')).toBe('Amonia (NH3-N)');
     expect(formatCalibrationParameterName('NO3-N')).toBe('Nitrat (NO3-N)');
     expect(formatCalibrationParameterName('no2')).toBe('Nitrit (NO2-N)');
+    expect(formatReportNumberValue(1.005)).toBe('1,01');
     expect(formatReportNumberValue(1.413)).toBe('1,41');
+  });
+
+  it('uses frontend-equivalent rounding for standards, readings, coefficients, and sample measurements', () => {
+    const template = readFileSync(resolve(process.cwd(), 'src/views/Calibration_Report.html'), 'utf8');
+    const html = renderCalibrationReportHtml(template, {
+      reportNo: 'CR-ROUNDING',
+      stationName: 'KLHK299',
+      calibrationStartDate: '2026-08-12',
+      calibrationEndDate: '2026-08-12',
+      stationCity: '  kota   morowali UTARA  ',
+      qrCodeImage: 'data:image/png;base64,fixture',
+      details: [{
+        parameterName: 'DO',
+        parameterUnit: 'mg/L',
+        standards: [{ crmName: '1.005', crmStandardValue: 1.005, calibrationResult: 1.005 }],
+        coefficients: { k: 1.005, b: 1.005 },
+        calculationStatus: 'PASS'
+      }],
+      waterSamples: [{ sample_name: 'Sampel Air', suhu: 1.005, do: 1.005 }]
+    });
+
+    expect(html).toContain('<td class="text-center">1,01 mg/L</td>');
+    expect(html).toContain('<td class="text-center">1,01</td>');
+    expect(html).toContain('<strong>K:</strong> 1,01');
+    expect(html).toContain('<strong>B:</strong> 1,01');
+    expect(html).toContain('<td>1,01</td><td>1,01</td>');
+    expect(html).toContain('<strong>Tempat/Tanggal:</strong> Morowali Utara, 12 Agustus 2026');
   });
 
   it('renders the Indonesian PDF acceptance fixture with localized dates, values, labels, and statuses', () => {
