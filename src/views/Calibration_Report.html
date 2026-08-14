@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Calibration Report - PT Cahaya Mas Cemerlang</title>
+    <title>Laporan Kalibrasi - PT Cahaya Mas Cemerlang</title>
     <link rel="stylesheet" href="Calibration_Report.css">
 </head>
 <body>
@@ -15,46 +15,46 @@
                     <div>
                         <div class="company-name">PT Cahaya Mas Cemerlang</div>
                         <div class="company-info">
-                            <strong>Office:</strong> Komplek Majapahit Permai Blok A No.110 & C No.105, Jl. Majapahit No.18-20-22, Jakarta Pusat 10160<br>
-                            <strong>Factory:</strong> Jalan Rawa Gelam II No.3, Kawasan Industri Pulogadung, Jakarta Timur<br>
-                            <strong>Telp:</strong> 021-344 3456 <strong>(Hunting) Fax:</strong> 021-460 2340/460 2344<br>
-                            <strong>E-mail:</strong> info@cahayamascemerlang.com | <strong>Website:</strong> www.cahayamascemerlang.com
+                            <strong>Kantor:</strong> Komplek Majapahit Permai Blok A No.110 & C No.105, Jl. Majapahit No.18-20-22, Jakarta Pusat 10160<br>
+                            <strong>Pabrik:</strong> Jalan Rawa Gelam II No.3, Kawasan Industri Pulogadung, Jakarta Timur<br>
+                            <strong>Telp:</strong> 021-344 3456 <strong>(Saluran Bersama) Faks:</strong> 021-460 2340/460 2344<br>
+                            <strong>Email:</strong> info@cahayamascemerlang.com | <strong>Situs Web:</strong> www.cahayamascemerlang.com
                         </div>
                     </div>
                 </div>
             </td>
             <td style="width: 45%;">
-                <div class="doc-main-title">CALIBRATION REPORT</div>
-                <div class="doc-no-title">Report No: {{STATION_NAME}}/{{REPORT_NO}}</div>
+                <div class="doc-main-title">LAPORAN KALIBRASI</div>
+                <div class="doc-no-title">Nomor Laporan: {{STATION_NAME}}/{{REPORT_NO}}</div>
             </td>
         </tr>
     </table>
 
     <table class="station-table">
         <tr>
-            <td class="st-label">Station Name</td>
+            <td class="st-label">Nama Stasiun</td>
             <td class="st-val">: {{STATION_NAME}}</td>
-            <td class="st-label">Calibration Date</td>
+            <td class="st-label">Tanggal Kalibrasi</td>
             <td class="st-val">: {{CALIBRATION_DATE}}</td>
         </tr>
         <tr>
-            <td class="st-label">Address</td>
+            <td class="st-label">Alamat</td>
             <td class="st-val">: {{STATION_ADDRESS}}</td>
-            <td class="st-label">Coordinate</td>
+            <td class="st-label">Koordinat</td>
             <td class="st-val">: {{STATION_COORDINATE}}</td>
         </tr>
     </table>
 
-    <div class="section-header">1. SENSOR PARAMETER CALIBRATION & REGISTER ADJUSTMENT</div>
+    <div class="section-header">1. Kalibrasi Parameter Sensor dan Penyesuaian Register</div>
 
     <table class="cal-table">
         <thead>
             <tr>
                 <th style="width: 16%;">Parameter</th>
-                <th style="width: 21%;">Standart / CRM</th>
+                <th style="width: 21%;">Standar/CRM</th>
                 <th style="width: 20%;">Hasil Pembacaan</th>
-                <th style="width: 25%;">Internal Coeff (K / B)</th>
-                <th style="width: 12%;">Result</th>
+                <th style="width: 25%;">Koefisien Internal (K/B)</th>
+                <th style="width: 12%;">Status</th>
             </tr>
         </thead>
         <tbody>
@@ -62,7 +62,7 @@
         </tbody>
     </table>
 
-    <div class="section-header">2. WATER SAMPLE MEASUREMENT & BLANK TEST</div>
+    <div class="section-header">2. Pengukuran Sampel Air dan Uji Blangko</div>
 
     <table class="sample-table">
         <colgroup>
@@ -79,15 +79,15 @@
     </table>
 
     <div class="notes-box">
-        <strong>Notes:</strong>
+        <strong>Catatan:</strong>
         {{NOTES}}
     </div>
 
     <table class="sig-table">
         <tr>
             <td style="text-align: left;">
-                <strong>Place / Date:</strong> {{PLACE_DATE}}<br>
-                <strong>Calibration Officer:</strong>
+                <strong>Tempat/Tanggal:</strong> {{PLACE_DATE}}<br>
+                <strong>Petugas Kalibrasi:</strong>
                 <div class="sig-space">
                     <img src="{{QR_CODE_IMAGE}}" alt="QR Code" style="width:93px; height:93px; object-fit:contain; display:block;" />
                 </div>

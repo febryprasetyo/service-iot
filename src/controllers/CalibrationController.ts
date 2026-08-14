@@ -6,6 +6,7 @@ import { CalibrationRepository } from '../repositories/CalibrationRepository';
 import { CalibrationService } from '../services/CalibrationService';
 import { evaluateStandardMeasurement, getCalibrationSpecification } from '../helpers/CalibrationCalculator';
 import { ensureDefaultSolutionStandardsForDetail, getMasterSolutionStandards } from '../helpers/CalibrationDefaults';
+import { buildCalibrationPdfFilename, renderCalibrationReportHtml } from '../helpers/CalibrationReportRenderer';
 
 const calibrationRepository = new CalibrationRepository(db);
 const calibrationService = new CalibrationService(calibrationRepository);
@@ -938,20 +939,32 @@ class CalibrationController {
         const place = formatReportPlace(calibration.station_city || calibration.station_address);
         const placeDate = `${place}, ${formatReportDate(calibration.calibration_end_date)}`;
 
-        html = html
-          .replace('{{REPORT_NO}}', calibration.report_no)
-          .replace(/{{STATION_NAME}}/g, calibration.station_name)
-          .replace('{{CALIBRATION_DATE}}', formattedDate)
-          .replace('{{STATION_ADDRESS}}', calibration.station_address || '-')
-          .replace('{{STATION_COORDINATE}}', calibration.station_coordinate || '-')
-          .replace('{{CALIBRATION_ROWS}}', calRows)
-          .replace('{{SAMPLE_COLGROUP}}', sampleTable.colgroup)
-          .replace('{{SAMPLE_HEADERS}}', sampleTable.headers)
-          .replace('{{SAMPLE_ROWS}}', sampleTable.rows)
-          .replace('{{NOTES}}', calibration.notes || '<ul><li>Tidak ada catatan.</li></ul>')
-          .replace('{{QR_CODE_IMAGE}}', qrImage)
-          .replace('{{OFFICER_NAME}}', calibration.officer_name)
-          .replace(/{{PLACE_DATE}}/g, placeDate);
+        html = renderCalibrationReportHtml(html, {
+          reportNo: calibration.report_no,
+          stationName: calibration.station_name,
+          calibrationStartDate: calibration.calibration_start_date,
+          calibrationEndDate: calibration.calibration_end_date,
+          stationAddress: calibration.station_address,
+          stationCoordinate: calibration.station_coordinate,
+          stationCity: calibration.station_city,
+          officerName: calibration.officer_name,
+          notes: calibration.notes,
+          qrCodeImage: qrImage,
+          details: previewData.details.map((detail: any) => ({
+            parameterName: detail.parameter_name,
+            parameterUnit: detail.parameter_unit,
+            standards: detail.standards.map((standard: any) => ({
+              crmName: standard.crm_name,
+              crmStandardValue: standard.crm_standard_value,
+              calibrationResult: standard.calibration_result
+            })),
+            crmReferenceValue: detail.crm_reference_value,
+            crmReadingValue: detail.crm_reading_value,
+            coefficients: detail.coefficients,
+            calculationStatus: deriveCalibrationStatus(detail.parameter_name, detail.standards) || detail.calculation_result || null
+          })),
+          waterSamples: previewData.waterSamples
+        });
 
         return res.send(html);
       }
@@ -991,7 +1004,7 @@ class CalibrationController {
         .first();
 
       if (!calibration) {
-        return res.status(404).send('Calibration report not found');
+        return res.status(404).send('Laporan kalibrasi tidak ditemukan.');
       }
 
       const details = await db('calibration_details')
@@ -1020,7 +1033,7 @@ class CalibrationController {
       ];
       const templatePath = candidateTemplates.find((p) => fs.existsSync(p));
       if (!templatePath) {
-        return res.status(500).send('Template file not found');
+        return res.status(500).send('Template laporan kalibrasi tidak ditemukan.');
       }
       let html = fs.readFileSync(templatePath, 'utf8');
 
@@ -1035,6 +1048,7 @@ class CalibrationController {
 
       // 3. Construct Calibration Details Table Rows
       let calRows = '';
+      const renderDetails: any[] = [];
       for (const d of details) {
         const storedStandards = standards.filter((s: any) => s.calibration_detail_id === d.id);
         const masterStandards = await getMasterSolutionStandards(db, d.parameter_name);
@@ -1096,6 +1110,20 @@ class CalibrationController {
         const calculationStatus = deriveCalibrationStatus(d.parameter_name, paramStandards) || d.calculation_result || null;
         const resultColumn = formatCalibrationStatus(calculationStatus);
 
+        renderDetails.push({
+          parameterName: d.parameter_name,
+          parameterUnit: d.parameter_unit,
+          standards: paramStandards.map((standard: any) => ({
+            crmName: standard.crm_name,
+            crmStandardValue: standard.crm_standard_value,
+            calibrationResult: standard.calibration_result
+          })),
+          crmReferenceValue: d.crm_reference_value,
+          crmReadingValue: d.crm_reading_value,
+          coefficients: d.coefficients,
+          calculationStatus
+        });
+
         calRows += `
           <tr>
             <td class="font-bold">${d.parameter_name} Calibration</td>
@@ -1130,20 +1158,20 @@ class CalibrationController {
       const place = formatReportPlace(calibration.station_city || calibration.station_address);
       const placeDate = `${place}, ${formatReportDate(calibration.calibration_end_date)}`;
 
-      html = html
-        .replace('{{REPORT_NO}}', calibration.report_no)
-        .replace(/{{STATION_NAME}}/g, calibration.station_name)
-        .replace('{{CALIBRATION_DATE}}', formattedDate)
-        .replace('{{STATION_ADDRESS}}', calibration.station_address || '-')
-        .replace('{{STATION_COORDINATE}}', calibration.station_coordinate || '-')
-        .replace('{{CALIBRATION_ROWS}}', calRows)
-        .replace('{{SAMPLE_COLGROUP}}', sampleTable.colgroup)
-        .replace('{{SAMPLE_HEADERS}}', sampleTable.headers)
-        .replace('{{SAMPLE_ROWS}}', sampleTable.rows)
-        .replace('{{NOTES}}', calibration.notes || '<ul><li>Tidak ada catatan.</li></ul>')
-        .replace('{{QR_CODE_IMAGE}}', qrImage)
-        .replace('{{OFFICER_NAME}}', calibration.officer_name)
-        .replace(/{{PLACE_DATE}}/g, placeDate);
+      html = renderCalibrationReportHtml(html, {
+        reportNo: calibration.report_no,
+        stationName: calibration.station_name,
+        calibrationStartDate: calibration.calibration_start_date,
+        calibrationEndDate: calibration.calibration_end_date,
+        stationAddress: calibration.station_address,
+        stationCoordinate: calibration.station_coordinate,
+        stationCity: calibration.station_city,
+        officerName: calibration.officer_name,
+        notes: calibration.notes,
+        qrCodeImage: qrImage,
+        details: renderDetails,
+        waterSamples
+      });
 
       // Generate PDF using puppeteer
       const browser = await puppeteer.launch({ args: ['--no-sandbox', '--disable-setuid-sandbox'] });
@@ -1152,16 +1180,14 @@ class CalibrationController {
         await page.setContent(html, { waitUntil: 'networkidle0' });
         const pdfBuffer = await page.pdf({ format: 'A4', printBackground: true, margin: { top: '12mm', right: '15mm', bottom: '12mm', left: '15mm' } });
         res.setHeader('Content-Type', 'application/pdf');
-        // sanitize report_no for filename
-        const safeReportNo = (calibration.report_no || `calibration_${id}`).replace(/[^a-z0-9A-Z-_\.]/g, '_');
-        const filename = `Calibration_Report_${safeReportNo}.pdf`;
+        const filename = buildCalibrationPdfFilename(calibration.report_no, id);
         res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
         return res.send(pdfBuffer);
       } finally {
         await browser.close();
       }
     } catch (error: any) {
-      return res.status(500).send('Error rendering print template: ' + error.message);
+      return res.status(500).send('Gagal membuat PDF laporan kalibrasi.');
     }
   }
 }

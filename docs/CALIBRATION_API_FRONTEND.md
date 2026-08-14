@@ -403,7 +403,7 @@ Server membuat detail serta solution standard untuk parameter baru, dan menghapu
 | --- | --- | --- | --- |
 | `POST /calibrations/{id}/submit` | Tanpa body | `{ "data": { "id": "...", "status": "submitted" } }` | Semua `calibration_result` untuk semua standard wajib terisi. Server menghitung dan menyimpan `details[].calculation_result` (`PASS`/`FAILED`) secara atomik sebelum mengubah status. Draft tidak lagi dapat diedit. |
 | `POST /calibrations/{id}/approve` | Tanpa body | `{ "data": { "id": "...", "status": "approved" } }` | Hanya role `adm` dan hanya untuk report berstatus `submitted`. Role `eng` menerima 401. |
-| `GET /calibrations/{id}/print` | - | `application/pdf` | Download/preview file PDF report. Endpoint ini public pada implementasi saat ini. |
+| `GET /calibrations/{id}/print` | - | `application/pdf` | Mengunduh/menampilkan PDF laporan. Endpoint ini public pada implementasi saat ini. Header unduhan adalah `Content-Disposition: attachment; filename="Laporan_Kalibrasi_<safe-report-number>.pdf"`. Error teks endpoint ini: `Laporan kalibrasi tidak ditemukan.`, `Template laporan kalibrasi tidak ditemukan.`, atau `Gagal membuat PDF laporan kalibrasi.`. |
 | `GET /verify/{verification_uuid}` | - | JSON atau HTML | Endpoint backend public yang dipanggil halaman frontend `/verify/:uuid`. |
 
 ### Water sample di UI dan report
