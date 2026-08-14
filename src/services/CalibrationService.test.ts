@@ -18,9 +18,8 @@ describe('CalibrationService', () => {
       const officerId = 99;
       const payload: CreateCalibrationPayload = {
         station_id: 1,
-        calibration_date: '2026-08-07',
-        contact_person: 'John Doe',
-        phone: '0812345678',
+        calibration_start_date: '2026-08-07',
+        calibration_end_date: '2026-08-08',
         parameter_ids: [1, 2],
       };
 

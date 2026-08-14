@@ -1,0 +1,157 @@
+{
+  "station": {
+    "name": "KLHK299",
+    "address": { "source": "station_master", "input": false },
+    "coordinate": { "source": "station_master", "input": false }
+  },
+  "calibration": {
+    "start_date": "2026-08-10",
+    "end_date": "2026-08-11",
+    "officer": "Febry"
+  },
+  "details": [
+    {
+      "parameter": "DO",
+      "coefficient_type": "K/B",
+      "coefficients": { "K": 0.999110, "B": -0.000024 },
+      "crm_reference_value": 5.51,
+      "crm_reading_value": 3.14,
+      "standards": [
+        { "solution": "Solution 1", "calibration_result": 0 },
+        { "solution": "Solution 2", "calibration_result": 99.84 }
+      ]
+    },
+    {
+      "parameter": "Turbidity",
+      "coefficient_type": "K/B",
+      "coefficients": { "K": 0.265294, "B": -5.970670 },
+      "crm_reference_value": 4.67,
+      "crm_reading_value": 4.64,
+      "standards": [
+        { "solution": "Solution 1", "calibration_result": 3.70 },
+        { "solution": "Solution 2", "calibration_result": 19.63 }
+      ]
+    },
+    {
+      "parameter": "TDS",
+      "coefficient_type": "K/B",
+      "coefficients": { "K": 1.067077, "B": -0.185172 },
+      "crm_reference_value": 200,
+      "crm_reading_value": 200.36,
+      "standards": [
+        { "solution": "Solution 1", "calibration_result": 1.288 },
+        { "solution": "Solution 2", "calibration_result": 12.79 }
+      ]
+    },
+    {
+      "parameter": "pH",
+      "coefficient_type": "K1-K6",
+      "coefficients": { "K1": -58.77783, "K2": -58.77783, "K3": -21.16125, "K4": -58.77783, "K5": -58.77783, "K6": -15.39816 },
+      "crm_reference_value": null,
+      "crm_reading_value": null,
+      "standards": [
+        { "solution": "Solution 1", "calibration_result": 3.97 },
+        { "solution": "Solution 2", "calibration_result": 6.83 },
+        { "solution": "Solution 3", "calibration_result": 10.00 }
+      ]
+    },
+    {
+      "parameter": "TSS",
+      "coefficient_type": "K/B",
+      "coefficients": { "K": 0.01409858, "B": 0 },
+      "crm_reference_value": 50,
+      "crm_reading_value": 49.86,
+      "standards": [
+        { "solution": "Solution 1", "calibration_result": 49.91 }
+      ]
+    },
+    {
+      "parameter": "BOD",
+      "coefficient_type": "K/B",
+      "coefficients": { "K": 1.070413, "B": -8.484534 },
+      "crm_reference_value": 9.18,
+      "crm_reading_value": 9.24,
+      "standards": [
+        { "solution": "Solution 1", "calibration_result": 10.61 },
+        { "solution": "Solution 2", "calibration_result": 95.24 }
+      ]
+    },
+    {
+      "parameter": "COD",
+      "coefficient_type": "K/B",
+      "coefficients": { "K": 1.070413, "B": -8.484534 },
+      "crm_reference_value": 14.8,
+      "crm_reading_value": 13.24,
+      "standards": [
+        { "solution": "Solution 1", "calibration_result": 10.61 },
+        { "solution": "Solution 2", "calibration_result": 95.24 }
+      ]
+    },
+    {
+      "parameter": "Amonia",
+      "coefficient_type": "K/B",
+      "coefficients": { "K": 1.0, "B": 0.238715 },
+      "crm_reference_value": 0.892,
+      "crm_reading_value": 0.90,
+      "standards": [
+        { "solution": "Solution 1", "calibration_result": 1.01 }
+      ]
+    },
+    {
+      "parameter": "Nitrat",
+      "coefficient_type": null,
+      "coefficients": null,
+      "crm_reference_value": 5.44,
+      "crm_reading_value": 5.4,
+      "standards": [
+        { "solution": "Solution 1", "calibration_result": 10.02 },
+        { "solution": "Solution 2", "calibration_result": 99.5 }
+      ]
+    },
+    {
+      "parameter": "Nitrit",
+      "coefficient_type": null,
+      "coefficients": null,
+      "crm_reference_value": 1.82,
+      "crm_reading_value": 1.82,
+      "standards": [
+        { "solution": "Solution 1", "calibration_result": 10.1 },
+        { "solution": "Solution 2", "calibration_result": 99.2 }
+      ]
+    }
+  ],
+  "water_samples": [
+    {
+      "sample_name": "Aquades (Blank)",
+      "suhu": 25.0,
+      "do": 8.77,
+      "tur": 0.00,
+      "tds": 0.00,
+      "ph": 6.96,
+      "orp": null,
+      "tss": 0.00,
+      "bod": 0.00,
+      "cod": 0.00,
+      "amonia": 0.00,
+      "nitrat": 0.00,
+      "nitrit": 0.00,
+      "kedalaman": null
+    },
+    {
+      "sample_name": "Water Sample (River)",
+      "suhu": 25.2,
+      "do": 6.85,
+      "tur": 12.40,
+      "tds": 145.20,
+      "ph": 7.15,
+      "orp": null,
+      "tss": 15.00,
+      "bod": 4.20,
+      "cod": 18.50,
+      "amonia": 0.12,
+      "nitrat": 2.10,
+      "nitrit": 0.08,
+      "kedalaman": null
+    }
+  ]
+}

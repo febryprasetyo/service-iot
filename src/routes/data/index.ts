@@ -174,6 +174,7 @@ router.get(
  *               - device_id
  *               - nama_stasiun
  *               - address
+ *               - coordinate
  *               - province_id
  *               - city_id
  *               - nama_dinas
@@ -183,6 +184,8 @@ router.get(
  *               nama_stasiun:
  *                 type: string
  *               address:
+ *                 type: string
+ *               coordinate:
  *                 type: string
  *               province_id:
  *                 type: integer
@@ -223,6 +226,8 @@ router.post(
  *               nama_stasiun:
  *                 type: string
  *               address:
+ *                 type: string
+ *               coordinate:
  *                 type: string
  *               province_id:
  *                 type: integer

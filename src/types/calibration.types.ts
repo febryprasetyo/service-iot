@@ -12,9 +12,8 @@ export interface Calibration {
   id: string; // UUID
   report_no: string;
   station_id: number;
-  calibration_date: Date;
-  contact_person: string;
-  phone: string;
+  calibration_start_date: Date;
+  calibration_end_date: Date;
   notes: string | null;
   officer_id: number;
   status: CalibrationStatus;
@@ -30,6 +29,8 @@ export interface CalibrationDetail {
   coeff_type: string | null;
   coefficients: Record<string, any> | null;
   calculation_result: 'PASS' | 'FAILED' | null;
+  crm_reference_value: number | null;
+  crm_reading_value: number | null;
   remark: string | null;
   created_at?: Date;
   updated_at?: Date;
@@ -70,9 +71,8 @@ export interface WaterSample {
 
 export interface CreateCalibrationPayload {
   station_id: number;
-  calibration_date: string;
-  contact_person: string;
-  phone: string;
+  calibration_start_date: string;
+  calibration_end_date: string;
   notes?: string;
   parameter_ids: number[];
 }

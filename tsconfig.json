@@ -6,6 +6,7 @@
       "outDir": "build",
       "rootDir": "src",
       "baseUrl": ".",
+      "ignoreDeprecations": "6.0",
       "strict": false,
       "skipLibCheck": true,
       "sourceMap": true

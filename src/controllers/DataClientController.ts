@@ -208,6 +208,7 @@ class DataClientController {
         nama_stasiun: 'required',
         nama_dinas: 'required',
         address: 'required',
+        coordinate: 'required',
         province_id: 'required|number',
         city_id: 'required|number',
       };
@@ -257,6 +258,7 @@ class DataClientController {
         province_name: dataProvince.province_name,
         city_id: reqBody.city_id,
         city_name: dataCity.city_name,
+        coordinate: reqBody.coordinate,
         created_by: reqBody.user_id,
       });
 
@@ -286,6 +288,7 @@ class DataClientController {
         nama_stasiun: 'required',
         nama_dinas: 'required',
         address: 'required',
+        coordinate: 'required',
         province_id: 'required|number',
         city_id: 'required|number',
       };
@@ -342,6 +345,7 @@ class DataClientController {
         province_name: dataProvince.province_name,
         city_id: reqBody.city_id,
         city_name: dataCity.city_name,
+        coordinate: reqBody.coordinate,
         updated_at: new Date(),
       });
 

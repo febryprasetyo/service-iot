@@ -1,0 +1,106 @@
+@page {
+    size: A4;
+    margin: 12mm 15mm;
+    background: #fff;
+    @bottom-right {
+        content: "Halaman " counter(page) " dari " counter(pages);
+        font-family: Arial, sans-serif;
+        font-size: 8pt;
+        color: #555;
+    }
+    @bottom-left {
+        content: "PT CAHAYA MAS CEMERLANG — OFFICIAL CALIBRATION REPORT";
+        font-family: Arial, sans-serif;
+        font-size: 8pt;
+        color: #555;
+    }
+}
+
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    padding: 0;
+    font-family: Helvetica, Arial, sans-serif;
+    font-size: 8.5pt;
+    line-height: 1.35;
+    color: #1a202c;
+}
+
+table { width: 100%; border-collapse: collapse; }
+
+.header-table { border-bottom: 2px solid #0f2942; margin-bottom: 10px; }
+
+.header-table td,
+.station-table td,
+.cal-table th,
+.cal-table td,
+.sample-table th,
+.sample-table td,
+.sig-table td { vertical-align: top; }
+
+.header-table td { padding-bottom: 6px; }
+
+.company-header { display: flex; align-items: flex-start; gap: 10px; }
+
+.company-logo { width: 62px; height: 62px; display: block; flex: 0 0 62px; }
+
+.company-name { font-size: 13pt; font-weight: 700; color: #0f2942; text-transform: uppercase; letter-spacing: .5px; }
+
+.company-info { font-size: 7.5pt; color: #334155; line-height: 1.25; }
+
+.doc-main-title { text-align: right; font-size: 14pt; font-weight: 700; color: #1e3a8a; text-transform: uppercase; letter-spacing: 1px; }
+
+.doc-no-title { text-align: right; font-size: 8.5pt; font-weight: 700; color: #475569; margin-top: 3px; }
+
+.station-table { margin-bottom: 10px; background: #f8fafc; border: 1px solid #cbd5e1; }
+
+.station-table td { padding: 4px 8px; font-size: 8.5pt; vertical-align: middle; }
+
+.st-label { font-weight: 700; color: #1e293b; width: 18%; }
+.st-val { color: #0f172a; width: 32%; }
+
+.section-header { background: #0f2942; color: #fff; font-weight: 700; font-size: 9pt; padding: 4px 8px; margin: 10px 0 6px; text-transform: uppercase; letter-spacing: .5px; }
+
+.cal-table, .sample-table { margin-bottom: 8px; font-size: 8pt; }
+.sample-table { font-size: 5.8pt; table-layout: fixed; }
+.sample-table .sample-name-col { width: 15%; }
+.sample-table .sample-value-col { width: 6.538%; }
+.sample-table th, .sample-table td {
+    overflow-wrap: normal;
+    word-break: normal;
+    white-space: nowrap;
+}
+.sample-table .header-label,
+.sample-table .header-unit { display: block; white-space: nowrap; }
+
+.cal-table th, .sample-table th { text-align: center; padding: 4px; border: 1px solid #cbd5e1; font-weight: 700; }
+.cal-table th { background: #f1f5f9; color: #0f2942; }
+.sample-table th { background: #1e3a8a; color: #fff; padding: 4px 2px; border-color: #1e3a8a; }
+
+.cal-table td, .sample-table td { padding: 3.5px 5px; border: 1px solid #cbd5e1; text-align: center; vertical-align: middle; }
+.sample-table td { padding: 3.5px 1px; }
+.sample-table td:first-child { white-space: normal; }
+
+.text-center { text-align: center; }
+.text-right { text-align: right; }
+.font-bold { font-weight: 700; }
+
+.tag-pass { color: #15803d; font-weight: 700; background: #f0fdf4; padding: 1px 4px; border: 1px solid #bbf7d0; }
+.tag-fail { color: #b91c1c; font-weight: 700; background: #fef2f2; padding: 1px 4px; border: 1px solid #fecaca; }
+
+.notes-box { border: 1px solid #cbd5e1; background: #fafafa; padding: 6px 8px; font-size: 8pt; margin-bottom: 12px; }
+.notes-box ul, .notes-box ol { margin: 2px 0 2px 15px; padding: 0; }
+.notes-box li, .notes-box p { margin-top: 0; margin-bottom: 1px; line-height: 1.2; }
+
+.sig-table { margin-top: 15px; page-break-inside: avoid; width: 100%; }
+.sig-table td { width: 50%; text-align: left; font-size: 8.5pt; }
+
+.sig-box { display: inline-block; text-align: center; }
+.sig-space { width: 95px; height: 95px; margin: 8px 0; border: 1px solid #cbd5e1; display: flex; align-items: center; justify-content: center; overflow: hidden; background: #fff; }
+.sig-space img { width: 100%; height: 100%; object-fit: contain; display: block; }
+
+.sig-name { font-weight: 700; text-decoration: underline; color: #0f172a; }
+.sig-sub { color: #64748b; font-size: 8pt; }
+
+.footer-rev { margin-top: 14px; padding-top: 6px; border-top: 1px solid #cbd5e1; font-size: 8pt; color: #475569; text-align: right; font-weight: 700; }

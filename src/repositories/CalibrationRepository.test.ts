@@ -21,8 +21,13 @@ describe('CalibrationRepository', () => {
     it('should create a calibration header and return the created UUID', async () => {
       // Mocking transaction
       const mockTrx = jest.fn().mockImplementation(() => mockTrx) as any;
+      mockTrx.whereRaw = jest.fn().mockReturnValue(mockTrx);
+      mockTrx.count = jest.fn().mockResolvedValue([{ count: '0' }]);
       mockTrx.insert = jest.fn().mockReturnValue(mockTrx);
       mockTrx.returning = jest.fn().mockResolvedValue([{ id: 'mock-uuid-123' }]);
+      mockTrx.join = jest.fn().mockReturnValue(mockTrx);
+      mockTrx.select = jest.fn().mockReturnValue(mockTrx);
+      mockTrx.where = jest.fn().mockResolvedValue([]);
       
       mockDb.transaction.mockImplementationOnce(async (cb) => {
         return cb(mockTrx);
@@ -30,9 +35,8 @@ describe('CalibrationRepository', () => {
 
       const payload = {
         station_id: 1,
-        calibration_date: '2026-08-07',
-        contact_person: 'John Doe',
-        phone: '0812345678',
+        calibration_start_date: '2026-08-07',
+        calibration_end_date: '2026-08-08',
         officer_id: 2,
         status: 'draft' as const,
       };
