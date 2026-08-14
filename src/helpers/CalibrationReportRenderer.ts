@@ -1,3 +1,5 @@
+import sanitizeHtml from 'sanitize-html';
+
 type ReportStandard = {
   crmName?: string | null;
   crmStandardValue?: number | string | null;
@@ -41,7 +43,7 @@ const waterSampleColumns: WaterSampleColumn[] = [
   { names: ['do'], field: 'do', label: 'DO', unit: '(mg/L)' },
   { names: ['tds'], field: 'tds', label: 'TDS', unit: '(mg/L)' },
   { names: ['turbidity'], field: 'tur', label: 'Turbiditas', unit: '(NTU)' },
-  { names: ['ph'], field: 'ph', label: 'pH', unit: 'Unit' },
+  { names: ['ph'], field: 'ph', label: 'pH', unit: 'Satuan' },
   { names: ['orp'], field: 'orp', label: 'ORP', unit: '(mV)' },
   { names: ['cod'], field: 'cod', label: 'COD', unit: '(mg/L)' },
   { names: ['bod'], field: 'bod', label: 'BOD', unit: '(mg/L)' },
@@ -84,18 +86,42 @@ export function formatCalibrationDateRange(startDate: string | Date, endDate: st
 }
 
 export function formatReportNumberValue(value: unknown): string {
+  if (value === null || value === undefined || value === '') return '-';
   const numericValue = Number(value);
   return Number.isFinite(numericValue) ? numericValue.toFixed(2).replace('.', ',') : String(value ?? '-');
 }
 
+function escapeHtml(value: unknown): string {
+  return String(value ?? '-').replace(/[&<>"']/g, (character) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  }[character] as string));
+}
+
+function sanitizeReportNotes(notes: string | null | undefined): string {
+  if (!notes) return '<ul><li>Tidak ada catatan.</li></ul>';
+  return sanitizeHtml(notes, {
+    allowedTags: ['p', 'strong', 'b', 'em', 'i', 'u', 's', 'strike', 'ul', 'ol', 'li', 'br'],
+    allowedAttributes: {},
+    allowedSchemes: [],
+    allowedSchemesByTag: {},
+    disallowedTagsMode: 'discard',
+    nonTextTags: ['style', 'script', 'textarea', 'option']
+  });
+}
+
 function withUnit(value: unknown, parameterName: string, unit: string | null | undefined): string {
   const formattedValue = formatReportNumberValue(value);
+  if (formattedValue === '-') return formattedValue;
   return parameterName.toLowerCase() === 'ph' || !unit ? formattedValue : `${formattedValue} ${unit}`;
 }
 
 function formatStandardLabel(standard: ReportStandard, parameterName: string, unit: string | null | undefined): string {
   const prefix = /^crm\b/i.test(String(standard.crmName || '')) ? 'CRM ' : '';
-  return `${prefix}${withUnit(standard.crmStandardValue, parameterName, unit)}`;
+  return escapeHtml(`${prefix}${withUnit(standard.crmStandardValue, parameterName, unit)}`);
 }
 
 function formatCalibrationStatus(status: 'PASS' | 'FAILED' | null | undefined): string {
@@ -121,7 +147,7 @@ function formatCoefficients(value: ReportDetail['coefficients'], parameterName: 
     const pairs = [['k1', 'k2'], ['k3', 'k4'], ['k5', 'k6']];
     return pairs.map((pair) => pair
       .map((key) => coefficients[key] !== undefined
-        ? `<strong>${key.toUpperCase()}:</strong> ${formatReportNumberValue(coefficients[key])}`
+        ? `<strong>${escapeHtml(key.toUpperCase())}:</strong> ${escapeHtml(formatReportNumberValue(coefficients[key]))}`
         : null)
       .filter(Boolean)
       .join(' | '))
@@ -130,7 +156,7 @@ function formatCoefficients(value: ReportDetail['coefficients'], parameterName: 
   }
 
   return entries.map(([key, coefficient]) =>
-    `<strong>${key.toUpperCase()}:</strong> ${formatReportNumberValue(coefficient)}`
+    `<strong>${escapeHtml(key.toUpperCase())}:</strong> ${escapeHtml(formatReportNumberValue(coefficient))}`
   ).join('<br>') || '-';
 }
 
@@ -145,16 +171,16 @@ function renderCalibrationRows(details: ReportDetail[]): string {
       .join('<br>') || '-';
     const readingLines = standards
       .filter((standard) => !/^crm\b/i.test(String(standard.crmName || '')))
-      .map((standard) => formatReportNumberValue(standard.calibrationResult));
+      .map((standard) => escapeHtml(formatReportNumberValue(standard.calibrationResult)));
     const crmStandard = standards.find((standard) => /^crm\b/i.test(String(standard.crmName || '')));
     if (detail.crmReadingValue !== null && detail.crmReadingValue !== undefined) {
-      readingLines.push(withUnit(detail.crmReadingValue, detail.parameterName, detail.parameterUnit));
+      readingLines.push(escapeHtml(withUnit(detail.crmReadingValue, detail.parameterName, detail.parameterUnit)));
     } else if (crmStandard && crmStandard.calibrationResult !== null && crmStandard.calibrationResult !== undefined) {
-      readingLines.push(withUnit(crmStandard.calibrationResult, detail.parameterName, detail.parameterUnit));
+      readingLines.push(escapeHtml(withUnit(crmStandard.calibrationResult, detail.parameterName, detail.parameterUnit)));
     }
 
     return `<tr>
-      <td class="font-bold">Kalibrasi ${detail.parameterName}</td>
+      <td class="font-bold">Kalibrasi ${escapeHtml(detail.parameterName)}</td>
       <td class="text-center">${standardsColumn}</td>
       <td class="text-center">${readingLines.join('<br>') || '-'}</td>
       <td class="text-center">${formatCoefficients(detail.coefficients, detail.parameterName)}</td>
@@ -173,8 +199,8 @@ function renderWaterSampleTable(details: ReportDetail[], samples: any[]): { colg
       `<th><span class="header-label">${column.label}</span><span class="header-unit">${column.unit}</span></th>`
     ).join('')}`,
     rows: samples.map((sample) => `<tr>
-      <td class="font-bold" style="text-align:left;">${sample.sample_name || '-'}</td>
-      ${columns.map((column) => `<td>${formatReportNumberValue(sample[column.field])}</td>`).join('')}
+      <td class="font-bold" style="text-align:left;">${escapeHtml(sample.sample_name || '-')}</td>
+      ${columns.map((column) => `<td>${escapeHtml(formatReportNumberValue(sample[column.field]))}</td>`).join('')}
     </tr>`).join('')
   };
 }
@@ -184,23 +210,34 @@ export function buildCalibrationPdfFilename(reportNo: string | null | undefined,
   return `Laporan_Kalibrasi_${safeReportNo}.pdf`;
 }
 
+export function getCalibrationPdfResponseContract(reportNo: string | null | undefined, calibrationId: string) {
+  const filename = buildCalibrationPdfFilename(reportNo, calibrationId);
+  return {
+    contentType: 'application/pdf',
+    contentDisposition: `attachment; filename="${filename}"`,
+    notFoundMessage: 'Laporan kalibrasi tidak ditemukan.',
+    templateNotFoundMessage: 'Template laporan kalibrasi tidak ditemukan.',
+    renderErrorMessage: 'Gagal membuat PDF laporan kalibrasi.'
+  };
+}
+
 export function renderCalibrationReportHtml(template: string, input: RenderCalibrationReportInput): string {
   const sampleTable = renderWaterSampleTable(input.details, input.waterSamples);
   const place = formatReportPlace(input.stationCity || input.stationAddress);
   const placeDate = `${place}, ${formatIndonesianDate(input.calibrationEndDate)}`;
 
   return template
-    .replace('{{REPORT_NO}}', input.reportNo)
-    .replace(/{{STATION_NAME}}/g, input.stationName)
-    .replace('{{CALIBRATION_DATE}}', formatCalibrationDateRange(input.calibrationStartDate, input.calibrationEndDate))
-    .replace('{{STATION_ADDRESS}}', input.stationAddress || '-')
-    .replace('{{STATION_COORDINATE}}', input.stationCoordinate || '-')
+    .replace('{{REPORT_NO}}', () => escapeHtml(input.reportNo))
+    .replace(/{{STATION_NAME}}/g, () => escapeHtml(input.stationName))
+    .replace('{{CALIBRATION_DATE}}', () => escapeHtml(formatCalibrationDateRange(input.calibrationStartDate, input.calibrationEndDate)))
+    .replace('{{STATION_ADDRESS}}', () => escapeHtml(input.stationAddress || '-'))
+    .replace('{{STATION_COORDINATE}}', () => escapeHtml(input.stationCoordinate || '-'))
     .replace('{{CALIBRATION_ROWS}}', renderCalibrationRows(input.details))
     .replace('{{SAMPLE_COLGROUP}}', sampleTable.colgroup)
     .replace('{{SAMPLE_HEADERS}}', sampleTable.headers)
     .replace('{{SAMPLE_ROWS}}', sampleTable.rows)
-    .replace('{{NOTES}}', input.notes || '<ul><li>Tidak ada catatan.</li></ul>')
-    .replace('{{QR_CODE_IMAGE}}', input.qrCodeImage)
-    .replace('{{OFFICER_NAME}}', input.officerName || '-')
-    .replace(/{{PLACE_DATE}}/g, placeDate);
+    .replace('{{NOTES}}', () => sanitizeReportNotes(input.notes))
+    .replace('{{QR_CODE_IMAGE}}', () => escapeHtml(input.qrCodeImage))
+    .replace('{{OFFICER_NAME}}', () => escapeHtml(input.officerName || '-'))
+    .replace(/{{PLACE_DATE}}/g, () => escapeHtml(placeDate));
 }

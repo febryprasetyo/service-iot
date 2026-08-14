@@ -6,113 +6,10 @@ import { CalibrationRepository } from '../repositories/CalibrationRepository';
 import { CalibrationService } from '../services/CalibrationService';
 import { evaluateStandardMeasurement, getCalibrationSpecification } from '../helpers/CalibrationCalculator';
 import { ensureDefaultSolutionStandardsForDetail, getMasterSolutionStandards } from '../helpers/CalibrationDefaults';
-import { buildCalibrationPdfFilename, renderCalibrationReportHtml } from '../helpers/CalibrationReportRenderer';
+import { getCalibrationPdfResponseContract, renderCalibrationReportHtml } from '../helpers/CalibrationReportRenderer';
 
 const calibrationRepository = new CalibrationRepository(db);
 const calibrationService = new CalibrationService(calibrationRepository);
-
-function formatStandardValue(value: number | string, parameterName: string, unit: string | null): string {
-  const numericValue = Number(value);
-  const formattedValue = parameterName === 'pH' && numericValue === 4
-    ? '4.0'
-    : String(numericValue);
-
-  if (parameterName === 'DO') {
-    return `${formattedValue}%`;
-  }
-
-  return parameterName === 'pH' || !unit ? formattedValue : `${formattedValue} ${unit}`;
-}
-
-function formatCalibrationDateRange(startDate: string | Date, endDate: string | Date): string {
-  const formatDate = (date: string | Date) => new Date(date).toLocaleDateString('id-ID', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric'
-  });
-
-  const formattedStart = formatDate(startDate);
-  const formattedEnd = formatDate(endDate);
-  return formattedStart === formattedEnd ? formattedStart : `${formattedStart} – ${formattedEnd}`;
-}
-
-function formatReportDate(date: string | Date): string {
-  const raw = typeof date === 'string' ? date : date.toISOString();
-  const dateOnly = raw.slice(0, 10);
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateOnly);
-  if (match) return `${match[3]}-${match[2]}-${match[1]}`;
-  return raw;
-}
-
-function formatReportPlace(value: unknown): string {
-  return String(value || '')
-    .replace(/\b(kabupaten|kota)\b/gi, '')
-    .trim()
-    .replace(/\s+/g, ' ')
-    .toLowerCase()
-    .replace(/\b\w/g, (character) => character.toUpperCase());
-}
-
-type WaterSampleColumn = {
-  names?: string[];
-  field: string;
-  label: string;
-  unit: string;
-};
-
-const waterSampleColumns: WaterSampleColumn[] = [
-  { field: 'suhu', label: 'Temp', unit: '(°C)' },
-  { names: ['do'], field: 'do', label: 'DO', unit: '(mg/L)' },
-  { names: ['tds'], field: 'tds', label: 'TDS', unit: '(mg/L)' },
-  { names: ['turbidity'], field: 'tur', label: 'Turb', unit: '(NTU)' },
-  { names: ['ph'], field: 'ph', label: 'pH', unit: 'Unit' },
-  { names: ['orp'], field: 'orp', label: 'ORP', unit: '(mV)' },
-  { names: ['cod'], field: 'cod', label: 'COD', unit: '(mg/L)' },
-  { names: ['bod'], field: 'bod', label: 'BOD', unit: '(mg/L)' },
-  { names: ['tss'], field: 'tss', label: 'TSS', unit: '(mg/L)' },
-  { names: ['amonia', 'nh3'], field: 'amonia', label: 'NH3-N', unit: '(mg/L)' },
-  { names: ['nitrat', 'no3'], field: 'nitrat', label: 'NO3-N', unit: '(mg/L)' },
-  { names: ['nitrit', 'no2'], field: 'nitrit', label: 'NO2-N', unit: '(mg/L)' },
-  { names: ['kedalaman', 'level', 'depth'], field: 'kedalaman', label: 'Kedalaman', unit: '(m)' }
-];
-
-function getVisibleWaterSampleColumns(details: any[]): WaterSampleColumn[] {
-  const selectedNames = new Set(details.map((detail) => String(detail.parameter_name || '').trim().toLowerCase()));
-  return waterSampleColumns.filter((column) => !column.names || column.names.some((name) => selectedNames.has(name)));
-}
-
-function renderWaterSampleTable(details: any[], samples: any[]): { colgroup: string; headers: string; rows: string } {
-  const columns = getVisibleWaterSampleColumns(details);
-  const valueWidth = 85 / columns.length;
-  return {
-    colgroup: `<col class="sample-name-col"><col span="${columns.length}" style="width:${valueWidth}%">`,
-    headers: `<th style="width:15%; text-align:left;">Sample Type</th>${columns.map((column) =>
-      `<th><span class="header-label">${column.label}</span><span class="header-unit">${column.unit}</span></th>`
-    ).join('')}`,
-    rows: samples.map((sample) => `<tr>
-      <td class="font-bold" style="text-align:left;">${sample.sample_name || '-'}</td>
-      ${columns.map((column) => `<td>${formatReadingValue(sample[column.field])}</td>`).join('')}
-    </tr>`).join('')
-  };
-}
-
-function formatReadingValue(value: unknown): string {
-  if (value === null || value === undefined || value === '') return '-';
-  const numericValue = Number(value);
-  return Number.isFinite(numericValue) ? numericValue.toFixed(2) : String(value);
-}
-
-function displayStandardUnit(parameterName: string, unit: string | null): string {
-  return parameterName.toLowerCase() === 'ph' || !unit ? '' : ` ${unit}`;
-}
-
-function formatStandardLabel(standard: any, parameterName: string, unit: string | null): string {
-  const name = String(standard.crm_name || '');
-  if (/crm/i.test(name)) {
-    return `CRM ${standard.crm_standard_value ?? name}${displayStandardUnit(parameterName, unit)}`;
-  }
-  return `${name || standard.crm_standard_value}${displayStandardUnit(parameterName, unit)}`;
-}
 
 function normalizeCoefficients(coefficients: Record<string, unknown>): Record<string, unknown> {
   return Object.fromEntries(
@@ -155,12 +52,6 @@ function getVerificationUrl(req: Request, verificationUuid: string): string {
   if (forwardedHost && isPublicUrl(requestApiUrl)) return `${requestApiUrl}/verify/${verificationUuid}`;
 
   throw createError('PUBLIC_CALIBRATION_FRONTEND_URL must be configured with a public, non-local URL.', 'E_INTERNAL_SERVER_ERROR');
-}
-
-function formatCalibrationStatus(status: string | null): string {
-  if (status === 'PASS') return '<span class="tag-pass">PASS</span>';
-  if (status === 'FAILED') return '<span class="tag-fail">FAILED</span>';
-  return '<span class="tag-pending">PENDING</span>';
 }
 
 function deriveCalibrationStatus(parameterName: string, standards: any[]): 'PASS' | 'FAILED' | null {
@@ -871,74 +762,6 @@ class CalibrationController {
         const publicUrl = getVerificationUrl(req, calibration.verification_uuid);
         const qrImage = await QRCode.toDataURL(publicUrl, { errorCorrectionLevel: 'H', type: 'image/png', width: 93, margin: 1 });
 
-        const calRows = previewData.details.map((d: any) => {
-          const unit = d.parameter_unit || (d.parameter_name === 'pH' ? 'Unit' : '');
-          const masterStandards = d.standards;
-          const standardLines = masterStandards.map((s: any) =>
-            formatStandardLabel(s, d.parameter_name, d.parameter_unit)
-          );
-          if (!standardLines.some((line) => /CRM\s/i.test(line)) && d.crm_reference_value !== null && d.crm_reference_value !== undefined) {
-            standardLines.push(`CRM ${formatStandardValue(d.crm_reference_value, d.parameter_name, d.parameter_unit)}`);
-          }
-          const standardsColumn = standardLines.join('<br>') || '-';
-
-          const readingLines: string[] = [];
-          for (const s of masterStandards) {
-            const name = (s.crm_name || '').toString();
-            if (!/crm/i.test(name)) {
-              if (s.calibration_result === null || s.calibration_result === undefined) {
-                readingLines.push('-');
-              } else {
-                readingLines.push(formatReadingValue(s.calibration_result));
-              }
-            }
-          }
-          const crmStd = masterStandards.find((s: any) => /crm/i.test((s.crm_name || '').toString()));
-          if (d.crm_reading_value !== null && d.crm_reading_value !== undefined) {
-            readingLines.push(`${formatReadingValue(d.crm_reading_value)} ${unit}`.trim());
-          } else if (crmStd && crmStd.calibration_result !== null && crmStd.calibration_result !== undefined) {
-            readingLines.push(formatReadingValue(crmStd.calibration_result));
-          }
-          const readingsColumn = readingLines.join('<br>') || '-';
-
-          let coeffText = '-';
-          if (d.coefficients) {
-            const coeffs = typeof d.coefficients === 'string' ? JSON.parse(d.coefficients) : d.coefficients;
-            if (d.parameter_name === 'pH') {
-              const pairs = [['k1', 'k2'], ['k3', 'k4'], ['k5', 'k6']];
-              coeffText = pairs.map((pair) => pair
-                .map((key) => coeffs[key] !== undefined ? `<strong>${key.toUpperCase()}:</strong> ${coeffs[key]}` : null)
-                .filter(Boolean)
-                .join(' | ')
-              ).filter(Boolean).join('<br>') || '-';
-            } else {
-              coeffText = Object.entries(coeffs).map(([k, v]) => `<strong>${k.toUpperCase()}:</strong> ${v}`).join('<br>') || '-';
-            }
-          }
-
-          const calculationStatus = deriveCalibrationStatus(d.parameter_name, masterStandards) || d.calculation_result || null;
-          const resultColumn = formatCalibrationStatus(calculationStatus);
-
-          return `
-            <tr>
-              <td class="font-bold">${d.parameter_name} Calibration</td>
-              <td class="text-center">${standardsColumn}</td>
-              <td class="text-center">${readingsColumn}</td>
-              <td class="text-center">${coeffText}</td>
-              <td class="text-center">${resultColumn}</td>
-            </tr>
-          `;
-        }).join('');
-
-        const sampleTable = renderWaterSampleTable(previewData.details, previewData.waterSamples);
-
-        const formattedDate = formatCalibrationDateRange(
-          calibration.calibration_start_date,
-          calibration.calibration_end_date
-        );
-        const place = formatReportPlace(calibration.station_city || calibration.station_address);
-        const placeDate = `${place}, ${formatReportDate(calibration.calibration_end_date)}`;
-
         html = renderCalibrationReportHtml(html, {
           reportNo: calibration.report_no,
           stationName: calibration.station_name,
@@ -1004,7 +827,7 @@ class CalibrationController {
         .first();
 
       if (!calibration) {
-        return res.status(404).send('Laporan kalibrasi tidak ditemukan.');
+        return res.status(404).send(getCalibrationPdfResponseContract(null, id).notFoundMessage);
       }
 
       const details = await db('calibration_details')
@@ -1033,7 +856,7 @@ class CalibrationController {
       ];
       const templatePath = candidateTemplates.find((p) => fs.existsSync(p));
       if (!templatePath) {
-        return res.status(500).send('Template laporan kalibrasi tidak ditemukan.');
+        return res.status(500).send(getCalibrationPdfResponseContract(null, id).templateNotFoundMessage);
       }
       let html = fs.readFileSync(templatePath, 'utf8');
 
@@ -1046,8 +869,7 @@ class CalibrationController {
         margin: 1,
       });
 
-      // 3. Construct Calibration Details Table Rows
-      let calRows = '';
+      // 3. Prepare report details with canonical standard values.
       const renderDetails: any[] = [];
       for (const d of details) {
         const storedStandards = standards.filter((s: any) => s.calibration_detail_id === d.id);
@@ -1059,56 +881,7 @@ class CalibrationController {
             crm_standard_value: masterStandard.crm_standard_value
           } : masterStandard;
         });
-        const unit = d.parameter_unit || (d.parameter_name === 'pH' ? 'Unit' : '');
-
-        // crm_name is already a display-ready label from the master standard value.
-        const standardLines = paramStandards.map((s: any) =>
-          formatStandardLabel(s, d.parameter_name, d.parameter_unit)
-        );
-        if (!standardLines.some((line) => /CRM\s/i.test(line)) && d.crm_reference_value !== null && d.crm_reference_value !== undefined) {
-          standardLines.push(`CRM ${formatStandardValue(d.crm_reference_value, d.parameter_name, d.parameter_unit)}`);
-        }
-        const standardsColumn = standardLines.join('<br>') || '-';
-
-        // Hasil Pembacaan: list calibration_result for solutions and CRM reading (crm_reading_value)
-        const readingLines: string[] = [];
-        for (const s of paramStandards) {
-          const name = (s.crm_name || '').toString();
-          if (!/crm/i.test(name)) {
-            if (s.calibration_result === null || s.calibration_result === undefined) {
-              readingLines.push('-');
-            } else {
-              readingLines.push(formatReadingValue(s.calibration_result));
-            }
-          }
-        }
-        // CRM reading (explicit reading value preferred)
-        const crmStd = paramStandards.find((s: any) => /crm/i.test((s.crm_name || '').toString()));
-        if (d.crm_reading_value !== null && d.crm_reading_value !== undefined) {
-          readingLines.push(`${formatReadingValue(d.crm_reading_value)} ${unit}`.trim());
-        } else if (crmStd && (crmStd.calibration_result !== null && crmStd.calibration_result !== undefined)) {
-          readingLines.push(formatReadingValue(crmStd.calibration_result));
-        }
-        const readingsColumn = readingLines.join('<br>') || '-';
-
-        // Internal Coeff (K/B) - ensure pH displays K1..K6 if present
-        let coeffText = '-';
-        if (d.coefficients) {
-          const coeffs = typeof d.coefficients === 'string' ? JSON.parse(d.coefficients) : d.coefficients;
-          if (d.parameter_name === 'pH') {
-            const pairs = [['k1', 'k2'], ['k3', 'k4'], ['k5', 'k6']];
-            coeffText = pairs.map((pair) => pair
-              .map((key) => coeffs[key] !== undefined ? `<strong>${key.toUpperCase()}:</strong> ${coeffs[key]}` : null)
-              .filter(Boolean)
-              .join(' | ')
-            ).filter(Boolean).join('<br>') || '-';
-          } else {
-            coeffText = Object.entries(coeffs).map(([k, v]) => `<strong>${k.toUpperCase()}:</strong> ${v}`).join('<br>') || '-';
-          }
-        }
-
         const calculationStatus = deriveCalibrationStatus(d.parameter_name, paramStandards) || d.calculation_result || null;
-        const resultColumn = formatCalibrationStatus(calculationStatus);
 
         renderDetails.push({
           parameterName: d.parameter_name,
@@ -1124,19 +897,7 @@ class CalibrationController {
           calculationStatus
         });
 
-        calRows += `
-          <tr>
-            <td class="font-bold">${d.parameter_name} Calibration</td>
-            <td class="text-center">${standardsColumn}</td>
-            <td class="text-center">${readingsColumn}</td>
-            <td class="text-center">${coeffText}</td>
-            <td class="text-center">${resultColumn}</td>
-          </tr>
-        `;
       }
-
-      // 4. Construct Water Samples Table Rows
-      const sampleTable = renderWaterSampleTable(details, waterSamples);
 
       // 4a. Inline CSS if external stylesheet exists (so puppeteer can render correctly)
       try {
@@ -1148,15 +909,6 @@ class CalibrationController {
       } catch (e) {
         // ignore CSS inlining errors and continue
       }
-
-      // 5. Replace placeholders in HTML template
-      const formattedDate = formatCalibrationDateRange(
-        calibration.calibration_start_date,
-        calibration.calibration_end_date
-      );
-
-      const place = formatReportPlace(calibration.station_city || calibration.station_address);
-      const placeDate = `${place}, ${formatReportDate(calibration.calibration_end_date)}`;
 
       html = renderCalibrationReportHtml(html, {
         reportNo: calibration.report_no,
@@ -1179,15 +931,15 @@ class CalibrationController {
         const page = await browser.newPage();
         await page.setContent(html, { waitUntil: 'networkidle0' });
         const pdfBuffer = await page.pdf({ format: 'A4', printBackground: true, margin: { top: '12mm', right: '15mm', bottom: '12mm', left: '15mm' } });
-        res.setHeader('Content-Type', 'application/pdf');
-        const filename = buildCalibrationPdfFilename(calibration.report_no, id);
-        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+        const responseContract = getCalibrationPdfResponseContract(calibration.report_no, id);
+        res.setHeader('Content-Type', responseContract.contentType);
+        res.setHeader('Content-Disposition', responseContract.contentDisposition);
         return res.send(pdfBuffer);
       } finally {
         await browser.close();
       }
     } catch (error: any) {
-      return res.status(500).send('Gagal membuat PDF laporan kalibrasi.');
+      return res.status(500).send(getCalibrationPdfResponseContract(null, req.params.id).renderErrorMessage);
     }
   }
 }
