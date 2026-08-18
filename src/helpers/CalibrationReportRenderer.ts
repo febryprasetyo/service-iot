@@ -295,6 +295,13 @@ export function getCalibrationPdfResponseContract(reportNo: string | null | unde
   };
 }
 
+export function getCalibrationHtmlResponseContract() {
+  return {
+    contentType: 'text/html; charset=utf-8',
+    contentDisposition: 'inline'
+  };
+}
+
 export function renderCalibrationReportHtml(template: string, input: RenderCalibrationReportInput): string {
   const sampleTable = renderWaterSampleTable(input.details, input.waterSamples);
   const place = formatReportPlace(input.stationCity || input.stationAddress);

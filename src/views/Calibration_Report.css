@@ -27,6 +27,17 @@ body {
     color: #1a202c;
 }
 
+@media screen {
+    html { background: #e2e8f0; }
+    body {
+        width: 210mm;
+        min-height: 297mm;
+        margin: 0 auto;
+        padding: 12mm 15mm;
+        background: #fff;
+    }
+}
+
 table { width: 100%; border-collapse: collapse; }
 
 .header-table { border-bottom: 2px solid #0f2942; margin-bottom: 10px; }

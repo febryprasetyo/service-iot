@@ -9,6 +9,7 @@ import {
   formatReportPlace,
   formatReportNumberValue,
   getCalibrationPdfResponseContract,
+  getCalibrationHtmlResponseContract,
   renderCalibrationReportHtml,
   sanitizeCalibrationNotes
 } from './CalibrationReportRenderer';
@@ -282,6 +283,13 @@ describe('renderCalibrationReportHtml', () => {
       notFoundMessage: 'Laporan kalibrasi tidak ditemukan.',
       templateNotFoundMessage: 'Template laporan kalibrasi tidak ditemukan.',
       renderErrorMessage: 'Gagal membuat PDF laporan kalibrasi.'
+    });
+  });
+
+  it('defines an inline HTML response for the shared report preview', () => {
+    expect(getCalibrationHtmlResponseContract()).toEqual({
+      contentType: 'text/html; charset=utf-8',
+      contentDisposition: 'inline'
     });
   });
 });
