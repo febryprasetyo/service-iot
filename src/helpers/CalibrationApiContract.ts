@@ -10,7 +10,7 @@ export const CALIBRATION_MESSAGES = {
   requiredFields: 'Kolom station_id, calibration_start_date, calibration_end_date, dan parameter_ids wajib diisi.',
   invalidDateRange: 'calibration_end_date harus sama dengan atau setelah calibration_start_date.',
   reportNotFound: 'Laporan kalibrasi tidak ditemukan.',
-  updateDraftOnly: 'Hanya laporan berstatus draf yang dapat diperbarui.',
+  updateBeforeApprovalOnly: 'Laporan kalibrasi yang sudah disetujui tidak dapat diperbarui.',
   deleteDraftOnly: 'Hanya laporan berstatus draf yang dapat dihapus.',
   submitDraftOnly: 'Hanya laporan berstatus draf yang dapat diajukan.',
   noParameters: 'Laporan kalibrasi tidak dapat diajukan karena belum ada parameter yang dipilih.',
@@ -21,11 +21,16 @@ export const CALIBRATION_MESSAGES = {
   verificationNotFound: 'Laporan verifikasi kalibrasi tidak ditemukan.',
   draftCreated: 'Draf kalibrasi berhasil dibuat.',
   draftUpdated: 'Draf kalibrasi berhasil diperbarui.',
+  reportUpdated: 'Laporan kalibrasi berhasil diperbarui.',
   reportDeleted: 'Laporan kalibrasi berhasil dihapus.',
   reportSubmitted: 'Laporan kalibrasi berhasil diajukan.',
   reportApproved: 'Laporan kalibrasi berhasil disetujui.',
   internalError: 'Terjadi kesalahan internal saat memproses kalibrasi.'
 };
+
+export function isCalibrationEditableStatus(status: unknown): boolean {
+  return status === 'draft' || status === 'submitted';
+}
 
 export const CALIBRATION_AUTH_MESSAGES = {
   expiredOrInvalid: 'Token akses telah kedaluwarsa atau tidak valid.',

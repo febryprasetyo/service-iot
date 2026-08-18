@@ -10,6 +10,7 @@ import { getCalibrationPdfResponseContract, renderCalibrationReportHtml } from '
 import {
   CALIBRATION_MESSAGES,
   getVerificationUrl,
+  isCalibrationEditableStatus,
   localizeCalibrationControllerError,
   sanitizeCalibrationRecordNotes,
   sanitizeCalibrationWriteNotes
@@ -318,8 +319,8 @@ class CalibrationController {
         throw createError(CALIBRATION_MESSAGES.reportNotFound, 'E_NOT_FOUND');
       }
 
-      if (calibration.status !== 'draft') {
-        throw createError(CALIBRATION_MESSAGES.updateDraftOnly, 'E_BAD_REQUEST');
+      if (!isCalibrationEditableStatus(calibration.status)) {
+        throw createError(CALIBRATION_MESSAGES.updateBeforeApprovalOnly, 'E_BAD_REQUEST');
       }
 
       await db.transaction(async (trx) => {
@@ -501,7 +502,7 @@ class CalibrationController {
 
       return sendResponseCustom(res, {
         success: true,
-        message: CALIBRATION_MESSAGES.draftUpdated,
+        message: calibration.status === 'draft' ? CALIBRATION_MESSAGES.draftUpdated : CALIBRATION_MESSAGES.reportUpdated,
         data: sanitizeCalibrationRecordNotes(updated)
       });
     } catch (error: any) {

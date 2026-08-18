@@ -7,6 +7,7 @@ import {
   CALIBRATION_AUTH_MESSAGES,
   CALIBRATION_MESSAGES,
   getVerificationUrl,
+  isCalibrationEditableStatus,
   localizeCalibrationControllerError,
   sanitizeCalibrationRecordNotes,
   sanitizeCalibrationWriteNotes
@@ -104,6 +105,12 @@ describe('calibration verification URL contract', () => {
 });
 
 describe('calibration Indonesian message contract', () => {
+  it('allows updates before approval and locks approved reports', () => {
+    expect(isCalibrationEditableStatus('draft')).toBe(true);
+    expect(isCalibrationEditableStatus('submitted')).toBe(true);
+    expect(isCalibrationEditableStatus('approved')).toBe(false);
+  });
+
   it('provides professional validation and workflow messages without changing data field names', () => {
     expect(CALIBRATION_MESSAGES.requiredFields).toBe(
       'Kolom station_id, calibration_start_date, calibration_end_date, dan parameter_ids wajib diisi.'
@@ -112,7 +119,7 @@ describe('calibration Indonesian message contract', () => {
       'calibration_end_date harus sama dengan atau setelah calibration_start_date.'
     );
     expect(CALIBRATION_MESSAGES.reportNotFound).toBe('Laporan kalibrasi tidak ditemukan.');
-    expect(CALIBRATION_MESSAGES.updateDraftOnly).toBe('Hanya laporan berstatus draf yang dapat diperbarui.');
+    expect(CALIBRATION_MESSAGES.updateBeforeApprovalOnly).toBe('Laporan kalibrasi yang sudah disetujui tidak dapat diperbarui.');
     expect(CALIBRATION_MESSAGES.deleteDraftOnly).toBe('Hanya laporan berstatus draf yang dapat dihapus.');
     expect(CALIBRATION_MESSAGES.submitDraftOnly).toBe('Hanya laporan berstatus draf yang dapat diajukan.');
     expect(CALIBRATION_MESSAGES.noParameters).toBe(
@@ -138,6 +145,7 @@ describe('calibration Indonesian message contract', () => {
   it('provides Indonesian success and calibration authorization messages', () => {
     expect(CALIBRATION_MESSAGES.draftCreated).toBe('Draf kalibrasi berhasil dibuat.');
     expect(CALIBRATION_MESSAGES.draftUpdated).toBe('Draf kalibrasi berhasil diperbarui.');
+    expect(CALIBRATION_MESSAGES.reportUpdated).toBe('Laporan kalibrasi berhasil diperbarui.');
     expect(CALIBRATION_MESSAGES.reportDeleted).toBe('Laporan kalibrasi berhasil dihapus.');
     expect(CALIBRATION_MESSAGES.reportSubmitted).toBe('Laporan kalibrasi berhasil diajukan.');
     expect(CALIBRATION_MESSAGES.reportApproved).toBe('Laporan kalibrasi berhasil disetujui.');
