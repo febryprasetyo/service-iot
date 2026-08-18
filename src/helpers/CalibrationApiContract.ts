@@ -32,6 +32,22 @@ export function isCalibrationEditableStatus(status: unknown): boolean {
   return status === 'draft' || status === 'submitted';
 }
 
+export function getCalibrationCompletenessError(details: any[], standards: any[]): string | null {
+  if (!details.length) return CALIBRATION_MESSAGES.noParameters;
+
+  for (const detail of details) {
+    const detailStandards = standards.filter((standard) => standard.calibration_detail_id === detail.id);
+    if (!detailStandards.length) return CALIBRATION_MESSAGES.parameterStandardsMissing(detail.id);
+
+    const missingResult = detailStandards.find(
+      (standard) => standard.calibration_result === null || standard.calibration_result === undefined
+    );
+    if (missingResult) return CALIBRATION_MESSAGES.calibrationResultMissing(missingResult.crm_name);
+  }
+
+  return null;
+}
+
 export const CALIBRATION_AUTH_MESSAGES = {
   expiredOrInvalid: 'Token akses telah kedaluwarsa atau tidak valid.',
   accessDenied: 'Anda tidak memiliki izin untuk mengakses endpoint kalibrasi ini.',

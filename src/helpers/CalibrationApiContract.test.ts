@@ -6,6 +6,7 @@ jest.mock('../utils/logger', () => ({
 import {
   CALIBRATION_AUTH_MESSAGES,
   CALIBRATION_MESSAGES,
+  getCalibrationCompletenessError,
   getVerificationUrl,
   isCalibrationEditableStatus,
   localizeCalibrationControllerError,
@@ -109,6 +110,21 @@ describe('calibration Indonesian message contract', () => {
     expect(isCalibrationEditableStatus('draft')).toBe(true);
     expect(isCalibrationEditableStatus('submitted')).toBe(true);
     expect(isCalibrationEditableStatus('approved')).toBe(false);
+  });
+
+  it('rejects approval when a submitted revision is no longer complete', () => {
+    const details = [{ id: 7 }];
+
+    expect(getCalibrationCompletenessError([], [])).toBe(
+      'Laporan kalibrasi tidak dapat diajukan karena belum ada parameter yang dipilih.'
+    );
+    expect(getCalibrationCompletenessError(details, [])).toBe(
+      'Detail parameter dengan ID 7 belum memiliki standar CRM.'
+    );
+    expect(getCalibrationCompletenessError(details, [{ calibration_detail_id: 7, crm_name: 'CRM 5.51', calibration_result: null }])).toBe(
+      "Hasil kalibrasi untuk standar CRM 'CRM 5.51' belum diisi."
+    );
+    expect(getCalibrationCompletenessError(details, [{ calibration_detail_id: 7, crm_name: 'CRM 5.51', calibration_result: 5.4 }])).toBeNull();
   });
 
   it('provides professional validation and workflow messages without changing data field names', () => {

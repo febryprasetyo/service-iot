@@ -9,6 +9,7 @@ import { ensureDefaultSolutionStandardsForDetail, getMasterSolutionStandards } f
 import { getCalibrationPdfResponseContract, renderCalibrationReportHtml } from '../helpers/CalibrationReportRenderer';
 import {
   CALIBRATION_MESSAGES,
+  getCalibrationCompletenessError,
   getVerificationUrl,
   isCalibrationEditableStatus,
   localizeCalibrationControllerError,
@@ -314,16 +315,18 @@ class CalibrationController {
       const { id } = req.params;
       const { calibration_start_date, calibration_end_date, notes, details, waterSamples, parameter_ids } = req.body;
 
-      const calibration = await db('calibrations').where({ id }).first();
-      if (!calibration) {
-        throw createError(CALIBRATION_MESSAGES.reportNotFound, 'E_NOT_FOUND');
-      }
-
-      if (!isCalibrationEditableStatus(calibration.status)) {
-        throw createError(CALIBRATION_MESSAGES.updateBeforeApprovalOnly, 'E_BAD_REQUEST');
-      }
+      let calibrationStatus: string;
 
       await db.transaction(async (trx) => {
+        const calibration = await trx('calibrations').where({ id }).forUpdate().first();
+        if (!calibration) {
+          throw createError(CALIBRATION_MESSAGES.reportNotFound, 'E_NOT_FOUND');
+        }
+        if (!isCalibrationEditableStatus(calibration.status)) {
+          throw createError(CALIBRATION_MESSAGES.updateBeforeApprovalOnly, 'E_BAD_REQUEST');
+        }
+        calibrationStatus = calibration.status;
+
         // Update header fields
         const headerUpdate: any = { updated_at: nowWib() };
         if (calibration_start_date !== undefined) headerUpdate.calibration_start_date = calibration_start_date;
@@ -502,7 +505,7 @@ class CalibrationController {
 
       return sendResponseCustom(res, {
         success: true,
-        message: calibration.status === 'draft' ? CALIBRATION_MESSAGES.draftUpdated : CALIBRATION_MESSAGES.reportUpdated,
+        message: calibrationStatus! === 'draft' ? CALIBRATION_MESSAGES.draftUpdated : CALIBRATION_MESSAGES.reportUpdated,
         data: sanitizeCalibrationRecordNotes(updated)
       });
     } catch (error: any) {
@@ -619,18 +622,44 @@ class CalibrationController {
     try {
       const { id } = req.params;
 
-      const calibration = await db('calibrations').where({ id }).first();
-      if (!calibration) {
-        throw createError(CALIBRATION_MESSAGES.reportNotFound, 'E_NOT_FOUND');
-      }
+      await db.transaction(async (trx) => {
+        const calibration = await trx('calibrations').where({ id }).forUpdate().first();
+        if (!calibration) {
+          throw createError(CALIBRATION_MESSAGES.reportNotFound, 'E_NOT_FOUND');
+        }
+        if (calibration.status !== 'submitted') {
+          throw createError(CALIBRATION_MESSAGES.approvalSubmittedOnly, 'E_BAD_REQUEST');
+        }
 
-      if (calibration.status !== 'submitted') {
-        throw createError(CALIBRATION_MESSAGES.approvalSubmittedOnly, 'E_BAD_REQUEST');
-      }
+        const details = await trx('calibration_details as detail')
+          .join('master_parameters as parameter', 'parameter.id', 'detail.parameter_id')
+          .where('detail.calibration_id', id)
+          .select('detail.*', 'parameter.name as parameter_name');
+        const detailIds = details.map((detail: any) => detail.id);
+        const standards = detailIds.length
+          ? await trx('calibration_detail_standards').whereIn('calibration_detail_id', detailIds)
+          : [];
+        const completenessError = getCalibrationCompletenessError(details, standards);
+        if (completenessError) {
+          throw createError(completenessError, 'E_BAD_REQUEST');
+        }
 
-      await db('calibrations').where({ id }).update({
-        status: 'approved',
-        updated_at: nowWib()
+        for (const detail of details) {
+          const detailStandards = standards.filter((standard: any) => standard.calibration_detail_id === detail.id);
+          const calculationResult = deriveCalibrationStatus(detail.parameter_name, detailStandards);
+          if (!calculationResult) {
+            throw createError(CALIBRATION_MESSAGES.calculationUnavailable(detail.parameter_name), 'E_BAD_REQUEST');
+          }
+          await trx('calibration_details').where({ id: detail.id }).update({
+            calculation_result: calculationResult,
+            updated_at: nowWib()
+          });
+        }
+
+        await trx('calibrations').where({ id }).update({
+          status: 'approved',
+          updated_at: nowWib()
+        });
       });
 
       return sendResponseCustom(res, {
