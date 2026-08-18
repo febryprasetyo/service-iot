@@ -10,6 +10,7 @@ import { getCalibrationPdfResponseContract, renderCalibrationReportHtml } from '
 import {
   CALIBRATION_MESSAGES,
   getCalibrationCompletenessError,
+  getCalibrationDetailLookup,
   getVerificationUrl,
   isCalibrationEditableStatus,
   localizeCalibrationControllerError,
@@ -376,18 +377,16 @@ class CalibrationController {
 
         // 2. Update details and synchronize CRM standards
         if (details && details.length > 0) {
-          const detailIdsToFetch = details.map((d: any) => d.id).filter(Boolean);
-          const dbDetailNames: any[] = detailIdsToFetch.length > 0
-            ? await trx('calibration_details')
-                .join('master_parameters', 'calibration_details.parameter_id', '=', 'master_parameters.id')
-                .select('calibration_details.id', 'master_parameters.name as parameter_name')
-                .whereIn('calibration_details.id', detailIdsToFetch)
-            : [];
-          const parameterNameMap = new Map(dbDetailNames.map((row: any) => [row.id, row.parameter_name]));
-
           for (const d of details) {
-            const parameterName = d.parameter_name || parameterNameMap.get(d.id) || '';
-            await ensureDefaultSolutionStandardsForDetail(trx, d.id, parameterName);
+            const storedDetail = await trx('calibration_details')
+              .join('master_parameters', 'calibration_details.parameter_id', '=', 'master_parameters.id')
+              .select('calibration_details.id', 'master_parameters.name as parameter_name')
+              .where(getCalibrationDetailLookup(id, d))
+              .first();
+            if (!storedDetail) continue;
+            const detailId = storedDetail.id;
+            const parameterName = d.parameter_name || storedDetail.parameter_name || '';
+            await ensureDefaultSolutionStandardsForDetail(trx, detailId, parameterName);
             const masterStandards = await getMasterSolutionStandards(trx, parameterName);
             const masterStandardsByName = new Map(
               masterStandards.map((standard) => [standard.crm_name, standard])
@@ -409,11 +408,11 @@ class CalibrationController {
             detailUpdate.remark = getCalibrationSpecification(parameterName)?.label || d.remark || null;
             detailUpdate.calculation_result = evaluatedResult || d.calculation_result || null;
 
-            await trx('calibration_details').where({ id: d.id, calibration_id: id }).update(detailUpdate);
+            await trx('calibration_details').where({ id: detailId, calibration_id: id }).update(detailUpdate);
 
             // Upsert standard/CRM values
             if (d.standards && d.standards.length > 0) {
-              const existingStandards = await trx('calibration_detail_standards').where('calibration_detail_id', d.id);
+              const existingStandards = await trx('calibration_detail_standards').where('calibration_detail_id', detailId);
 
               for (const s of d.standards) {
                 const existingStandardById = s.id
@@ -445,10 +444,10 @@ class CalibrationController {
                   : existingStandards.find((standard: any) => standard.crm_name === masterStandard.crm_name);
 
                 if (existingStandard) {
-                  await trx('calibration_detail_standards').where({ id: existingStandard.id, calibration_detail_id: d.id }).update(standardUpdate);
+                  await trx('calibration_detail_standards').where({ id: existingStandard.id, calibration_detail_id: detailId }).update(standardUpdate);
                 } else {
                   await trx('calibration_detail_standards').insert({
-                    calibration_detail_id: d.id,
+                    calibration_detail_id: detailId,
                     ...standardUpdate,
                     created_at: nowWib()
                   });

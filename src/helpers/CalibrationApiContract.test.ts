@@ -7,6 +7,7 @@ import {
   CALIBRATION_AUTH_MESSAGES,
   CALIBRATION_MESSAGES,
   getCalibrationCompletenessError,
+  getCalibrationDetailLookup,
   getVerificationUrl,
   isCalibrationEditableStatus,
   localizeCalibrationControllerError,
@@ -125,6 +126,11 @@ describe('calibration Indonesian message contract', () => {
       "Hasil kalibrasi untuk standar CRM 'CRM 5.51' belum diisi."
     );
     expect(getCalibrationCompletenessError(details, [{ calibration_detail_id: 7, crm_name: 'CRM 5.51', calibration_result: 5.4 }])).toBeNull();
+  });
+
+  it('resolves stored and newly selected parameter details within the calibration', () => {
+    expect(getCalibrationDetailLookup('cal-7', { id: 12, parameter_id: 3 })).toEqual({ id: 12, calibration_id: 'cal-7' });
+    expect(getCalibrationDetailLookup('cal-7', { parameter_id: 3 })).toEqual({ calibration_id: 'cal-7', parameter_id: 3 });
   });
 
   it('provides professional validation and workflow messages without changing data field names', () => {

@@ -32,6 +32,15 @@ export function isCalibrationEditableStatus(status: unknown): boolean {
   return status === 'draft' || status === 'submitted';
 }
 
+export function getCalibrationDetailLookup(
+  calibrationId: string,
+  detail: { id?: number; parameter_id?: number }
+): { calibration_id: string; id?: number; parameter_id?: number } {
+  return detail.id && detail.id > 0
+    ? { id: detail.id, calibration_id: calibrationId }
+    : { calibration_id: calibrationId, parameter_id: detail.parameter_id };
+}
+
 export function getCalibrationCompletenessError(details: any[], standards: any[]): string | null {
   if (!details.length) return CALIBRATION_MESSAGES.noParameters;
 
