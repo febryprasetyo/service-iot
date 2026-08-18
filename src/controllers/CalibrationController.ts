@@ -6,7 +6,7 @@ import { CalibrationRepository } from '../repositories/CalibrationRepository';
 import { CalibrationService } from '../services/CalibrationService';
 import { evaluateStandardMeasurement, getCalibrationSpecification } from '../helpers/CalibrationCalculator';
 import { ensureDefaultSolutionStandardsForDetail, getMasterSolutionStandards } from '../helpers/CalibrationDefaults';
-import { getCalibrationHtmlResponseContract, getCalibrationPdfResponseContract, renderCalibrationReportHtml } from '../helpers/CalibrationReportRenderer';
+import { getCalibrationPdfResponseContract, renderCalibrationReportHtml } from '../helpers/CalibrationReportRenderer';
 import {
   CALIBRATION_MESSAGES,
   getVerificationUrl,
@@ -894,13 +894,6 @@ class CalibrationController {
         details: renderDetails,
         waterSamples
       });
-
-      if (req.query.format === 'html') {
-        const responseContract = getCalibrationHtmlResponseContract();
-        res.setHeader('Content-Type', responseContract.contentType);
-        res.setHeader('Content-Disposition', responseContract.contentDisposition);
-        return res.send(html);
-      }
 
       // Generate PDF using puppeteer
       const browser = await puppeteer.launch({ args: ['--no-sandbox', '--disable-setuid-sandbox'] });
