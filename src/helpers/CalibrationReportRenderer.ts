@@ -204,23 +204,26 @@ export function formatReportPlace(value: unknown): string {
 }
 
 const calibrationParameterLabels: Record<string, string> = {
-  AMONIA: 'Amonia (NH3-N)',
-  'AMONIA (NH3-N)': 'Amonia (NH3-N)',
-  NH3: 'Amonia (NH3-N)',
-  'NH3-N': 'Amonia (NH3-N)',
-  NITRAT: 'Nitrat (NO3-N)',
-  'NITRAT (NO3-N)': 'Nitrat (NO3-N)',
-  NO3: 'Nitrat (NO3-N)',
-  'NO3-N': 'Nitrat (NO3-N)',
-  NITRIT: 'Nitrit (NO2-N)',
-  'NITRIT (NO2-N)': 'Nitrit (NO2-N)',
-  NO2: 'Nitrit (NO2-N)',
-  'NO2-N': 'Nitrit (NO2-N)'
+  AMONIA: 'Amonia',
+  'AMONIA (NH3-N)': 'Amonia',
+  NH3: 'Amonia',
+  'NH3-N': 'Amonia',
+  NITRAT: 'Nitrat',
+  'NITRAT (NO3-N)': 'Nitrat',
+  NO3: 'Nitrat',
+  'NO3-N': 'Nitrat',
+  NITRIT: 'Nitrit',
+  'NITRIT (NO2-N)': 'Nitrit',
+  NO2: 'Nitrit',
+  'NO2-N': 'Nitrit'
 };
 
 export function formatCalibrationParameterName(value: string): string {
   const trimmedValue = value.trim();
-  return calibrationParameterLabels[trimmedValue.toUpperCase()] || trimmedValue;
+  if (calibrationParameterLabels[trimmedValue.toUpperCase()]) {
+    return calibrationParameterLabels[trimmedValue.toUpperCase()];
+  }
+  return trimmedValue.replace(/\s*\([A-Za-z0-9\-\+]+\)/g, '').trim() || trimmedValue;
 }
 
 function formatCoefficients(value: ReportDetail['coefficients'], parameterName: string): string {
@@ -304,7 +307,7 @@ export function renderDocumentationAttachment(details: ReportDetail[]): string {
 
       const photoHtml = photoSrc
         ? `<div class="doc-photo-box">
-             <img src="${escapeHtml(photoSrc)}" alt="${escapeHtml(slotLabel)} - ${escapeHtml(detail.parameterName)}" />
+             <img src="${escapeHtml(photoSrc)}" alt="${escapeHtml(slotLabel)} - ${escapeHtml(formatCalibrationParameterName(detail.parameterName))}" />
            </div>`
         : `<div class="doc-no-photo-box">Tidak ada foto ${escapeHtml(slotLabel.toLowerCase())}</div>`;
 
@@ -318,10 +321,10 @@ export function renderDocumentationAttachment(details: ReportDetail[]): string {
 
     return `
       <div class="doc-param-item">
-        <div class="doc-param-title">Dokumentasi Parameter: ${escapeHtml(formatCalibrationParameterName(detail.parameterName))}${detail.parameterUnit ? ` (${escapeHtml(detail.parameterUnit)})` : ''}</div>
+        <div class="doc-param-title">Dokumentasi Parameter: ${escapeHtml(formatCalibrationParameterName(detail.parameterName))}</div>
         <div class="doc-grid">
           ${renderPhotoCard(beforeDoc, 'Sebelum Kalibrasi')}
-          ${renderPhotoCard(afterDoc, 'Sesudah Kalibrasi)')}
+          ${renderPhotoCard(afterDoc, 'Sesudah Kalibrasi')}
         </div>
       </div>
     `;

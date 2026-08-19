@@ -39,9 +39,9 @@ describe('renderCalibrationReportHtml', () => {
     expect(formatCalibrationStandard('CRM pH 7', null, 'pH', 'Satuan')).toBe('CRM pH 7');
     expect(formatReportPlace('  kota   morowali UTARA  ')).toBe('Morowali Utara');
     expect(formatReportPlace('Bukit Kota Indah')).toBe('Bukit Kota Indah');
-    expect(formatCalibrationParameterName('Amonia')).toBe('Amonia (NH3-N)');
-    expect(formatCalibrationParameterName('NO3-N')).toBe('Nitrat (NO3-N)');
-    expect(formatCalibrationParameterName('no2')).toBe('Nitrit (NO2-N)');
+    expect(formatCalibrationParameterName('Amonia')).toBe('Amonia');
+    expect(formatCalibrationParameterName('NO3-N')).toBe('Nitrat');
+    expect(formatCalibrationParameterName('no2')).toBe('Nitrit');
     expect(formatReportNumberValue(1.005)).toBe('1,01');
     expect(formatReportNumberValue(1.413)).toBe('1,41');
   });
@@ -162,9 +162,9 @@ describe('renderCalibrationReportHtml', () => {
     expect(html).toContain('<span class="tag-pending">Tidak diuji</span>');
     expect(html).toContain('>7,00</td>');
     expect(html).not.toContain('>7,00 Unit</td>');
-    expect(html).toContain('Kalibrasi Amonia (NH3-N)');
-    expect(html).toContain('Kalibrasi Nitrat (NO3-N)');
-    expect(html).toContain('Kalibrasi Nitrit (NO2-N)');
+    expect(html).toContain('Kalibrasi Amonia');
+    expect(html).toContain('Kalibrasi Nitrat');
+    expect(html).toContain('Kalibrasi Nitrit');
     expect(html).toContain('<span class="header-label">Amonia</span><span class="header-unit">(mg/L)</span>');
     expect(html).toContain('<span class="header-label">Nitrat</span><span class="header-unit">(mg/L)</span>');
     expect(html).toContain('<span class="header-label">Nitrit</span><span class="header-unit">(mg/L)</span>');

@@ -28,6 +28,7 @@ dummy_server.js
 klhk_logs.json
 
 /.agent/
-/.agents/    
+/.agents/  
+/storage/
 
 alamat.json

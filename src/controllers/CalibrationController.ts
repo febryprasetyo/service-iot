@@ -1236,7 +1236,19 @@ export class CalibrationController {
       try {
         const page = await browser.newPage();
         await page.setContent(html, { waitUntil: 'networkidle0' });
-        const pdfBuffer = await page.pdf({ format: 'A4', printBackground: true, margin: { top: '12mm', right: '15mm', bottom: '12mm', left: '15mm' } });
+        const pdfBuffer = await page.pdf({
+          format: 'A4',
+          printBackground: true,
+          margin: { top: '12mm', right: '15mm', bottom: '15mm', left: '15mm' },
+          displayHeaderFooter: true,
+          headerTemplate: '<div></div>',
+          footerTemplate: `
+            <div style="font-size: 8pt; font-family: Helvetica, Arial, sans-serif; width: 100%; display: flex; justify-content: space-between; padding: 0 15mm; color: #555;">
+              <span>PT CAHAYA MAS CEMERLANG — LAPORAN KALIBRASI RESMI</span>
+              <span>Halaman <span class="pageNumber"></span> dari <span class="totalPages"></span></span>
+            </div>
+          `
+        });
         const responseContract = getCalibrationPdfResponseContract(calibration.report_no, id);
         res.setHeader('Content-Type', responseContract.contentType);
         res.setHeader('Content-Disposition', responseContract.contentDisposition);
