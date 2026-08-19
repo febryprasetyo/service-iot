@@ -1244,7 +1244,7 @@ export class CalibrationController {
           headerTemplate: '<div></div>',
           footerTemplate: `
             <div style="font-size: 8pt; font-family: Helvetica, Arial, sans-serif; width: 100%; display: flex; justify-content: space-between; padding: 0 15mm; color: #555;">
-              <span>PT CAHAYA MAS CEMERLANG — LAPORAN KALIBRASI RESMI</span>
+              <span>PT CAHAYA MAS CEMERLANG — LAPORAN KALIBRASI</span>
               <span>Halaman <span class="pageNumber"></span> dari <span class="totalPages"></span></span>
             </div>
           `
