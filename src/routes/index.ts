@@ -20,6 +20,9 @@ router.get('/', (req: any, res: any) => res.send('Bismillah Service API'));
 // public verification route
 router.get('/verify/:uuid', (req: any, res: any) => CalibrationCtl.verify(req, res));
 
+// public signed media streaming route
+router.get('/calibration-media/:docId', (req: any, res: any) => CalibrationCtl.streamMedia(req, res));
+
 //routes auth
 router.use('/test', testRouter);
 router.use('/auth', authLoginRouter);

@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="Calibration_Report.css">
 </head>
 <body>
+    <!-- ================= HALAMAN 1: LAPORAN KALIBRASI ================= -->
     <table class="header-table">
         <tr>
             <td style="width: 55%;">
@@ -25,7 +26,7 @@
             </td>
             <td style="width: 45%;">
                 <div class="doc-main-title">LAPORAN KALIBRASI</div>
-                <div class="doc-no-title">Nomor Laporan: {{STATION_NAME}}/{{REPORT_NO}}</div>
+                <div class="doc-no-title">Nomor Laporan: {{REPORT_NO}}</div>
             </td>
         </tr>
     </table>
@@ -96,5 +97,42 @@
             </td>
         </tr>
     </table>
+
+    <!-- ================= HALAMAN 2+: LAMPIRAN DOKUMENTASI FOTO ================= -->
+    <div class="attachment-section">
+        <table class="header-table">
+            <tr>
+                <td style="width: 55%;">
+                    <div class="company-header">
+                        <img class="company-logo" src="https://uploads.onecompiler.io/44724abkh/1786077498764/icon-cmc.png" alt="Logo PT Cahaya Mas Cemerlang">
+                        <div>
+                            <div class="company-name">PT Cahaya Mas Cemerlang</div>
+                            <div class="company-info">
+                                <strong>Kantor:</strong> Komplek Majapahit Permai Blok A No.110 & C No.105, Jl. Majapahit No.18-20-22, Jakarta Pusat 10160<br>
+                                <strong>Pabrik:</strong> Jalan Rawa Gelam II No.3, Kawasan Industri Pulogadung, Jakarta Timur<br>
+                                <strong>Telp:</strong> 021-344 3456 <strong>(Saluran Bersama) Faks:</strong> 021-460 2340/460 2344<br>
+                                <strong>Email:</strong> info@cahayamascemerlang.com | <strong>Situs Web:</strong> www.cahayamascemerlang.com
+                            </div>
+                        </div>
+                    </div>
+                </td>
+                <td style="width: 45%;">
+                    <div class="doc-main-title">LAMPIRAN DOKUMENTASI</div>
+                    <div class="doc-no-title">Nomor Laporan: {{REPORT_NO}}</div>
+                </td>
+            </tr>
+        </table>
+
+        <table class="station-table">
+            <tr>
+                <td class="st-label">Nama Stasiun</td>
+                <td class="st-val" colspan="3">: {{STATION_NAME}}</td>
+            </tr>
+        </table>
+
+        <div class="section-header">Dokumentasi Foto Kalibrasi Sesuai Parameter</div>
+
+        {{DOCUMENTATION_ATTACHMENT}}
+    </div>
 </body>
 </html>

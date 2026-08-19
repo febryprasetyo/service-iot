@@ -25,6 +25,7 @@ body {
     font-size: 8.5pt;
     line-height: 1.35;
     color: #1a202c;
+    background: #fff;
 }
 
 table { width: 100%; border-collapse: collapse; }
@@ -53,14 +54,14 @@ table { width: 100%; border-collapse: collapse; }
 
 .doc-no-title { text-align: right; font-size: 8.5pt; font-weight: 700; color: #475569; margin-top: 3px; }
 
-.station-table { margin-bottom: 10px; background: #f8fafc; border: 1px solid #cbd5e1; }
+.station-table { margin-bottom: 8px; background: #f8fafc; border: 1px solid #cbd5e1; }
 
 .station-table td { padding: 4px 8px; font-size: 8.5pt; vertical-align: middle; }
 
 .st-label { font-weight: 700; color: #1e293b; width: 18%; }
 .st-val { color: #0f172a; width: 32%; }
 
-.section-header { background: #0f2942; color: #fff; font-weight: 700; font-size: 9pt; padding: 4px 8px; margin: 10px 0 6px; text-transform: uppercase; letter-spacing: .5px; }
+.section-header { background: #0f2942; color: #fff; font-weight: 700; font-size: 9pt; padding: 4px 8px; margin: 8px 0 5px; text-transform: uppercase; letter-spacing: .5px; }
 
 .cal-table, .sample-table { margin-bottom: 8px; font-size: 8pt; }
 .sample-table { font-size: 5.8pt; table-layout: fixed; }
@@ -89,18 +90,98 @@ table { width: 100%; border-collapse: collapse; }
 .tag-pass { color: #15803d; font-weight: 700; background: #f0fdf4; padding: 1px 4px; border: 1px solid #bbf7d0; }
 .tag-fail { color: #b91c1c; font-weight: 700; background: #fef2f2; padding: 1px 4px; border: 1px solid #fecaca; }
 
-.notes-box { border: 1px solid #cbd5e1; background: #fafafa; padding: 6px 8px; font-size: 8pt; margin-bottom: 12px; }
+.notes-box { border: 1px solid #cbd5e1; background: #fafafa; padding: 5px 8px; font-size: 8pt; margin-bottom: 8px; }
 .notes-box ul, .notes-box ol { margin: 2px 0 2px 15px; padding: 0; }
 .notes-box li, .notes-box p { margin-top: 0; margin-bottom: 1px; line-height: 1.2; }
 
-.sig-table { margin-top: 15px; page-break-inside: avoid; width: 100%; }
+.sig-table { margin-top: 8px; page-break-inside: avoid; width: 100%; }
 .sig-table td { width: 50%; text-align: left; font-size: 8.5pt; }
 
 .sig-box { display: inline-block; text-align: center; }
-.sig-space { width: 95px; height: 95px; margin: 8px 0; border: 1px solid #cbd5e1; display: flex; align-items: center; justify-content: center; overflow: hidden; background: #fff; }
+.sig-space { width: 90px; height: 90px; margin: 6px 0; border: 1px solid #cbd5e1; display: flex; align-items: center; justify-content: center; overflow: hidden; background: #fff; }
 .sig-space img { width: 100%; height: 100%; object-fit: contain; display: block; }
 
 .sig-name { font-weight: 700; text-decoration: underline; color: #0f172a; }
 .sig-sub { color: #64748b; font-size: 8pt; }
 
-.footer-rev { margin-top: 14px; padding-top: 6px; border-top: 1px solid #cbd5e1; font-size: 8pt; color: #475569; text-align: right; font-weight: 700; }
+.footer-rev { margin-top: 10px; padding-top: 4px; border-top: 1px solid #cbd5e1; font-size: 8pt; color: #475569; text-align: right; font-weight: 700; }
+
+/* ================= LAMPIRAN DOKUMENTASI FOTO ================= */
+.attachment-section {
+    page-break-before: always;
+    break-before: page;
+    margin-top: 0;
+}
+
+.doc-param-item {
+    page-break-inside: avoid;
+    break-inside: avoid;
+    border: 1px solid #cbd5e1;
+    background: #ffffff;
+    margin-bottom: 10px;
+    padding: 8px;
+    border-radius: 4px;
+}
+
+.doc-param-title {
+    font-weight: 700;
+    font-size: 8.5pt;
+    color: #0f2942;
+    background: #ffffff;
+    padding: 4px 8px;
+    margin-bottom: 8px;
+    border-left: 3px solid #1e3a8a;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.doc-grid {
+    display: flex;
+    gap: 12px;
+}
+
+.doc-col {
+    flex: 1;
+    width: 50%;
+}
+
+.doc-slot-label {
+    font-size: 7.5pt;
+    font-weight: 700;
+    color: #334155;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+}
+
+.doc-photo-box {
+    width: 100%;
+    height: 180px;
+    border: 1px solid #cbd5e1;
+    background: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    border-radius: 2px;
+}
+
+.doc-photo-box img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    display: block;
+    background: #ffffff;
+}
+
+.doc-no-photo-box {
+    width: 100%;
+    height: 180px;
+    border: 1px dashed #cbd5e1;
+    background: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #94a3b8;
+    font-size: 7.5pt;
+    font-style: italic;
+    border-radius: 2px;
+}

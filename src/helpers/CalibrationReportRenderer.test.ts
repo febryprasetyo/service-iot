@@ -137,7 +137,7 @@ describe('renderCalibrationReportHtml', () => {
     });
 
     expect(html).toContain('LAPORAN KALIBRASI');
-    expect(html).toContain('Nomor Laporan: KLHK299/CR-2026/VIII/OMS-CMC/003');
+    expect(html).toContain('Nomor Laporan: CR-2026/VIII/OMS-CMC/003');
     expect(html).toContain('Nama Stasiun');
     expect(html).toContain('Tanggal Kalibrasi');
     expect(html).toContain('Alamat');
@@ -157,17 +157,17 @@ describe('renderCalibrationReportHtml', () => {
     expect(html).toContain('5,40');
     expect(html).toContain('1,41');
     expect(html).toContain('0,00');
-    expect(html).toContain('<span class="tag-pass">Lulus</span>');
-    expect(html).toContain('<span class="tag-fail">Tidak Lulus</span>');
-    expect(html).toContain('<span class="tag-pending">Menunggu</span>');
+    expect(html).toContain('<span class="tag-pass">Memenuhi</span>');
+    expect(html).toContain('<span class="tag-fail">Tidak Memenuhi</span>');
+    expect(html).toContain('<span class="tag-pending">Tidak diuji</span>');
     expect(html).toContain('>7,00</td>');
     expect(html).not.toContain('>7,00 Unit</td>');
     expect(html).toContain('Kalibrasi Amonia (NH3-N)');
     expect(html).toContain('Kalibrasi Nitrat (NO3-N)');
     expect(html).toContain('Kalibrasi Nitrit (NO2-N)');
-    expect(html).toContain('<span class="header-label">Amonia (NH3-N)</span><span class="header-unit">(mg/L)</span>');
-    expect(html).toContain('<span class="header-label">Nitrat (NO3-N)</span><span class="header-unit">(mg/L)</span>');
-    expect(html).toContain('<span class="header-label">Nitrit (NO2-N)</span><span class="header-unit">(mg/L)</span>');
+    expect(html).toContain('<span class="header-label">Amonia</span><span class="header-unit">(mg/L)</span>');
+    expect(html).toContain('<span class="header-label">Nitrat</span><span class="header-unit">(mg/L)</span>');
+    expect(html).toContain('<span class="header-label">Nitrit</span><span class="header-unit">(mg/L)</span>');
     expect(html).toContain('<img src="data:image/png;base64,fixture" alt="Kode QR verifikasi"');
   });
 

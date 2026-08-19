@@ -137,7 +137,8 @@ class ReportController {
 
       // PIC Protection: Only Admin can change PIC
       if (pic_id || pic_name) {
-        if (user.role_name?.toLowerCase() !== 'admin') {
+        const isUserAdmin = user?.role_id === 'adm' || user?.role_name?.toLowerCase() === 'admin';
+        if (!isUserAdmin) {
           throw createError('Only Admin can change PIC', 'E_FORBIDDEN');
         }
         if (pic_id) updateData.pic_id = pic_id;

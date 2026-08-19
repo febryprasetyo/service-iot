@@ -457,8 +457,6 @@ router.get(
  *               - username
  *               - password
  *               - nama_dinas
- *               - api_key
- *               - secret_key
  *             properties:
  *               username:
  *                 type: string
@@ -472,6 +470,7 @@ router.get(
  *                 type: string
  *               role_id:
  *                 type: string
+ *           description: api_key and secret_key are required for usr accounts and optional for eng accounts.
  *     responses:
  *       200:
  *         description: User created successfully
@@ -512,6 +511,7 @@ router.post(
  *                 type: string
  *               role_id:
  *                 type: string
+ *           description: api_key and secret_key are required for usr accounts and optional for eng accounts.
  *     responses:
  *       200:
  *         description: User updated successfully

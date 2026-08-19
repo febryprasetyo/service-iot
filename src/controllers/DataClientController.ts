@@ -627,22 +627,29 @@ class DataClientController {
     try {
       let reqBody = req.body;
 
-      let rules = {
+      let roleId = String(reqBody.role_id || 'usr').trim().toLowerCase();
+      let requiresCredentials = roleId === 'usr';
+
+      let rules: any = {
         username: 'required',
         password: 'required',
         nama_dinas: 'required',
-        api_key: 'required',
-        secret_key: 'required',
         role_id: 'string',
       };
+
+      if (!requiresCredentials) {
+        rules.api_key = 'string';
+        rules.secret_key = 'string';
+      } else {
+        rules.api_key = 'required';
+        rules.secret_key = 'required';
+      }
 
       // Validate the request params
       await validateParamsAll(reqBody, rules).catch((err) => {
         delete err.failed;
         throw createError(err.message_id || err.message_en, 'E_BAD_REQUEST', err);
       });
-
-      let roleId = reqBody.role_id || 'usr';
       
       // Validate role exists
       let roleCheck = await db.select(db.raw(`id`)).from('roles').whereRaw(`id = ?`, roleId);
@@ -670,8 +677,8 @@ class DataClientController {
         username: reqBody.username.trim(),
         password: reqBody.password,
         nama_dinas: reqBody.nama_dinas,
-        api_key: reqBody.api_key.trim(),
-        secret_key: reqBody.secret_key.trim(),
+        api_key: reqBody.api_key ? reqBody.api_key.trim() : '',
+        secret_key: reqBody.secret_key ? reqBody.secret_key.trim() : '',
         role_id: roleId,
         created_by: reqBody.user_id,
         is_active: true,
@@ -697,15 +704,37 @@ class DataClientController {
     try {
       let reqBody = req.body;
 
-      let rules = {
+      if (!reqBody.id) {
+        throw createError('ID is required', 'E_BAD_REQUEST');
+      }
+
+      let data = await db
+        .select(db.raw(`*`))
+        .from('users')
+        .whereRaw(`id = ?`, reqBody.id);
+      
+      if (data.length === 0) {
+        throw createError(`User not found`, 'E_BAD_REQUEST');
+      }
+      data = data[0];
+
+      let roleId = String(reqBody.role_id || data.role_id).trim().toLowerCase();
+      let requiresCredentials = roleId === 'usr';
+
+      let rules: any = {
         id: 'required|number',
         password: 'required',
-        // device_id: 'required',
         nama_dinas: 'required',
-        api_key: 'required',
-        secret_key: 'required',
         role_id: 'string',
       };
+
+      if (!requiresCredentials) {
+        rules.api_key = 'string';
+        rules.secret_key = 'string';
+      } else {
+        rules.api_key = 'required';
+        rules.secret_key = 'required';
+      }
 
       // Validate the request params
       await validateParamsAll(reqBody, rules).catch((err) => {
@@ -719,14 +748,6 @@ class DataClientController {
           throw createError(`Role ${reqBody.role_id} not found`, 'E_BAD_REQUEST');
         }
       }
-
-      let data = await db
-        .select(db.raw(`*`))
-        .from('users')
-        .whereRaw(`id = ?`, reqBody.id);
-      if (data.length === 0)
-        throw createError(`User not found`, 'E_BAD_REQUEST');
-      data = data[0];
 
       const match = await bcrypt.compare(reqBody.password, data.password);
 
@@ -743,16 +764,16 @@ class DataClientController {
           ? undefined
           : reqBody.device_id;
 
-      await db('users')
+        await db('users')
         .whereRaw(`id = ?`, reqBody.id)
         .update({
           username: reqBody.username.trim(),
           password: match ? undefined : reqBody.password,
           nama_dinas: reqBody.nama_dinas,
           device_id: deviceId,
-          api_key: reqBody.api_key.trim(),
-          secret_key: reqBody.secret_key.trim(),
-          role_id: reqBody.role_id,
+          api_key: reqBody.api_key ? reqBody.api_key.trim() : '',
+          secret_key: reqBody.secret_key ? reqBody.secret_key.trim() : '',
+          role_id: reqBody.role_id ? String(reqBody.role_id).trim().toLowerCase() : data.role_id,
           updated_at: new Date(),
         });
 
@@ -854,9 +875,9 @@ class DataClientController {
         const { role_id, ...userData } = user;
 
         if (role_id === 'usr') {
-          groupedData.user.push(userData);
+          groupedData.user.push({ ...userData, role_id: 'usr' });
         } else if (role_id === 'eng') {
-          groupedData.engineering.push(userData);
+          groupedData.engineering.push({ ...userData, role_id: 'eng' });
         }
       });
 

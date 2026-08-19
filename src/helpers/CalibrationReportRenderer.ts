@@ -1,12 +1,21 @@
 import sanitizeHtml from 'sanitize-html';
 
-type ReportStandard = {
+export type ReportStandard = {
   crmName?: string | null;
   crmStandardValue?: number | string | null;
   calibrationResult?: number | string | null;
 };
 
-type ReportDetail = {
+export type ReportPhotoDocumentation = {
+  id?: string;
+  photoType: 'before' | 'after';
+  previewUrl?: string | null;
+  base64Data?: string | null;
+  checksum?: string | null;
+  uploadedAt?: string | Date | null;
+};
+
+export type ReportDetail = {
   parameterName: string;
   parameterUnit?: string | null;
   standards: ReportStandard[];
@@ -14,9 +23,10 @@ type ReportDetail = {
   crmReadingValue?: number | string | null;
   coefficients?: Record<string, unknown> | string | null;
   calculationStatus?: 'PASS' | 'FAILED' | null;
+  documentation?: ReportPhotoDocumentation[];
 };
 
-type RenderCalibrationReportInput = {
+export type RenderCalibrationReportInput = {
   reportNo: string;
   stationName: string;
   calibrationStartDate: string | Date;
@@ -48,9 +58,9 @@ const waterSampleColumns: WaterSampleColumn[] = [
   { names: ['cod'], field: 'cod', label: 'COD', unit: '(mg/L)' },
   { names: ['bod'], field: 'bod', label: 'BOD', unit: '(mg/L)' },
   { names: ['tss'], field: 'tss', label: 'TSS', unit: '(mg/L)' },
-  { names: ['amonia', 'nh3', 'nh3-n', 'amonia (nh3-n)'], field: 'amonia', label: 'Amonia (NH3-N)', unit: '(mg/L)' },
-  { names: ['nitrat', 'no3', 'no3-n', 'nitrat (no3-n)'], field: 'nitrat', label: 'Nitrat (NO3-N)', unit: '(mg/L)' },
-  { names: ['nitrit', 'no2', 'no2-n', 'nitrit (no2-n)'], field: 'nitrit', label: 'Nitrit (NO2-N)', unit: '(mg/L)' },
+  { names: ['amonia', 'nh3', 'nh3-n', 'amonia (nh3-n)'], field: 'amonia', label: 'Amonia', unit: '(mg/L)' },
+  { names: ['nitrat', 'no3', 'no3-n', 'nitrat (no3-n)'], field: 'nitrat', label: 'Nitrat', unit: '(mg/L)' },
+  { names: ['nitrit', 'no2', 'no2-n', 'nitrit (no2-n)'], field: 'nitrit', label: 'Nitrit', unit: '(mg/L)' },
   { names: ['kedalaman', 'level', 'depth'], field: 'kedalaman', label: 'Kedalaman', unit: '(m)' }
 ];
 
@@ -179,9 +189,9 @@ function formatStandardLabel(standard: ReportStandard, parameterName: string, un
 }
 
 function formatCalibrationStatus(status: 'PASS' | 'FAILED' | null | undefined): string {
-  if (status === 'PASS') return '<span class="tag-pass">Lulus</span>';
-  if (status === 'FAILED') return '<span class="tag-fail">Tidak Lulus</span>';
-  return '<span class="tag-pending">Menunggu</span>';
+  if (status === 'PASS') return '<span class="tag-pass">Memenuhi</span>';
+  if (status === 'FAILED') return '<span class="tag-fail">Tidak Memenuhi</span>';
+  return '<span class="tag-pending">Tidak diuji</span>';
 }
 
 export function formatReportPlace(value: unknown): string {
@@ -279,6 +289,47 @@ function renderWaterSampleTable(details: ReportDetail[], samples: any[]): { colg
   };
 }
 
+export function renderDocumentationAttachment(details: ReportDetail[]): string {
+  if (!details || details.length === 0) {
+    return '<div class="notes-box"><p>Tidak ada parameter kalibrasi yang dipilih.</p></div>';
+  }
+
+  const items = details.map((detail) => {
+    const docs = detail.documentation || [];
+    const beforeDoc = docs.find((d) => d.photoType === 'before');
+    const afterDoc = docs.find((d) => d.photoType === 'after');
+
+    const renderPhotoCard = (doc: ReportPhotoDocumentation | undefined, slotLabel: string) => {
+      const photoSrc = doc?.base64Data || doc?.previewUrl;
+
+      const photoHtml = photoSrc
+        ? `<div class="doc-photo-box">
+             <img src="${escapeHtml(photoSrc)}" alt="${escapeHtml(slotLabel)} - ${escapeHtml(detail.parameterName)}" />
+           </div>`
+        : `<div class="doc-no-photo-box">Tidak ada foto ${escapeHtml(slotLabel.toLowerCase())}</div>`;
+
+      return `
+        <div class="doc-col">
+          <div class="doc-slot-label">${escapeHtml(slotLabel)}</div>
+          ${photoHtml}
+        </div>
+      `;
+    };
+
+    return `
+      <div class="doc-param-item">
+        <div class="doc-param-title">Dokumentasi Parameter: ${escapeHtml(formatCalibrationParameterName(detail.parameterName))}${detail.parameterUnit ? ` (${escapeHtml(detail.parameterUnit)})` : ''}</div>
+        <div class="doc-grid">
+          ${renderPhotoCard(beforeDoc, 'Sebelum Kalibrasi')}
+          ${renderPhotoCard(afterDoc, 'Sesudah Kalibrasi)')}
+        </div>
+      </div>
+    `;
+  });
+
+  return items.join('');
+}
+
 export function buildCalibrationPdfFilename(reportNo: string | null | undefined, calibrationId: string): string {
   const safeReportNo = String(reportNo || `kalibrasi_${calibrationId}`).replace(/[^a-z0-9A-Z-_\.]/g, '_');
   return `Laporan_Kalibrasi_${safeReportNo}.pdf`;
@@ -300,9 +351,10 @@ export function renderCalibrationReportHtml(template: string, input: RenderCalib
   const place = formatReportPlace(input.stationCity || input.stationAddress);
   const formattedEndDate = formatIndonesianDate(input.calibrationEndDate);
   const placeDate = place ? `${place}, ${formattedEndDate}` : formattedEndDate;
+  const documentationAttachment = renderDocumentationAttachment(input.details);
 
   return template
-    .replace('{{REPORT_NO}}', () => escapeHtml(input.reportNo))
+    .replace(/{{REPORT_NO}}/g, () => escapeHtml(input.reportNo))
     .replace(/{{STATION_NAME}}/g, () => escapeHtml(input.stationName))
     .replace('{{CALIBRATION_DATE}}', () => escapeHtml(formatCalibrationDateRange(input.calibrationStartDate, input.calibrationEndDate)))
     .replace('{{STATION_ADDRESS}}', () => escapeHtml(input.stationAddress || '-'))
@@ -314,5 +366,6 @@ export function renderCalibrationReportHtml(template: string, input: RenderCalib
     .replace('{{NOTES}}', () => sanitizeCalibrationNotes(input.notes) || '<ul><li>Tidak ada catatan.</li></ul>')
     .replace('{{QR_CODE_IMAGE}}', () => escapeHtml(input.qrCodeImage))
     .replace('{{OFFICER_NAME}}', () => escapeHtml(input.officerName || '-'))
-    .replace(/{{PLACE_DATE}}/g, () => escapeHtml(placeDate));
+    .replace(/{{PLACE_DATE}}/g, () => escapeHtml(placeDate))
+    .replace('{{DOCUMENTATION_ATTACHMENT}}', documentationAttachment);
 }
