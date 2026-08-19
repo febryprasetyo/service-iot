@@ -63,7 +63,7 @@ export const handleMqttExport = async (req: any, res: any) => {
   try {
     // ================== 🔍 VALIDASI STASIUN ==================
     if (namaStasiun) {
-      if (role_id !== "adm") {
+      if (role_id === "usr") {
         // cek apakah stasiun dimiliki user
         const stasiunUser = await db("devices as d")
           .leftJoin("users as u", "u.device_id", "d.id")
@@ -104,7 +104,7 @@ export const handleMqttExport = async (req: any, res: any) => {
     query = query.leftJoin({ d: "devices" }, "md.id_stasiun", "d.nama_stasiun");
 
     // filter role
-    if (role_id !== "adm") {
+    if (role_id === "usr") {
       query = query
         .leftJoin({ u: "users" }, "u.device_id", "d.id")
         .where("u.id", user_id)

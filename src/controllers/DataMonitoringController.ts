@@ -31,7 +31,7 @@ class DataMonitoringController {
 
       let allowedUuids: string[] = [];
 
-      if (role_id !== 'adm') {
+      if (role_id === 'usr') {
         const rows = await db('devices as d')
           .leftJoin('users as u', 'd.dinas_id', 'u.id')
           .where('u.id', user_id)
@@ -198,10 +198,10 @@ class DataMonitoringController {
   try {
     const { role_id, user_id } = req.body;
 
-    // Ambil stasiun milik user (jika bukan admin)
+    // Ambil stasiun milik user (hanya untuk role user/usr, admin dan engineering dapat melihat semua stasiun)
     let stationQuery = db('stations as s').select('s.id', 's.nama_stasiun', 's.id_mesin', 's.instrument_status', 's.next_calibration_date');
 
-    if (role_id !== 'adm') {
+    if (role_id === 'usr') {
       stationQuery = stationQuery
         .leftJoin('devices as d', 'd.id_mesin', 's.id_mesin')
         .leftJoin('users as u', 'd.dinas_id', 'u.id')
@@ -327,7 +327,7 @@ class DataMonitoringController {
         ? Array.isArray(uuid)
           ? uuid.includes(item.uuid)
           : item.uuid === uuid
-        : role_id === 'adm' || allowedUuids.includes(item.uuid);
+        : role_id === 'adm' || role_id === 'eng' || allowedUuids.includes(item.uuid);
 
       const matchStasiun = id_stasiun ? item.id_stasiun === id_stasiun : true;
       return matchUuid && matchStasiun;
@@ -373,7 +373,7 @@ class DataMonitoringController {
       const role_id = req.body.role_id; 
       const user_id = req.body.user_id;
 
-      if (role_id && role_id !== 'adm') {
+      if (role_id === 'usr') {
           baseBuilder.whereIn('h.uuid', function(qb: any) {
               qb.select('id_mesin')
                   .from('devices')
