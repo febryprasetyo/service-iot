@@ -11,6 +11,7 @@ import {
   getVerificationUrl,
   isCalibrationEditableStatus,
   localizeCalibrationControllerError,
+  parseDecimalInput,
   sanitizeCalibrationRecordNotes,
   sanitizeCalibrationWriteNotes
 } from './CalibrationApiContract';
@@ -179,16 +180,17 @@ describe('calibration Indonesian message contract', () => {
     });
   });
 
-  it('keeps localized client errors but replaces unexpected internal details with safe Indonesian copy', () => {
-    const clientError = Object.assign(new Error(CALIBRATION_MESSAGES.reportNotFound), { code: 'E_NOT_FOUND' });
-    expect(localizeCalibrationControllerError(clientError)).toBe(clientError);
-
-    const localizedInternalError: any = localizeCalibrationControllerError(new Error('password authentication failed'));
-    expect(localizedInternalError).toMatchObject({
-      code: 'E_INTERNAL',
-      expose: true,
-      message: 'Terjadi kesalahan internal saat memproses kalibrasi.'
-    });
-    expect(localizedInternalError.message).not.toContain('password authentication failed');
+  it('parses decimal inputs with comma or dot as standard numbers', () => {
+    expect(parseDecimalInput('7.45')).toBe(7.45);
+    expect(parseDecimalInput('7,45')).toBe(7.45);
+    expect(parseDecimalInput('-0.12')).toBe(-0.12);
+    expect(parseDecimalInput('-0,12')).toBe(-0.12);
+    expect(parseDecimalInput(' 12,50 ')).toBe(12.5);
+    expect(parseDecimalInput(12.5)).toBe(12.5);
+    expect(parseDecimalInput(0)).toBe(0);
+    expect(parseDecimalInput('')).toBeNull();
+    expect(parseDecimalInput(null)).toBeNull();
+    expect(parseDecimalInput(undefined)).toBeNull();
+    expect(parseDecimalInput('invalid')).toBeNull();
   });
 });

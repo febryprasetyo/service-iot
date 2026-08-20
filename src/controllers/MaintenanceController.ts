@@ -107,9 +107,20 @@ class MaintenanceController {
 
       const NotificationService = require('../utils/notificationService').default;
       await NotificationService.createNotification({
+        category: 'maintenance',
         type: notifType,
+        severity: notifType === 'maintenance' ? 'info' : 'info',
+        title: notifType === 'logbook' ? 'Catatan Logbook Baru' : 'Pembaruan Pemeliharaan',
         uuid: uuid,
         message: notifMessage,
+        entity_type: 'station',
+        entity_id: uuid,
+        action_url: `/maintenance`,
+        metadata: {
+          station_name: stationName,
+          instrument_status: instrument_status,
+          current_status: status
+        },
         created_by: created_by
       });
 

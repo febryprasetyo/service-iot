@@ -160,3 +160,20 @@ export function localizeCalibrationControllerError(error: any): any {
   localizedError.expose = true;
   return localizedError;
 }
+
+/**
+ * Safely parses decimal inputs that may be formatted with either a dot (.) or a comma (,).
+ * Returns a valid finite number or null if empty/invalid.
+ */
+export function parseDecimalInput(value: unknown): number | null {
+  if (value === null || value === undefined || value === '') return null;
+  if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+    const normalized = trimmed.replace(',', '.');
+    const parsed = Number(normalized);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+}

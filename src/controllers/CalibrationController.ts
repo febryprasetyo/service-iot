@@ -4,7 +4,8 @@ import QRCode from 'qrcode';
 import crypto from 'crypto';
 import path from 'path';
 import fs from 'fs';
-import { db, sendResponseCustom, sendResponseError, createError, nowWib } from '../utils/util';
+import { db, sendResponseCustom, sendResponseError, createError, nowWib, logger } from '../utils/util';
+import NotificationService from '../utils/notificationService';
 import { CalibrationRepository } from '../repositories/CalibrationRepository';
 import { CalibrationService } from '../services/CalibrationService';
 import { evaluateStandardMeasurement, getCalibrationSpecification } from '../helpers/CalibrationCalculator';
@@ -23,6 +24,7 @@ import {
   getVerificationUrl,
   isCalibrationEditableStatus,
   localizeCalibrationControllerError,
+  parseDecimalInput,
   sanitizeCalibrationRecordNotes,
   sanitizeCalibrationWriteNotes
 } from '../helpers/CalibrationApiContract';
@@ -32,7 +34,7 @@ const calibrationService = new CalibrationService(calibrationRepository);
 
 function normalizeCoefficients(coefficients: Record<string, unknown>): Record<string, unknown> {
   return Object.fromEntries(
-    Object.entries(coefficients).map(([key, value]) => [key.toLowerCase(), value])
+    Object.entries(coefficients).map(([key, value]) => [key.toLowerCase(), parseDecimalInput(value)])
   );
 }
 
@@ -435,8 +437,8 @@ export class CalibrationController {
                 : d.coefficients;
             }
             if (d.remark !== undefined) updatedFields.remark = d.remark;
-            if (d.crm_reference_value !== undefined) updatedFields.crm_reference_value = d.crm_reference_value;
-            if (d.crm_reading_value !== undefined) updatedFields.crm_reading_value = d.crm_reading_value;
+            if (d.crm_reference_value !== undefined) updatedFields.crm_reference_value = parseDecimalInput(d.crm_reference_value);
+            if (d.crm_reading_value !== undefined) updatedFields.crm_reading_value = parseDecimalInput(d.crm_reading_value);
 
             if (d.standards && Array.isArray(d.standards)) {
               const currentStandards = await trx('calibration_detail_standards')
@@ -455,7 +457,7 @@ export class CalibrationController {
                     crm_standard_value: standardValue,
                     updated_at: nowWib()
                   };
-                  if (std.calibration_result !== undefined) stdUpdatedFields.calibration_result = std.calibration_result;
+                  if (std.calibration_result !== undefined) stdUpdatedFields.calibration_result = parseDecimalInput(std.calibration_result);
                   await trx('calibration_detail_standards')
                     .where({ id: existingStandard.id })
                     .update(stdUpdatedFields);
@@ -464,7 +466,7 @@ export class CalibrationController {
                     calibration_detail_id: detailId,
                     crm_name: standardName,
                     crm_standard_value: standardValue,
-                    calibration_result: std.calibration_result ?? null,
+                    calibration_result: parseDecimalInput(std.calibration_result),
                     created_at: nowWib(),
                     updated_at: nowWib()
                   });
@@ -501,19 +503,19 @@ export class CalibrationController {
           for (const ws of waterSamples) {
             const sampleFields = {
               sample_name: ws.sample_name,
-              suhu: ws.suhu !== undefined ? ws.suhu : null,
-              do: ws.do !== undefined ? ws.do : null,
-              tur: ws.tur !== undefined ? ws.tur : null,
-              tds: ws.tds !== undefined ? ws.tds : null,
-              ph: ws.ph !== undefined ? ws.ph : null,
-              orp: ws.orp !== undefined ? ws.orp : null,
-              tss: ws.tss !== undefined ? ws.tss : null,
-              bod: ws.bod !== undefined ? ws.bod : null,
-              cod: ws.cod !== undefined ? ws.cod : null,
-              amonia: ws.amonia !== undefined ? ws.amonia : null,
-              nitrat: ws.nitrat !== undefined ? ws.nitrat : null,
-              nitrit: ws.nitrit !== undefined ? ws.nitrit : null,
-              kedalaman: ws.kedalaman !== undefined ? ws.kedalaman : null,
+              suhu: ws.suhu !== undefined ? parseDecimalInput(ws.suhu) : null,
+              do: ws.do !== undefined ? parseDecimalInput(ws.do) : null,
+              tur: ws.tur !== undefined ? parseDecimalInput(ws.tur) : null,
+              tds: ws.tds !== undefined ? parseDecimalInput(ws.tds) : null,
+              ph: ws.ph !== undefined ? parseDecimalInput(ws.ph) : null,
+              orp: ws.orp !== undefined ? parseDecimalInput(ws.orp) : null,
+              tss: ws.tss !== undefined ? parseDecimalInput(ws.tss) : null,
+              bod: ws.bod !== undefined ? parseDecimalInput(ws.bod) : null,
+              cod: ws.cod !== undefined ? parseDecimalInput(ws.cod) : null,
+              amonia: ws.amonia !== undefined ? parseDecimalInput(ws.amonia) : null,
+              nitrat: ws.nitrat !== undefined ? parseDecimalInput(ws.nitrat) : null,
+              nitrit: ws.nitrit !== undefined ? parseDecimalInput(ws.nitrit) : null,
+              kedalaman: ws.kedalaman !== undefined ? parseDecimalInput(ws.kedalaman) : null,
               updated_at: nowWib()
             };
 
@@ -653,6 +655,27 @@ export class CalibrationController {
         });
       });
 
+      try {
+        const station = await db('stations').where('id', calibration.station_id).orWhere('id_mesin', calibration.device_id).first();
+        const stationName = station?.nama_stasiun || calibration.station_id || 'Stasiun';
+        await NotificationService.createNotification({
+          category: 'calibration',
+          type: 'calibration_submitted',
+          severity: 'info',
+          title: 'Pengajuan Kalibrasi Baru',
+          uuid: station?.id_mesin || null,
+          message: `Laporan kalibrasi #${id} (${stationName}) telah diajukan dan menunggu persetujuan Admin.`,
+          entity_type: 'calibration',
+          entity_id: id,
+          action_url: `/calibration/${id}`,
+          metadata: { calibration_id: id, station_name: stationName },
+          target_role: 'adm',
+          created_by: req.user?.username || 'PETUGAS'
+        });
+      } catch (notifErr) {
+        logger.error(`[CALIBRATION] Failed to create notification on submit: ${notifErr}`);
+      }
+
       return sendResponseCustom(res, {
         success: true,
         message: CALIBRATION_MESSAGES.reportSubmitted,
@@ -671,6 +694,8 @@ export class CalibrationController {
     try {
       const { id } = req.params;
 
+      let approvedCalibration: any;
+
       await db.transaction(async (trx) => {
         const calibration = await trx('calibrations').where({ id }).forUpdate().first();
         if (!calibration) {
@@ -679,6 +704,7 @@ export class CalibrationController {
         if (calibration.status !== 'submitted') {
           throw createError(CALIBRATION_MESSAGES.approvalSubmittedOnly, 'E_BAD_REQUEST');
         }
+        approvedCalibration = calibration;
 
         const details = await trx('calibration_details as detail')
           .join('master_parameters as parameter', 'parameter.id', 'detail.parameter_id')
@@ -710,6 +736,30 @@ export class CalibrationController {
           updated_at: nowWib()
         });
       });
+
+      try {
+        const station = await db('stations')
+          .where('id', approvedCalibration?.station_id)
+          .orWhere('id_mesin', approvedCalibration?.device_id)
+          .first();
+        const stationName = station?.nama_stasiun || approvedCalibration?.station_id || 'Stasiun';
+        await NotificationService.createNotification({
+          category: 'calibration',
+          type: 'calibration_approved',
+          severity: 'success',
+          title: 'Kalibrasi Disetujui',
+          uuid: station?.id_mesin || null,
+          message: `Laporan kalibrasi #${id} (${stationName}) telah disetujui oleh Admin.`,
+          entity_type: 'calibration',
+          entity_id: id,
+          action_url: `/calibration/${id}`,
+          metadata: { calibration_id: id, station_name: stationName },
+          target_role: 'all',
+          created_by: req.user?.username || 'ADMIN'
+        });
+      } catch (notifErr) {
+        logger.error(`[CALIBRATION] Failed to create notification on approve: ${notifErr}`);
+      }
 
       return sendResponseCustom(res, {
         success: true,

@@ -2,7 +2,7 @@
 
 This is the backend application.
 
-Related frontend workspace root: ../aplikasi-frontend
+Related frontend workspace root: ../oms-fastpec
 
 For full-stack tasks:
 - Ask the main agent to delegate frontend work to a frontend subagent.

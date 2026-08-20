@@ -247,8 +247,18 @@ export function broadcastNotification(notification: any) {
   let count = 0;
   for (const client of clients) {
     if (client.socket.readyState === client.socket.OPEN) {
-      client.socket.send(payload);
-      count++;
+      // Check role targeting
+      if (notification.target_role && notification.target_role !== 'all') {
+        if (client.role && client.role !== 'adm' && client.role !== notification.target_role) {
+          continue;
+        }
+      }
+
+      // Send to clients that listen to notifications channel or root
+      if (client.channels.has('notifications') || client.channels.size === 0) {
+        client.socket.send(payload);
+        count++;
+      }
     }
   }
   console.log(`[BROADCASTER] Broadcasted notification to ${count} clients. Notification ID: ${notification?.id}`);
