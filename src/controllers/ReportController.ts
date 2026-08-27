@@ -119,7 +119,7 @@ class ReportController {
   async update(req: Request, res: Response) {
     try {
       const { id } = req.params;
-      const { title, description, category, pic_id, pic_name } = req.body;
+      const { title, description, category, pic_id, pic_name, status } = req.body;
       const user = (req as any).user;
 
       const report = await db('reports').where({ id }).first();
@@ -134,6 +134,14 @@ class ReportController {
       if (title) updateData.title = title;
       if (description) updateData.description = description;
       if (category) updateData.category = category;
+
+      if (status !== undefined) {
+        const allowedStatuses = ['Open', 'Eskalasi', 'Selesai'];
+        if (!allowedStatuses.includes(status)) {
+          throw createError('Status must be one of: Open, Eskalasi, Selesai', 'E_BAD_REQUEST');
+        }
+        updateData.status = status;
+      }
 
       // PIC Protection: Only Admin can change PIC
       if (pic_id || pic_name) {
@@ -153,6 +161,139 @@ class ReportController {
         success: true,
         message: 'Report updated successfully',
         data: updatedReport
+      });
+    } catch (error: any) {
+      return sendResponseError(res, error);
+    }
+  }
+
+  /**
+   * Follow-up Report (Tindak Lanjut Perbaikan)
+   * POST /reports/:id/follow-up
+   */
+  async followUp(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const { status, progress, activity_type, description, photo_url } = req.body;
+
+      const report = await db('reports').where({ id }).first();
+      if (!report) {
+        throw createError('Report not found', 'E_NOT_FOUND');
+      }
+
+      if (!description || typeof description !== 'string' || !description.trim()) {
+        throw createError('Description is required for follow-up', 'E_BAD_REQUEST');
+      }
+
+      const allowedStatuses = ['Open', 'Eskalasi', 'Selesai'];
+      let targetStatus: string;
+
+      if (status) {
+        if (!allowedStatuses.includes(status)) {
+          throw createError('Status must be one of: Open, Eskalasi, Selesai', 'E_BAD_REQUEST');
+        }
+        targetStatus = status;
+      } else if (progress) {
+        if (progress === 'Selesai') {
+          targetStatus = 'Selesai';
+        } else if (progress === 'Pengerjaan') {
+          targetStatus = 'Eskalasi';
+        } else {
+          targetStatus = 'Eskalasi';
+        }
+      } else {
+        targetStatus = 'Eskalasi';
+      }
+
+      const finalProgress = progress || (targetStatus === 'Selesai' ? 'Selesai' : 'Pengerjaan');
+      const logStatus = targetStatus === 'Selesai' ? 'start' : 'maintenance';
+
+      await db('maintenance_logs').insert({
+        uuid: report.station_uuid,
+        status: logStatus,
+        activity_type: activity_type || 'Tindak Lanjut Perbaikan',
+        description: description.trim(),
+        progress: finalProgress,
+        report_id: report.id,
+        photo_url: photo_url || null,
+        created_by: (req as any).user?.username || 'Petugas',
+        created_at: nowWib()
+      });
+
+      await db('reports').where({ id }).update({
+        status: targetStatus,
+        updated_at: nowWib()
+      });
+
+      if (targetStatus === 'Selesai') {
+        await db('stations').where('id_mesin', report.station_uuid).update({ instrument_status: 'NORMAL' });
+        try {
+          const connection = require('../config/redis').default;
+          if (connection && typeof connection.del === 'function') {
+            await connection.del('maintenance:' + report.station_uuid);
+          }
+        } catch (e: any) {
+          logger.error(`[ReportController] Redis del error: ${e?.message || e}`);
+        }
+      }
+
+      try {
+        const NotificationService = require('../utils/notificationService').default;
+        if (NotificationService && typeof NotificationService.createNotification === 'function') {
+          await NotificationService.createNotification({
+            category: 'maintenance',
+            type: 'logbook',
+            severity: 'info',
+            title: 'Tindak Lanjut Laporan: ' + report.title,
+            uuid: report.station_uuid,
+            message: 'Laporan ' + report.title + ' (' + report.station_uuid + ') ditindaklanjuti [' + targetStatus + ']: ' + description.trim(),
+            entity_type: 'report',
+            entity_id: String(report.id),
+            action_url: '/reports',
+            created_by: (req as any).user?.username || 'Petugas'
+          });
+        }
+      } catch (e: any) {
+        logger.error(`[ReportController] Notification error: ${e?.message || e}`);
+      }
+
+      const updatedReport = await db('reports').where({ id }).first();
+      const history = await db('maintenance_logs')
+        .where('report_id', id)
+        .orderBy('created_at', 'desc');
+
+      return sendResponseCustom(res, {
+        success: true,
+        message: 'Tindak lanjut laporan berhasil disimpan',
+        data: {
+          ...updatedReport,
+          history
+        }
+      });
+    } catch (error: any) {
+      return sendResponseError(res, error);
+    }
+  }
+
+  /**
+   * Delete Report
+   * DELETE /reports/:id
+   */
+  async delete(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+
+      const report = await db('reports').where({ id }).first();
+      if (!report) {
+        throw createError('Report not found', 'E_NOT_FOUND');
+      }
+
+      await db('maintenance_logs').where('report_id', id).update({ report_id: null });
+      await db('reports').where({ id }).delete();
+
+      return sendResponseCustom(res, {
+        success: true,
+        message: 'Laporan berhasil dihapus'
       });
     } catch (error: any) {
       return sendResponseError(res, error);

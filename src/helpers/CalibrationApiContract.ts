@@ -32,6 +32,11 @@ export function isCalibrationEditableStatus(status: unknown): boolean {
   return status === 'draft' || status === 'submitted';
 }
 
+export function canDeleteCalibration(roleId: string | undefined, status: string): boolean {
+  if (roleId === 'adm') return true;
+  return status === 'draft';
+}
+
 export function getCalibrationDetailLookup(
   calibrationId: string,
   detail: { id?: number; parameter_id?: number }

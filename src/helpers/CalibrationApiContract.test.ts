@@ -10,6 +10,7 @@ import {
   getCalibrationDetailLookup,
   getVerificationUrl,
   isCalibrationEditableStatus,
+  canDeleteCalibration,
   localizeCalibrationControllerError,
   parseDecimalInput,
   sanitizeCalibrationRecordNotes,
@@ -192,5 +193,22 @@ describe('calibration Indonesian message contract', () => {
     expect(parseDecimalInput(null)).toBeNull();
     expect(parseDecimalInput(undefined)).toBeNull();
     expect(parseDecimalInput('invalid')).toBeNull();
+  });
+
+  it('correctly determines whether a role can delete a calibration based on status', () => {
+    // Role admin (adm) can delete draft, submitted, and approved calibrations
+    expect(canDeleteCalibration('adm', 'draft')).toBe(true);
+    expect(canDeleteCalibration('adm', 'submitted')).toBe(true);
+    expect(canDeleteCalibration('adm', 'approved')).toBe(true);
+
+    // Role engineer (eng) or other roles can only delete draft calibrations
+    expect(canDeleteCalibration('eng', 'draft')).toBe(true);
+    expect(canDeleteCalibration('eng', 'submitted')).toBe(false);
+    expect(canDeleteCalibration('eng', 'approved')).toBe(false);
+
+    // Unknown or undefined role
+    expect(canDeleteCalibration(undefined, 'draft')).toBe(true);
+    expect(canDeleteCalibration(undefined, 'submitted')).toBe(false);
+    expect(canDeleteCalibration(undefined, 'approved')).toBe(false);
   });
 });

@@ -23,6 +23,7 @@ import {
   getCalibrationDetailLookup,
   getVerificationUrl,
   isCalibrationEditableStatus,
+  canDeleteCalibration,
   localizeCalibrationControllerError,
   parseDecimalInput,
   sanitizeCalibrationRecordNotes,
@@ -547,19 +548,22 @@ export class CalibrationController {
   }
 
   /**
-   * Delete Draft Calibration
+   * Delete Calibration
    * DELETE /calibrations/:id
+   * Admin (`adm`) can delete draft, submitted, and approved calibrations.
+   * Other roles (`eng`) can only delete draft calibrations.
    */
   async delete(req: Request, res: Response) {
     try {
       const { id } = req.params;
+      const user = (req as any).user as { user_id: string | number; role_id: string } | undefined;
 
       const calibration = await db('calibrations').where({ id }).first();
       if (!calibration) {
         throw createError(CALIBRATION_MESSAGES.reportNotFound, 'E_NOT_FOUND');
       }
 
-      if (calibration.status !== 'draft') {
+      if (!canDeleteCalibration(user?.role_id, calibration.status)) {
         throw createError(CALIBRATION_MESSAGES.deleteDraftOnly, 'E_BAD_REQUEST');
       }
 
@@ -570,6 +574,11 @@ export class CalibrationController {
           try { fs.unlinkSync(doc.storage_key); } catch (e) {}
         }
       }
+
+      // Clean up notifications linked to this calibration
+      try {
+        await db('notifications').where({ entity_type: 'calibration', entity_id: id }).delete();
+      } catch (e) {}
 
       await db('calibrations').where({ id }).delete();
 

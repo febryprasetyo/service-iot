@@ -15,5 +15,7 @@ router.get('/', JwtMiddleware('adm:eng'), (req, res) => ReportCtl.list(req, res)
 router.get('/:id', JwtMiddleware('adm:eng'), (req, res) => ReportCtl.detail(req, res));
 router.post('/', JwtMiddleware('adm:eng'), (req, res) => ReportCtl.create(req, res));
 router.put('/:id', JwtMiddleware('adm:eng'), (req, res) => ReportCtl.update(req, res));
+router.post('/:id/follow-up', JwtMiddleware('adm:eng'), (req, res) => ReportCtl.followUp(req, res));
+router.delete('/:id', JwtMiddleware('adm:eng'), (req, res) => ReportCtl.delete(req, res));
 
 export = router;

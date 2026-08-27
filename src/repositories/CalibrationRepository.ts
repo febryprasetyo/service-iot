@@ -28,11 +28,49 @@ export class CalibrationRepository {
       const romanMonth = romanMonths[month - 1];
       const prefix = `CR-${year}/`;
 
-      const [{ count }] = await trx('calibrations')
-        .whereRaw(`report_no LIKE ?`, [`${prefix}%`])
-        .count('id as count');
+      let maxSeq = 0;
+      let calculated = false;
 
-      const seq = String(Number(count) + 1).padStart(3, '0');
+      // In PostgreSQL, serialize sequence generation using transaction-level advisory lock
+      // and extract the maximum existing numeric suffix for the current year
+      if (typeof trx.raw === 'function') {
+        try {
+          await trx.raw('SELECT pg_advisory_xact_lock(hashtext(?))', [`calibration_report_no_${year}`]);
+          const maxSeqResult = await trx.raw(
+            `SELECT COALESCE(MAX(SUBSTRING(report_no FROM '([0-9]+)$')::integer), 0) AS max_seq
+             FROM calibrations
+             WHERE report_no LIKE ?`,
+            [`${prefix}%`]
+          );
+          const rawVal = maxSeqResult?.rows?.[0]?.max_seq ?? (Array.isArray(maxSeqResult) ? maxSeqResult[0]?.max_seq : maxSeqResult?.max_seq);
+          if (rawVal !== undefined) {
+            maxSeq = Number(rawVal) || 0;
+            calculated = true;
+          }
+        } catch {
+          // Fallback if raw or advisory lock is unsupported (e.g. mock DB in tests)
+        }
+      }
+
+      // Fallback for mock environments or alternative dialects
+      if (!calculated) {
+        const rows = await trx('calibrations')
+          .whereRaw(`report_no LIKE ?`, [`${prefix}%`])
+          .select('report_no');
+        if (Array.isArray(rows)) {
+          for (const row of rows) {
+            const match = row?.report_no ? String(row.report_no).match(/(\d+)$/) : null;
+            if (match) {
+              const num = parseInt(match[1], 10);
+              if (!isNaN(num) && num > maxSeq) {
+                maxSeq = num;
+              }
+            }
+          }
+        }
+      }
+
+      const seq = String(maxSeq + 1).padStart(3, '0');
       const report_no = `CR-${year}/${romanMonth}/OMS-CMC/${seq}`;
 
       // 2. Insert header

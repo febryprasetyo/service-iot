@@ -409,7 +409,7 @@ Server membuat detail serta solution standard untuk parameter baru, dan menghapu
 | --- | --- | --- | --- |
 | `POST /calibrations/{id}/submit` | Tanpa body | `{ "message": "Laporan kalibrasi berhasil diajukan.", "data": { "id": "...", "status": "submitted" } }` | Semua `calibration_result` untuk semua standar wajib terisi. Server menghitung dan menyimpan `details[].calculation_result` (`PASS`/`FAILED`) secara atomik sebelum mengubah status. Draf tidak lagi dapat diedit. |
 | `POST /calibrations/{id}/approve` | Tanpa body | `{ "message": "Laporan kalibrasi berhasil disetujui.", "data": { "id": "...", "status": "approved" } }` | Hanya role `adm` dan hanya untuk laporan berstatus `submitted`. Role `eng` menerima 401. |
-| `DELETE /calibrations/{id}` | Tanpa body | `{ "message": "Laporan kalibrasi berhasil dihapus." }` | Hanya laporan berstatus `draft` yang dapat dihapus. |
+| `DELETE /calibrations/{id}` | Tanpa body | `{ "message": "Laporan kalibrasi berhasil dihapus." }` | Role `adm` dapat menghapus laporan kalibrasi dalam status apa pun (`draft`, `submitted`, maupun `approved`). Role selain admin (misalnya `eng`) hanya dapat menghapus laporan berstatus `draft`. |
 | `GET /calibrations/{id}/print` | - | `application/pdf` | Mengunduh/menampilkan PDF laporan. Endpoint ini public pada implementasi saat ini. Header unduhan adalah `Content-Disposition: attachment; filename="Laporan_Kalibrasi_<safe-report-number>.pdf"`. Error teks endpoint ini: `Laporan kalibrasi tidak ditemukan.`, `Template laporan kalibrasi tidak ditemukan.`, atau `Gagal membuat PDF laporan kalibrasi.`. |
 | `GET /verify/{verification_uuid}` | - | JSON atau HTML | Endpoint backend public yang dipanggil halaman frontend `/verify/:uuid`. |
 
