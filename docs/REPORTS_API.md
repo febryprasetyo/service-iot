@@ -110,10 +110,12 @@ Mengambil rincian data laporan tertentu beserta daftar log pengerjaan/tindak lan
     "title": "Sensor Turbidity Out of Range",
     "station_uuid": "AWS-ST-001",
     "description": "Nilai turbidity melebihi baku mutu batas atas",
+    "action_description": "Probe dibersihkan dari lumut dan sedimen",
     "pic_id": 10,
     "pic_name": "febry",
     "category": "Perbaikan",
     "status": "Eskalasi",
+    "allowed_statuses": ["Open", "Eskalasi", "Selesai"],
     "created_at": "2026-08-27 10:00:00",
     "updated_at": "2026-08-27 11:30:00",
     "history": [
@@ -148,7 +150,7 @@ Mengambil rincian data laporan tertentu beserta daftar log pengerjaan/tindak lan
 ### 3.3. Buat Laporan Baru (Create Report)
 `POST /reports`
 
-Membuat laporan perbaikan baru. Status otomatis diatur ke `'Open'`. Identitas pelapor (`pic_id` dan `pic_name`) otomatis diisi dari JWT token pengguna yang melakukan request.
+Membuat laporan perbaikan baru. Status otomatis diatur ke `'Open'` (atau dapat diatur awal melalui parameter `status`). Identitas pelapor (`pic_id` dan `pic_name`) otomatis diisi dari JWT token pengguna yang melakukan request.
 
 #### Request Body:
 | Field | Tipe | Wajib | Keterangan |
@@ -156,7 +158,9 @@ Membuat laporan perbaikan baru. Status otomatis diatur ke `'Open'`. Identitas pe
 | `title` | string | **Ya** | Judul permasalahan |
 | `station_uuid` | string | **Ya** | Kode identifier stasiun / mesin |
 | `category` | string | **Ya** | Kategori masalah (contoh: `Perbaikan`, `Penggantian Part`) |
-| `description` | string | Tidak | Keterangan rinci kondisi kerusakan |
+| `description` | string | Tidak | Keterangan rinci kondisi kerusakan awal |
+| `action_description` | string | Tidak | Deskripsi awal tindakan perbaikan (alias: `deskripsi_tindakan`) |
+| `status` | string | Tidak | Status awal: `Open` (default), `Eskalasi`, `Selesai` |
 
 #### Contoh Request:
 ```json
@@ -164,7 +168,9 @@ Membuat laporan perbaikan baru. Status otomatis diatur ke `'Open'`. Identitas pe
   "title": "Sensor pH Unstable",
   "station_uuid": "AWS-ST-001",
   "category": "Perbaikan",
-  "description": "Sensor membaca fluktuasi tajam antara pH 2 hingga 12"
+  "description": "Sensor membaca fluktuasi tajam antara pH 2 hingga 12",
+  "action_description": "Pemeriksaan kabel sambungan elektroda pH",
+  "status": "Eskalasi"
 }
 ```
 
@@ -178,10 +184,11 @@ Membuat laporan perbaikan baru. Status otomatis diatur ke `'Open'`. Identitas pe
     "title": "Sensor pH Unstable",
     "station_uuid": "AWS-ST-001",
     "description": "Sensor membaca fluktuasi tajam antara pH 2 hingga 12",
+    "action_description": "Pemeriksaan kabel sambungan elektroda pH",
     "pic_id": 10,
     "pic_name": "febry",
     "category": "Perbaikan",
-    "status": "Open",
+    "status": "Eskalasi",
     "created_at": "2026-08-27 14:00:00",
     "updated_at": "2026-08-27 14:00:00"
   }
@@ -199,26 +206,30 @@ Membuat laporan perbaikan baru. Status otomatis diatur ke `'Open'`. Identitas pe
 
 ---
 
-### 3.4. Perbarui Laporan (Update Report)
+### 3.4. Perbarui Laporan & Ubah Status (Update Report & Change Status)
 `PUT /reports/:id`
 
-Memperbarui judul, deskripsi, kategori, status, atau PIC laporan.
+Memperbarui judul, deskripsi awal, deskripsi tindakan (`action_description` / `deskripsi_tindakan`), kategori, pengaturan status (`status`), atau PIC laporan.
+Jika status diubah atau `action_description` diisi, sistem otomatis mencatat entri log pengerjaan di `maintenance_logs`. Jika status diubah menjadi `'Selesai'`, stasiun otomatis dinormalisasi.
 
 #### Request Body:
 | Field | Tipe | Wajib | Keterangan |
 | :--- | :--- | :--- | :--- |
 | `title` | string | Tidak | Judul laporan baru |
-| `description` | string | Tidak | Keterangan baru |
-| `category` | string | Tidak | Kategori baru |
-| `status` | string | Tidak | Nilai valid: `Open`, `Eskalasi`, `Selesai` |
+| `description` | string | Tidak | Deskripsi awal masalah baru |
+| `action_description` | string | Tidak | **Deskripsi tindakan perbaikan** yang dilakukan (alias: `deskripsi_tindakan`) |
+| `category` | string | Tidak | Kategori baru (`Perbaikan`, `Penggantian Part`) |
+| `status` | string | Tidak | **Pengaturan status laporan**: `Open`, `Eskalasi`, `Selesai` |
+| `activity_type` | string | Tidak | Tipe aktivitas untuk logbook (default: `Pembaruan Tindakan Laporan`) |
 | `pic_id` | integer | Tidak | **Hanya role Admin (`adm`)** yang diizinkan mengubah PIC |
 | `pic_name` | string | Tidak | **Hanya role Admin (`adm`)** yang diizinkan mengubah PIC |
 
 #### Contoh Request:
 ```json
 {
-  "status": "Eskalasi",
-  "description": "Sudah dikonfirmasi dengan teknisi lapangan"
+  "status": "Selesai",
+  "action_description": "Penggantian kapasitor pompa dan pembersihan nozzle selesai dilakukan. Alat beroperasi normal.",
+  "activity_type": "Perbaikan Selesai"
 }
 ```
 
@@ -231,13 +242,28 @@ Memperbarui judul, deskripsi, kategori, status, atau PIC laporan.
     "id": 2,
     "title": "Sensor pH Unstable",
     "station_uuid": "AWS-ST-001",
-    "description": "Sudah dikonfirmasi dengan teknisi lapangan",
+    "description": "Sensor membaca fluktuasi tajam antara pH 2 hingga 12",
+    "action_description": "Penggantian kapasitor pompa dan pembersihan nozzle selesai dilakukan. Alat beroperasi normal.",
     "pic_id": 10,
     "pic_name": "febry",
     "category": "Perbaikan",
-    "status": "Eskalasi",
+    "status": "Selesai",
+    "allowed_statuses": ["Open", "Eskalasi", "Selesai"],
     "created_at": "2026-08-27 14:00:00",
-    "updated_at": "2026-08-27 14:15:00"
+    "updated_at": "2026-08-27 14:15:00",
+    "history": [
+      {
+        "id": 26,
+        "uuid": "AWS-ST-001",
+        "status": "start",
+        "activity_type": "Perbaikan Selesai",
+        "description": "Penggantian kapasitor pompa dan pembersihan nozzle selesai dilakukan. Alat beroperasi normal.",
+        "progress": "Selesai",
+        "report_id": 2,
+        "created_by": "febry",
+        "created_at": "2026-08-27 14:15:00"
+      }
+    ]
   }
 }
 ```
@@ -270,12 +296,14 @@ Memperbarui judul, deskripsi, kategori, status, atau PIC laporan.
 ### 3.5. Tindak Lanjut Perbaikan (Follow-up Report)
 `POST /reports/:id/follow-up`
 
-Mencatat aktivitas tindak lanjut perbaikan stasiun, memperbarui status laporan, serta melakukan normalisasi instrumen stasiun ketika perbaikan selesai.
+Mencatat aktivitas tindak lanjut perbaikan stasiun, menyimpan deskripsi tindakan (`action_description`), memperbarui status laporan, serta melakukan normalisasi instrumen stasiun ketika perbaikan selesai.
 
 #### Request Body:
 | Field | Tipe | Wajib | Keterangan |
 | :--- | :--- | :--- | :--- |
-| `description` | string | **Ya** | Penjelasan aktivitas atau hasil perbaikan |
+| `description` | string | **Ya** | Penjelasan aktivitas atau hasil tindakan perbaikan (alias: `action_description`, `deskripsi_tindakan`) |
+| `action_description` | string | Tidak | Alias untuk `description` |
+| `deskripsi_tindakan` | string | Tidak | Alias untuk `description` |
 | `progress` | string | Tidak | Nilai: `'Pengerjaan'` atau `'Selesai'`. Menentukan status laporan (`'Eskalasi'` atau `'Selesai'`). Default: `'Pengerjaan'`. |
 | `status` | string | Tidak | Nilai eksplisit: `'Open'`, `'Eskalasi'`, `'Selesai'`. |
 | `activity_type` | string | Tidak | Jenis aktivitas (default: `'Tindak Lanjut Perbaikan'`) |
@@ -424,3 +452,4 @@ Atau jika disertai kode error teknis:
   "error_detail": "<Detail tambahan jika SHOW_ERROR_DETAIL aktif>"
 }
 ```
+

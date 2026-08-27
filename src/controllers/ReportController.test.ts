@@ -322,7 +322,12 @@ describe('ReportController', () => {
       expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
         success: true,
         message: 'Report updated successfully',
-        data: updatedReport
+        data: expect.objectContaining({
+          id: 1,
+          title: 'New Title',
+          status: 'Eskalasi',
+          allowed_statuses: ['Open', 'Eskalasi', 'Selesai']
+        })
       }));
     });
 
@@ -388,6 +393,43 @@ describe('ReportController', () => {
       }));
       expect(res.status).toHaveBeenCalledWith(200);
     });
+
+    it('supports action_description and status Selesai, updating stations and recording log', async () => {
+      const existingReport = { id: 1, title: 'Pompa Rusak', station_uuid: 'ST-001', status: 'Eskalasi' };
+      const updatedReport = { id: 1, title: 'Pompa Rusak', station_uuid: 'ST-001', status: 'Selesai', action_description: 'Pompa diganti baru' };
+      mockFirst
+        .mockResolvedValueOnce(existingReport)
+        .mockResolvedValueOnce(updatedReport);
+
+      const req: any = {
+        params: { id: '1' },
+        body: {
+          status: 'Selesai',
+          action_description: 'Pompa diganti baru',
+          activity_type: 'Perbaikan Mesin'
+        },
+        user: { role_id: 'eng', username: 'teknisi1' }
+      };
+      const res = createResponseDouble();
+
+      await ReportCtl.update(req, res);
+
+      expect(mockUpdate).toHaveBeenCalledWith('reports', expect.objectContaining({
+        status: 'Selesai',
+        action_description: 'Pompa diganti baru'
+      }));
+      expect(mockInsert).toHaveBeenCalledWith('maintenance_logs', expect.objectContaining({
+        uuid: 'ST-001',
+        status: 'start',
+        description: 'Pompa diganti baru',
+        progress: 'Selesai',
+        report_id: 1,
+        created_by: 'teknisi1'
+      }));
+      expect(mockUpdate).toHaveBeenCalledWith('stations', { instrument_status: 'NORMAL' });
+      expect(mockRedisDel).toHaveBeenCalledWith('maintenance:ST-001');
+      expect(res.status).toHaveBeenCalledWith(200);
+    });
   });
 
   describe('followUp', () => {
@@ -424,7 +466,7 @@ describe('ReportController', () => {
       expect(res.status).toHaveBeenCalledWith(400);
       expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
         success: false,
-        message: 'Description is required for follow-up'
+        message: 'Description or action_description is required for follow-up'
       }));
     });
 
@@ -660,6 +702,44 @@ describe('ReportController', () => {
         message: 'Tindak lanjut laporan berhasil disimpan'
       }));
     });
+
+    it('supports deskripsi_tindakan alias and updates reports.action_description', async () => {
+      const dummyReport = { id: 7, title: 'Sensor TDS', station_uuid: 'ST-007', status: 'Open' };
+      const updatedReport = { id: 7, title: 'Sensor TDS', station_uuid: 'ST-007', status: 'Eskalasi', action_description: 'Pembersihan elektroda TDS' };
+      mockFirst
+        .mockResolvedValueOnce(dummyReport)
+        .mockResolvedValueOnce(updatedReport);
+
+      const req: any = {
+        params: { id: '7' },
+        body: {
+          progress: 'Pengerjaan',
+          deskripsi_tindakan: 'Pembersihan elektroda TDS'
+        },
+        user: { username: 'budi' }
+      };
+      const res = createResponseDouble();
+
+      await ReportCtl.followUp(req, res);
+
+      expect(mockUpdate).toHaveBeenCalledWith('reports', expect.objectContaining({
+        status: 'Eskalasi',
+        action_description: 'Pembersihan elektroda TDS'
+      }));
+      expect(mockInsert).toHaveBeenCalledWith('maintenance_logs', expect.objectContaining({
+        uuid: 'ST-007',
+        description: 'Pembersihan elektroda TDS',
+        progress: 'Pengerjaan',
+        created_by: 'budi'
+      }));
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+        data: expect.objectContaining({
+          allowed_statuses: ['Open', 'Eskalasi', 'Selesai'],
+          action_description: 'Pembersihan elektroda TDS'
+        })
+      }));
+    });
   });
 
   describe('delete', () => {
@@ -700,3 +780,4 @@ describe('ReportController', () => {
     });
   });
 });
+
