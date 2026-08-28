@@ -28,6 +28,18 @@ export function evaluateCalibrationResult(
   return 'FAILED';
 }
 
+/**
+ * Formats a coefficient number to 6 decimal digits.
+ * @param value The number or string to format.
+ * @returns String representation formatted to 6 decimal places.
+ */
+export function formatCoefficient(value: number | string | null | undefined): string {
+  if (value === null || value === undefined || value === '') return '-';
+  const num = Number(value);
+  if (isNaN(num)) return String(value);
+  return num.toFixed(6);
+}
+
 export interface CalibrationSpecification {
   label: string;
   method: 'trueness' | 'accuracy';
@@ -37,20 +49,27 @@ export interface CalibrationSpecification {
 }
 
 const CALIBRATION_SPECIFICATIONS: Record<string, CalibrationSpecification> = {
-  DO: { label: '0% Accuracy ±0.05%; 100% %Trueness 99–101%', method: 'trueness', min: 99, max: 101 },
+  DO: { label: '0% Accuracy ±0.05%; 100% %Trueness 90–110%', method: 'trueness', min: 90, max: 110 },
   Turbidity: { label: '%Trueness 90–110%', method: 'trueness', min: 90, max: 110 },
   TDS: { label: '%Trueness 90–110%', method: 'trueness', min: 90, max: 110 },
   COD: { label: '%Trueness 90–110%', method: 'trueness', min: 90, max: 110 },
   BOD: { label: '%Trueness 90–110%', method: 'trueness', min: 90, max: 110 },
-  pH: { label: 'Accuracy ±0.20', method: 'accuracy', tolerance: 0.20 },
-  TSS: { label: '%Trueness 99–100%', method: 'trueness', min: 99, max: 100 },
-  Amonia: { label: '%Trueness 99–101%', method: 'trueness', min: 99, max: 101 },
+  pH: { label: 'Accuracy ±0.05', method: 'accuracy', tolerance: 0.05 },
+  TSS: { label: '%Trueness 90–110%', method: 'trueness', min: 90, max: 110 },
+  Amonia: { label: '%Trueness 90–110%', method: 'trueness', min: 90, max: 110 },
   Nitrat: { label: '%Trueness 90–110%', method: 'trueness', min: 90, max: 110 },
   Nitrit: { label: '%Trueness 90–110%', method: 'trueness', min: 90, max: 110 }
 };
 
 export function getCalibrationSpecification(parameterName: string): CalibrationSpecification | null {
-  return CALIBRATION_SPECIFICATIONS[parameterName] || null;
+  const normalized = parameterName.trim();
+  if (CALIBRATION_SPECIFICATIONS[normalized]) return CALIBRATION_SPECIFICATIONS[normalized];
+  if (/^amonia/i.test(normalized) || /^nh3/i.test(normalized)) return CALIBRATION_SPECIFICATIONS['Amonia'];
+  if (/^tss/i.test(normalized)) return CALIBRATION_SPECIFICATIONS['TSS'];
+  if (/^nitrat/i.test(normalized) || /^no3/i.test(normalized)) return CALIBRATION_SPECIFICATIONS['Nitrat'];
+  if (/^nitrit/i.test(normalized) || /^no2/i.test(normalized)) return CALIBRATION_SPECIFICATIONS['Nitrit'];
+  if (/^suhu/i.test(normalized) || /^temp/i.test(normalized)) return { label: 'Accuracy ±0.5°C', method: 'accuracy', tolerance: 0.5 };
+  return null;
 }
 
 export function evaluateStandardMeasurement(

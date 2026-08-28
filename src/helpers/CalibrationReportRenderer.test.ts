@@ -67,8 +67,8 @@ describe('renderCalibrationReportHtml', () => {
 
     expect(html).toContain('<td class="text-center">1,01 mg/L</td>');
     expect(html).toContain('<td class="text-center">1,01</td>');
-    expect(html).toContain('<strong>K:</strong> 1,01');
-    expect(html).toContain('<strong>B:</strong> 1,01');
+    expect(html).toContain('<strong>K:</strong> 1,005000');
+    expect(html).toContain('<strong>B:</strong> 1,005000');
     expect(html).toContain('<td>1,01</td><td>1,01</td>');
     expect(html).toContain('<strong>Tempat/Tanggal:</strong> Morowali Utara, 12 Agustus 2026');
   });
@@ -155,8 +155,8 @@ describe('renderCalibrationReportHtml', () => {
     expect(html).toContain('0,00 mg/L');
     expect(html).toContain('CRM 5,51 mg/L');
     expect(html).toContain('5,40');
-    expect(html).toContain('1,41');
-    expect(html).toContain('0,00');
+    expect(html).toContain('1,410000');
+    expect(html).toContain('0,000000');
     expect(html).toContain('<span class="tag-pass">Memenuhi</span>');
     expect(html).toContain('<span class="tag-fail">Tidak Memenuhi</span>');
     expect(html).toContain('<span class="tag-pending">Tidak diuji</span>');

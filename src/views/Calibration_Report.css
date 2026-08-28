@@ -87,9 +87,9 @@ table { width: 100%; border-collapse: collapse; }
 .text-right { text-align: right; }
 .font-bold { font-weight: 700; }
 
-.tag-pass { color: #15803d; font-weight: 700; }
-.tag-fail { color: #b91c1c; font-weight: 700; }
-.tag-pending { color: #64748b; font-weight: 500; }
+.tag-pass { color: #0f172a; font-weight: 700; }
+.tag-fail { color: #0f172a; font-weight: 700; }
+.tag-pending { color: #0f172a; font-weight: 500; }
 
 .notes-box { border: 1px solid #cbd5e1; background: #fafafa; padding: 5px 8px; font-size: 8pt; margin-bottom: 8px; }
 .notes-box ul, .notes-box ol { margin: 2px 0 2px 15px; padding: 0; }

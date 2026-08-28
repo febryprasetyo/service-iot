@@ -79,6 +79,19 @@ const calibrationMonths = [
   'Desember'
 ] as const;
 
+
+const coefficientNumberFormat = new Intl.NumberFormat('id-ID', {
+  minimumFractionDigits: 6,
+  maximumFractionDigits: 6,
+  useGrouping: false
+});
+
+export function formatCoefficientValue(value: unknown): string {
+  if (value === null || value === undefined || value === '') return '-';
+  const numericValue = Number(value);
+  return Number.isFinite(numericValue) ? coefficientNumberFormat.format(numericValue) : String(value ?? '-');
+}
+
 const calibrationNumberFormat = new Intl.NumberFormat('id-ID', {
   minimumFractionDigits: 2,
   maximumFractionDigits: 2,
@@ -234,7 +247,7 @@ function formatCoefficients(value: ReportDetail['coefficients'], parameterName: 
     const pairs = [['k1', 'k2'], ['k3', 'k4'], ['k5', 'k6']];
     return pairs.map((pair) => pair
       .map((key) => coefficients[key] !== undefined
-        ? `<strong>${escapeHtml(key.toUpperCase())}:</strong> ${escapeHtml(formatReportNumberValue(coefficients[key]))}`
+        ? `<strong>${escapeHtml(key.toUpperCase())}:</strong> ${escapeHtml(formatCoefficientValue(coefficients[key]))}`
         : null)
       .filter(Boolean)
       .join(' | '))
@@ -243,7 +256,7 @@ function formatCoefficients(value: ReportDetail['coefficients'], parameterName: 
   }
 
   return entries.map(([key, coefficient]) =>
-    `<strong>${escapeHtml(key.toUpperCase())}:</strong> ${escapeHtml(formatReportNumberValue(coefficient))}`
+    `<strong>${escapeHtml(key.toUpperCase())}:</strong> ${escapeHtml(formatCoefficientValue(coefficient))}`
   ).join('<br>') || '-';
 }
 
