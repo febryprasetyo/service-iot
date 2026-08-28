@@ -5,7 +5,7 @@
       "target": "es6",
       "outDir": "build",
       "rootDir": "src",
-      "baseUrl": ".",
+      "types": ["node", "jest"],
       "ignoreDeprecations": "6.0",
       "strict": false,
       "skipLibCheck": true,

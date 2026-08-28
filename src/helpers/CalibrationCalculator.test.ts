@@ -1,3 +1,4 @@
+import { describe, expect, it } from '@jest/globals';
 import { calculateTrueness, evaluateCalibrationResult, formatCoefficient } from './CalibrationCalculator';
 
 describe('CalibrationCalculator', () => {
