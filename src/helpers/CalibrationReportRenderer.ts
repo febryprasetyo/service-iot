@@ -271,7 +271,7 @@ function renderCalibrationRows(details: ReportDetail[]): string {
       .join('<br>') || '-';
     const readingLines = standards
       .filter((standard) => !/^crm\b/i.test(String(standard.crmName || '')))
-      .map((standard) => escapeHtml(formatReportNumberValue(standard.calibrationResult)));
+      .map((standard) => escapeHtml(withUnit(standard.calibrationResult, detail.parameterName, detail.parameterUnit)));
     const crmStandard = standards.find((standard) => /^crm\b/i.test(String(standard.crmName || '')));
     if (detail.crmReadingValue !== null && detail.crmReadingValue !== undefined) {
       readingLines.push(escapeHtml(withUnit(detail.crmReadingValue, detail.parameterName, detail.parameterUnit)));

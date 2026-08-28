@@ -67,7 +67,6 @@ describe('renderCalibrationReportHtml', () => {
     });
 
     expect(html).toContain('<td class="text-center">1,01 mg/L</td>');
-    expect(html).toContain('<td class="text-center">1,01</td>');
     expect(html).toContain('<strong>K:</strong> 1,005000');
     expect(html).toContain('<strong>B:</strong> 1,005000');
     expect(html).toContain('<td>1,01</td><td>1,01</td>');

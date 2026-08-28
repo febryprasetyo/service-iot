@@ -6,7 +6,6 @@
       "outDir": "build",
       "rootDir": "src",
       "types": ["node", "jest"],
-      "ignoreDeprecations": "6.0",
       "strict": false,
       "skipLibCheck": true,
       "sourceMap": true
